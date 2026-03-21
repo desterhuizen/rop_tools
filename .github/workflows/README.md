@@ -92,6 +92,11 @@ coverage html  # Generate HTML report in htmlcov/
 
 ## Workflow Configuration
 
+### GitHub Actions Versions
+- **actions/checkout**: v4
+- **actions/setup-python**: v5
+- **actions/upload-artifact**: v4 (coverage.yml only)
+
 ### Python Versions Tested
 - Python 3.7
 - Python 3.8
