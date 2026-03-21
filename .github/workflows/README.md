@@ -44,8 +44,8 @@ coverage html
 
 The following badges are displayed in the main README.md:
 
-- **Tests**: ![Tests](https://github.com/YOUR_USERNAME/rop_tools/actions/workflows/tests.yml/badge.svg)
-- **Coverage**: ![Coverage](https://github.com/YOUR_USERNAME/rop_tools/actions/workflows/coverage.yml/badge.svg)
+- **Tests**: ![Tests](https://github.com/desterhuizen/rop_tools/actions/workflows/tests.yml/badge.svg)
+- **Coverage**: ![Coverage](https://github.com/desterhuizen/rop_tools/actions/workflows/coverage.yml/badge.svg)
 
 **Note:** Replace `YOUR_USERNAME` with your actual GitHub username in both the badges and workflow files.
 
