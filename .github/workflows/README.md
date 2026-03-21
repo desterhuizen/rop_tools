@@ -7,7 +7,7 @@ This directory contains CI/CD workflows for automated testing and quality assura
 ### 1. `tests.yml` - Test Suite
 **Triggers:** Push/PR to main or develop branches, manual dispatch
 
-Runs the complete test suite across multiple Python versions (3.7-3.11) to ensure compatibility.
+Runs the complete test suite across multiple Python versions (3.8-3.12) to ensure compatibility.
 
 **What it tests:**
 - `lib/` - Shared library tests (ColorPrinter)
@@ -99,21 +99,23 @@ coverage html  # Generate HTML report in htmlcov/
 - **actions/upload-artifact**: v4 (coverage.yml only)
 
 ### Python Versions Tested
-- Python 3.7
 - Python 3.8
 - Python 3.9
 - Python 3.10
 - Python 3.11
+- Python 3.12
+
+**Note:** Python 3.7 is not tested as it reached end-of-life on June 27, 2023 and is not available on Ubuntu 24.04 (ubuntu-latest).
 
 ### Operating Systems
-- **tests.yml**: Ubuntu (Linux)
-- **coverage.yml**: Ubuntu (Linux)
+- **tests.yml**: Ubuntu (Linux) - ubuntu-latest (currently 24.04)
+- **coverage.yml**: Ubuntu (Linux) - ubuntu-latest (currently 24.04)
 
 To test on additional platforms, add to the matrix in `tests.yml`:
 ```yaml
 matrix:
   os: [ubuntu-latest, windows-latest, macos-latest]
-  python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+  python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
 ```
 
 ## Troubleshooting
@@ -151,6 +153,20 @@ The `-t .` flag tells unittest that the repository root (`.`) is the top-level d
 - Artifacts are only available after workflow completes
 - Check the "Artifacts" section at the bottom of the workflow run
 - Artifacts expire after 30 days
+
+### Python 3.7 not available on Ubuntu 24.04
+**Error message:**
+```
+Error: The version '3.7' with architecture 'x64' was not found for Ubuntu 24.04.
+```
+
+**Reason:** Python 3.7 reached end-of-life on June 27, 2023 and is no longer supported on Ubuntu 24.04 (ubuntu-latest).
+
+**Solution:**
+- Use Python 3.8 or newer (recommended)
+- Or use an older Ubuntu version like `ubuntu-22.04` or `ubuntu-20.04` (not recommended)
+
+Our workflows test Python 3.8-3.12 to ensure compatibility with actively supported versions.
 
 ## Manual Workflow Dispatch
 

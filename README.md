@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/desterhuizen/rop_tools/actions/workflows/tests.yml/badge.svg)](https://github.com/desterhuizen/rop_tools/actions/workflows/tests.yml)
 [![Coverage](https://github.com/desterhuizen/rop_tools/actions/workflows/coverage.yml/badge.svg)](https://github.com/desterhuizen/rop_tools/actions/workflows/coverage.yml)
-[![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
 A comprehensive collection of Python-based security testing tools for exploit development, shellcode generation, and binary analysis. This suite is designed for defensive security research, vulnerability analysis, and security education.
 
