@@ -1,0 +1,16 @@
+{
+  "bad_chars": [0, 10, 13],
+  "calls": [
+    {
+      "api": "MessageBoxA",
+      "dll": "user32.dll",
+      "args": [
+        0,
+        "Hello from custom shellcode!",
+        "Custom Payload",
+        0
+      ]
+    }
+  ],
+  "exit": true
+}

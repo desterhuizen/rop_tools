@@ -1,0 +1,5 @@
+0x10001000: pop eax ; ret ; (1 found)
+0x10001005: pop ebx ; pop ecx ; ret ; (1 found)
+0x10001010: mov eax, ebx ; ret ; (1 found)
+0x10001020: add esp, 0x10 ; ret ; (1 found)
+0x10001030: xor eax, eax ; ret ; (1 found)
