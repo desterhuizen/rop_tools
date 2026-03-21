@@ -44,7 +44,7 @@ cd shellgen && ./shellgen.sh --platform windows --payload reverse_shell \
 A complete toolkit for ROP (Return-Oriented Programming) analysis including gadget parsing, PE base address extraction, and an interactive worksheet for building ROP chains.
 
 #### Tools:
-- **`get_rop_gadgets.py`** - Parse and filter ROP gadgets from rp++ output
+- **`get_rop_gadgets.py`** - Parse and filter ROP gadgets from [rp++](https://github.com/0vercl0k/rp) output
 - **`get_base_address.py`** - Extract ImageBase and PE information
 - **`rop_worksheet.py`** - Interactive ROP chain building worksheet
 

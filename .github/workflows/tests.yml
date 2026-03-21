@@ -37,21 +37,21 @@ jobs:
         echo "=========================================="
         echo "Running lib tests"
         echo "=========================================="
-        python -m unittest discover -s lib/tests -p "test_*.py" -v
+        python -m unittest discover -s lib/tests -p "test_*.py" -t . -v
 
     - name: Run rop tests
       run: |
         echo "=========================================="
         echo "Running rop tests"
         echo "=========================================="
-        python -m unittest discover -s rop/tests -p "test_*.py" -v
+        python -m unittest discover -s rop/tests -p "test_*.py" -t . -v
 
     - name: Run shellgen tests
       run: |
         echo "=========================================="
         echo "Running shellgen tests"
         echo "=========================================="
-        python -m unittest discover -s shellgen/tests -p "test_*.py" -v
+        python -m unittest discover -s shellgen/tests -p "test_*.py" -t . -v
 
     - name: Test Summary
       if: always()

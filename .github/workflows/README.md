@@ -16,8 +16,9 @@ Runs the complete test suite across multiple Python versions (3.7-3.11) to ensur
 
 **Test command:**
 ```bash
-python -m unittest discover -s <module>/tests -p "test_*.py" -v
+python -m unittest discover -s <module>/tests -p "test_*.py" -t . -v
 ```
+Note: `-t .` specifies the top-level directory for proper module imports
 
 ### 2. `coverage.yml` - Test Coverage
 **Triggers:** Push/PR to main branch, manual dispatch
@@ -33,9 +34,9 @@ Generates test coverage reports using Python 3.10 on Ubuntu.
 **Manual coverage check:**
 ```bash
 pip install coverage
-coverage run -m unittest discover -s lib/tests -p "test_*.py"
-coverage run -a -m unittest discover -s rop/tests -p "test_*.py"
-coverage run -a -m unittest discover -s shellgen/tests -p "test_*.py"
+coverage run -m unittest discover -s lib/tests -p "test_*.py" -t .
+coverage run -a -m unittest discover -s rop/tests -p "test_*.py" -t .
+coverage run -a -m unittest discover -s shellgen/tests -p "test_*.py" -t .
 coverage report -m
 coverage html
 ```
@@ -56,10 +57,10 @@ The following badges are displayed in the main README.md:
 # Install dependencies
 pip install -r requirements.txt
 
-# Run all tests
-python -m unittest discover -s lib/tests -p "test_*.py" -v
-python -m unittest discover -s rop/tests -p "test_*.py" -v
-python -m unittest discover -s shellgen/tests -p "test_*.py" -v
+# Run all tests (from repository root)
+python -m unittest discover -s lib/tests -p "test_*.py" -t . -v
+python -m unittest discover -s rop/tests -p "test_*.py" -t . -v
+python -m unittest discover -s shellgen/tests -p "test_*.py" -t . -v
 ```
 
 ### Run specific test file
@@ -72,9 +73,9 @@ python -m unittest shellgen/tests/test_encoders.py -v
 ### Run with coverage
 ```bash
 pip install coverage
-coverage run -m unittest discover -s lib/tests -p "test_*.py"
-coverage run -a -m unittest discover -s rop/tests -p "test_*.py"
-coverage run -a -m unittest discover -s shellgen/tests -p "test_*.py"
+coverage run -m unittest discover -s lib/tests -p "test_*.py" -t .
+coverage run -a -m unittest discover -s rop/tests -p "test_*.py" -t .
+coverage run -a -m unittest discover -s shellgen/tests -p "test_*.py" -t .
 coverage report -m
 coverage html  # Generate HTML report in htmlcov/
 ```
@@ -117,6 +118,23 @@ matrix:
 
 ## Troubleshooting
 
+### ImportError: Start directory is not importable
+**Error message:**
+```
+ImportError: Start directory is not importable: 'lib/tests'
+```
+
+**Solution:** Add the `-t .` flag to specify the top-level directory:
+```bash
+# Wrong (missing -t flag)
+python -m unittest discover -s lib/tests -p "test_*.py" -v
+
+# Correct (with -t flag)
+python -m unittest discover -s lib/tests -p "test_*.py" -t . -v
+```
+
+The `-t .` flag tells unittest that the repository root (`.`) is the top-level directory, allowing proper module imports.
+
 ### Workflow not triggering
 - Ensure you've pushed to `main` or `develop` branch
 - Check that workflow files are in `.github/workflows/`
@@ -127,6 +145,7 @@ matrix:
 - Verify all dependencies are in `requirements.txt`
 - Check for platform-specific issues (Windows vs Linux)
 - Review workflow logs in GitHub Actions tab
+- Ensure you're using `-t .` flag in test discovery commands
 
 ### Coverage artifacts not appearing
 - Artifacts are only available after workflow completes
