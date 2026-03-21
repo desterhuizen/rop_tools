@@ -38,36 +38,31 @@ echo "Creating wrapper scripts..."
 # Create wrapper script for shellgen
 cat > "$BIN_DIR/shellgen" << EOF
 #!/bin/bash
-SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
-"\$SCRIPT_DIR/venv/bin/python3" "\$SCRIPT_DIR/shellgen/shellgen_cli.py" "\$@"
+exec "$VENV_DIR/bin/python3" "$SCRIPT_DIR/shellgen/shellgen_cli.py" "\$@"
 EOF
 
 # Create wrapper script for hash_generator
 cat > "$BIN_DIR/hash_generator" << EOF
 #!/bin/bash
-SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
-"\$SCRIPT_DIR/venv/bin/python3" "\$SCRIPT_DIR/shellgen/hash_generator.py" "\$@"
+exec "$VENV_DIR/bin/python3" "$SCRIPT_DIR/shellgen/hash_generator.py" "\$@"
 EOF
 
 # Create wrapper script for get_rop_gadgets
 cat > "$BIN_DIR/get_rop_gadgets" << EOF
 #!/bin/bash
-SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
-"\$SCRIPT_DIR/venv/bin/python3" "\$SCRIPT_DIR/rop/get_rop_gadgets.py" "\$@"
+exec "$VENV_DIR/bin/python3" "$SCRIPT_DIR/rop/get_rop_gadgets.py" "\$@"
 EOF
 
 # Create wrapper script for get_base_address
 cat > "$BIN_DIR/get_base_address" << EOF
 #!/bin/bash
-SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
-"\$SCRIPT_DIR/venv/bin/python3" "\$SCRIPT_DIR/rop/get_base_address.py" "\$@"
+exec "$VENV_DIR/bin/python3" "$SCRIPT_DIR/rop/get_base_address.py" "\$@"
 EOF
 
 # Create wrapper script for rop_worksheet
 cat > "$BIN_DIR/rop_worksheet" << EOF
 #!/bin/bash
-SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
-"\$SCRIPT_DIR/venv/bin/python3" "\$SCRIPT_DIR/rop/rop_worksheet.py" "\$@"
+exec "$VENV_DIR/bin/python3" "$SCRIPT_DIR/rop/rop_worksheet.py" "\$@"
 EOF
 
 # Make wrapper scripts executable
