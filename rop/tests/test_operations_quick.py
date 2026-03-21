@@ -31,10 +31,10 @@ class TestCmdSet:
         """Test setting named value."""
         ws = blank_worksheet()
 
-        success, msg = cmd_set(ws, "shellcode", "0x00501000")
+        success, msg = cmd_set(ws, "shellgen", "0x00501000")
 
         assert success is True
-        assert ws["named"]["shellcode"] == "0x00501000"
+        assert ws["named"]["shellgen"] == "0x00501000"
 
     def test_set_resolves_register_value(self):
         """Test that set resolves register values."""
@@ -83,12 +83,12 @@ class TestCmdClear:
     def test_clear_named(self):
         """Test clearing named value."""
         ws = blank_worksheet()
-        ws["named"]["shellcode"] = "0x00501000"
+        ws["named"]["shellgen"] = "0x00501000"
 
-        success, msg = cmd_clear(ws, "shellcode")
+        success, msg = cmd_clear(ws, "shellgen")
 
         assert success is True
-        assert "shellcode" not in ws["named"]
+        assert "shellgen" not in ws["named"]
 
     def test_clear_nonexistent_stack(self):
         """Test clearing non-existent stack value doesn't error."""

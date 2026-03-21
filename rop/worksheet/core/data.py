@@ -27,7 +27,7 @@ def blank_worksheet() -> Dict[str, Any]:
     return {
         "registers": {r: "0x00000000" for r in ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"]},
         "stack": {},       # offset -> value (e.g., "+0x00": "0xdeadbeef")
-        "named": {},       # name -> value (e.g., "shellcode": "0x00501000")
+        "named": {},       # name -> value (e.g., "shellgen": "0x00501000")
         "gadgets": {},     # address -> instruction string (gadget library)
         "chain": [],       # list of addresses/values (ROP chain payload)
         "notes": "",

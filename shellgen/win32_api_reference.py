@@ -107,7 +107,7 @@ WinExec(lpCmdLine, uCmdShow)
 
 Description:
     Executes a program. Simple but limited control over process creation.
-    Modern code should use CreateProcess, but this is smaller for shellcode.
+    Modern code should use CreateProcess, but this is smaller for shellgen.
 
 Parameters:
     lpCmdLine (LPCSTR)  - Command line to execute (string)
@@ -187,7 +187,7 @@ Returns:
 DLL: kernel32.dll
 ROR13 Hash: 0x16b3fe72
 
-Note: In shellcode, you typically build STARTUPINFO/PROCESS_INFORMATION on stack.
+Note: In shellgen, you typically build STARTUPINFO/PROCESS_INFORMATION on stack.
       This is complex - use the built-in createprocess payload instead of JSON.
 """
 
@@ -1349,7 +1349,7 @@ VirtualProtect(lpAddress, dwSize, flNewProtect, lpflOldProtect)
 
 Description:
     Changes the protection on a region of committed memory pages.
-    Commonly used to make shellcode executable (NX bypass).
+    Commonly used to make shellgen executable (NX bypass).
 
 Parameters:
     lpAddress (LPVOID)  - Starting address of region
@@ -1376,7 +1376,7 @@ VIRTUALPROTECT_EXAMPLE = {
             "dll": "kernel32.dll",
             "args": [0, 4096, 0x3000, 0x04]  # RW only
         },
-        # ... write shellcode to allocated memory ...
+        # ... write shellgen to allocated memory ...
         {
             "api": "VirtualProtect",
             "dll": "kernel32.dll",
@@ -1703,12 +1703,12 @@ TIPS FOR CREATING CUSTOM PAYLOADS:
 4. HANDLE BAD CHARACTERS
    - Specify your bad chars in the "bad_chars" array
    - The encoder will avoid them in immediate values
-   - If opcodes contain bad chars, use --debug-shellcode to find them
+   - If opcodes contain bad chars, use --debug-shellgen to find them
 
 5. TEST INCREMENTALLY
    - Add one API call at a time
    - Use --verify to check for bad characters
-   - Use --debug-shellcode to find problematic instructions
+   - Use --debug-shellgen to find problematic instructions
 
 6. COMMON PATTERNS
    - File operations: CreateFileA → WriteFile → CloseHandle
@@ -1724,13 +1724,13 @@ TIPS FOR CREATING CUSTOM PAYLOADS:
 
 8. DEBUGGING
    - If assembly fails, check API parameter counts
-   - If shellcode has bad chars, use different registers
+   - If shellgen has bad chars, use different registers
    - If execution fails, verify DLL names are correct
    - Use --format asm to review generated code
 
 EXAMPLE COMMAND:
     # Save one of the examples above to a file
-    # Then generate shellcode:
+    # Then generate shellgen:
     ./shellgen.sh --platform windows --json my_payload.json --arch x86 --format python
 
 GENERATE HASHES:

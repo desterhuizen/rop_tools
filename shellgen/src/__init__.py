@@ -1,6 +1,6 @@
 """
 Shellcode Generator Package
-Multi-architecture shellcode generation with bad character avoidance
+Multi-architecture shellgen generation with bad character avoidance
 """
 
 __version__ = "1.0.0"

@@ -1,5 +1,10 @@
 # Bad Character Avoidance Techniques (Non-Encoding)
 
+> ⚠️ **EDUCATIONAL AND AUTHORIZED TESTING ONLY**
+> This document is provided for security research, education, and authorized penetration testing purposes only. These techniques must only be used on systems you own or have explicit written permission to test. Unauthorized use may violate laws and regulations. The authors are not responsible for misuse of this information.
+
+---
+
 These techniques avoid bad characters without using overall encoding schemes like XOR or Base64. They work at the instruction level to construct values that contain bad characters.
 
 ## 1. **NEG (Negate) Technique**

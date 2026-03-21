@@ -36,13 +36,13 @@ def test_resolver_integration():
     print("\nTesting value resolution...")
     ws = blank_worksheet()
     ws["registers"]["EAX"] = "0xdeadbeef"
-    ws["named"]["shellcode"] = "0x00501000"
+    ws["named"]["shellgen"] = "0x00501000"
 
     # Test register resolution
     assert resolve_value("EAX", ws) == "0xdeadbeef"
 
     # Test named value resolution
-    assert resolve_value("shellcode", ws) == "0x00501000"
+    assert resolve_value("shellgen", ws) == "0x00501000"
 
     # Test hex value
     assert resolve_value("0x12345678", ws) == "0x12345678"
@@ -50,7 +50,7 @@ def test_resolver_integration():
     # Test target parsing
     assert parse_target("EAX") == ("reg", "EAX")
     assert parse_target("ESP+0x10") == ("stack", "+0x10")
-    assert parse_target("shellcode") == ("named", "shellcode")
+    assert parse_target("shellgen") == ("named", "shellgen")
 
     print("✓ Value resolution OK")
 

@@ -1,7 +1,7 @@
 """
 Windows Code Generator
 
-Handles generation of Windows shellcode with:
+Handles generation of Windows shellgen with:
 - PEB walk for kernel32.dll resolution
 - Reusable find_function subroutine via hash lookup
 - Bad character encoding
@@ -17,7 +17,7 @@ from ..encoders import encode_dword, string_to_push_dwords, ror13_hash
 
 
 class WindowsGenerator:
-    """Generator for Windows shellcode (x86, x64, ARM, ARM64)"""
+    """Generator for Windows shellgen (x86, x64, ARM, ARM64)"""
 
     def __init__(self, bad_chars, arch='x86'):
         """
@@ -822,7 +822,7 @@ resolve_symbols_kernel32:
 
     def generate(self, config):
         """
-        Generate complete Windows shellcode from a config dict.
+        Generate complete Windows shellgen from a config dict.
 
         Args:
             config: Dict with 'bad_chars', 'calls', 'exit' keys

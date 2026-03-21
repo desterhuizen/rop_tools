@@ -2,8 +2,8 @@
 """
 ROR13 Hash Generator for Windows API Functions
 
-This tool generates ROR13 hashes used in shellcode for dynamic API resolution.
-The ROR13 algorithm is commonly used in position-independent shellcode to
+This tool generates ROR13 hashes used in shellgen for dynamic API resolution.
+The ROR13 algorithm is commonly used in position-independent shellgen to
 locate Windows API functions by hash instead of by name.
 
 Usage:

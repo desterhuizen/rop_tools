@@ -40,10 +40,10 @@ class TestCmdMove:
     def test_move_to_named(self):
         """Test moving value to named value."""
         ws = blank_worksheet()
-        success, msg = cmd_move(ws, "shellcode", "0x00501000")
+        success, msg = cmd_move(ws, "shellgen", "0x00501000")
 
         assert success is True
-        assert ws["named"]["shellcode"] == "0x00501000"
+        assert ws["named"]["shellgen"] == "0x00501000"
 
     def test_move_invalid_source(self):
         """Test moving invalid source returns error."""

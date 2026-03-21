@@ -1,7 +1,7 @@
 """
 Linux Code Generator
 
-Handles generation of Linux shellcode with:
+Handles generation of Linux shellgen with:
 - Syscall-based execution (execve, socket, dup2, etc.)
 - Bad character encoding for immediate values
 - Support for x86, x64, ARM32, and ARM64 architectures
@@ -11,7 +11,7 @@ from ..encoders import encode_dword, encode_qword, string_to_push_dwords
 
 
 class LinuxGenerator:
-    """Generator for Linux shellcode (x86, x64, ARM32, ARM64)"""
+    """Generator for Linux shellgen (x86, x64, ARM32, ARM64)"""
 
     def __init__(self, bad_chars, arch="x86"):
         """
@@ -67,9 +67,9 @@ class LinuxGenerator:
         return "\n".join(lines)
 
     def gen_execve_arm32(self, command):
-        """Generate ARM32 execve shellcode."""
+        """Generate ARM32 execve shellgen."""
         return f"""; ==========================================================================
-; ARM32 Linux execve shellcode
+; ARM32 Linux execve shellgen
 ; Command: {command}
 ; ==========================================================================
 
@@ -90,9 +90,9 @@ command:
 """
 
     def gen_execve_arm64(self, command):
-        """Generate ARM64 execve shellcode."""
+        """Generate ARM64 execve shellgen."""
         return f"""; ==========================================================================
-; ARM64 Linux execve shellcode
+; ARM64 Linux execve shellgen
 ; Command: {command}
 ; ==========================================================================
 
@@ -112,7 +112,7 @@ command:
 """
 
     def gen_reverse_shell_arm32(self, host, port):
-        """Generate ARM32 reverse shell shellcode."""
+        """Generate ARM32 reverse shell shellgen."""
         # Convert IP address to hex
         ip_parts = [int(x) for x in host.split('.')]
         ip_hex = (ip_parts[0] << 24) | (ip_parts[1] << 16) | (ip_parts[2] << 8) | ip_parts[3]
@@ -178,7 +178,7 @@ binsh:
 """
 
     def gen_reverse_shell_arm64(self, host, port):
-        """Generate ARM64 reverse shell shellcode."""
+        """Generate ARM64 reverse shell shellgen."""
         # Convert IP address to hex
         ip_parts = [int(x) for x in host.split('.')]
         ip_hex = (ip_parts[0] << 24) | (ip_parts[1] << 16) | (ip_parts[2] << 8) | ip_parts[3]
@@ -244,7 +244,7 @@ binsh:
 """
 
     def gen_bind_shell_arm32(self, port, shell="/bin/sh"):
-        """Generate ARM32 bind shell shellcode."""
+        """Generate ARM32 bind shell shellgen."""
         # Convert port to network byte order
         port_high = (port >> 8) & 0xFF
         port_low = port & 0xFF
@@ -325,7 +325,7 @@ shell:
 """
 
     def gen_bind_shell_arm64(self, port, shell="/bin/sh"):
-        """Generate ARM64 bind shell shellcode."""
+        """Generate ARM64 bind shell shellgen."""
         # Convert port to network byte order
         port_high = (port >> 8) & 0xFF
         port_low = port & 0xFF
@@ -407,7 +407,7 @@ shell:
 
     def generate(self, config):
         """
-        Generate Linux shellcode based on configuration.
+        Generate Linux shellgen based on configuration.
 
         Args:
             config: Dict with keys:

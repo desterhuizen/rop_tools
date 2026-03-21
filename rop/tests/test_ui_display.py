@@ -55,7 +55,7 @@ class TestBuildWorksheetView:
     def test_build_view_with_named_values(self):
         """Test building view with named values."""
         ws = blank_worksheet()
-        ws["named"]["shellcode"] = "0x00501000"
+        ws["named"]["shellgen"] = "0x00501000"
         ws["named"]["base_addr"] = "0x10000000"
 
         result = build_worksheet_view(ws)
@@ -116,7 +116,7 @@ class TestBuildWorksheetView:
         ws["registers"]["EAX"] = "0xdeadbeef"
         ws["registers"]["ESP"] = "0x01000000"
         ws["stack"]["+0x00"] = "0x11111111"
-        ws["named"]["shellcode"] = "0x00501000"
+        ws["named"]["shellgen"] = "0x00501000"
         ws["gadgets"]["0x10001234"] = "pop eax ; ret"
         ws["chain"] = [{"type": "address", "value": "0x10001234"}]
         ws["notes"] = "Test notes"

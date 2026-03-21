@@ -2,7 +2,7 @@
 """
 Command Line Interface Module
 
-Handles argument parsing and orchestration of the shellcode generation workflow.
+Handles argument parsing and orchestration of the shellgen generation workflow.
 """
 
 import argparse
@@ -220,11 +220,11 @@ Examples:
     parser.add_argument(
         '--verify',
         action='store_true',
-        help='Verify assembled shellcode for bad characters (requires Keystone)'
+        help='Verify assembled shellgen for bad characters (requires Keystone)'
     )
 
     parser.add_argument(
-        '--debug-shellcode',
+        '--debug-shellgen',
         action='store_true',
         help='Print opcodes line by line to identify bad characters'
     )
@@ -389,7 +389,7 @@ def build_payload_config(args, bad_chars):
 
 def generate_shellcode(args, config):
     """
-    Generate shellcode based on platform and configuration.
+    Generate shellgen based on platform and configuration.
 
     Args:
         args: Parsed command-line arguments
@@ -399,13 +399,13 @@ def generate_shellcode(args, config):
         str: Generated assembly code
     """
     if args.platform == 'windows':
-        # Windows shellcode generation (x86, x64, ARM, ARM64)
+        # Windows shellgen generation (x86, x64, ARM, ARM64)
         bad_chars = config.get('bad_chars', set())
         generator = WindowsGenerator(bad_chars, args.arch)
         return generator.generate(config)
 
     elif args.platform == 'linux':
-        # Linux shellcode generation (x86, x64, ARM, ARM64)
+        # Linux shellgen generation (x86, x64, ARM, ARM64)
         bad_chars = config.get('bad_chars', set())
         generator = LinuxGenerator(bad_chars, args.arch)
         return generator.generate(config)
@@ -462,12 +462,12 @@ def run_cli():
                 # Allow user to force no exit even for reverse_shell
                 config['exit'] = False
 
-    # Generate shellcode
+    # Generate shellgen
     try:
         asm_code = generate_shellcode(args, config)
     except Exception as e:
         printer.print_text("✗ ERROR: ", "bold red", end="")
-        printer.print_text(f"Error generating shellcode: {e}\n", "red")
+        printer.print_text(f"Error generating shellgen: {e}\n", "red")
         sys.exit(1)
 
     # Format output
@@ -510,13 +510,13 @@ def run_cli():
     except Exception as e:
         # If assembly fails, just warn but don't stop (user may be using raw format)
         print(f"\n[!] Warning: Could not scan for bad characters: {str(e)}")
-        print(f"    (This is informational only - shellcode generation was successful)")
+        print(f"    (This is informational only - shellgen generation was successful)")
 
-    # Debug shellcode opcodes if requested (run before verify so it always shows)
+    # Debug shellgen opcodes if requested (run before verify so it always shows)
     if args.debug_shellcode:
         debug_shellcode_opcodes(asm_code, args.arch, bad_chars)
 
-    # Verify shellcode for bad characters if requested
+    # Verify shellgen for bad characters if requested
     if args.verify:
         print("\n" + "="*72)
         print("VERIFYING ASSEMBLED SHELLCODE...")
@@ -531,7 +531,7 @@ def run_cli():
                 sys.exit(1)  # Exit with error code if bad chars found
 
         except Exception as e:
-            print(f"\n✗ Verification failed: Could not assemble shellcode")
+            print(f"\n✗ Verification failed: Could not assemble shellgen")
             print(f"   {str(e)}")
             sys.exit(1)
 

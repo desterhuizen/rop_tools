@@ -1,7 +1,7 @@
 """
 Output Formatters Module
 
-Handles formatting of shellcode output in various formats:
+Handles formatting of shellgen output in various formats:
 - Assembly (ASM)
 - Python bytes
 - C char array
@@ -87,15 +87,15 @@ def format_asm(asm_code):
 
 def format_python_bytes(shellcode_bytes, arch='x86', platform='windows'):
     """
-    Format shellcode as Python bytes variable.
+    Format shellgen as Python bytes variable.
 
     Args:
-        shellcode_bytes: Assembled shellcode as bytes
+        shellcode_bytes: Assembled shellgen as bytes
         arch: Architecture name
         platform: Platform name
 
     Returns:
-        str: Python code with shellcode variable
+        str: Python code with shellgen variable
     """
     hex_bytes = ''.join(f'\\x{b:02x}' for b in shellcode_bytes)
 
@@ -108,7 +108,7 @@ def format_python_bytes(shellcode_bytes, arch='x86', platform='windows'):
         output.append(printer.colorize(f"# Architecture: {arch}", "dim white"))
         output.append(printer.colorize(f"# Platform: {platform}", "dim white"))
         output.append("")
-        output.append(printer.colorize("shellcode", "cyan") + f' = b"{hex_bytes}"')
+        output.append(printer.colorize("shellgen", "cyan") + f' = b"{hex_bytes}"')
         return '\n'.join(output) + '\n'
     else:
         # Plain output for files/pipes
@@ -116,21 +116,21 @@ def format_python_bytes(shellcode_bytes, arch='x86', platform='windows'):
 # Architecture: {arch}
 # Platform: {platform}
 
-shellcode = b"{hex_bytes}"
+shellgen = b"{hex_bytes}"
 '''
 
 
 def format_c_array(shellcode_bytes, arch='x86', platform='windows'):
     """
-    Format shellcode as C char array.
+    Format shellgen as C char array.
 
     Args:
-        shellcode_bytes: Assembled shellcode as bytes
+        shellcode_bytes: Assembled shellgen as bytes
         arch: Architecture name
         platform: Platform name
 
     Returns:
-        str: C code with shellcode array
+        str: C code with shellgen array
     """
     # Only add colors if outputting to TTY
     if sys.stdout.isatty():
@@ -141,7 +141,7 @@ def format_c_array(shellcode_bytes, arch='x86', platform='windows'):
         lines.append(printer.colorize(f'// Architecture: {arch}', 'dim white'))
         lines.append(printer.colorize(f'// Platform: {platform}', 'dim white'))
         lines.append('')
-        lines.append(printer.colorize('unsigned char shellcode[]', 'cyan') + ' = {')
+        lines.append(printer.colorize('unsigned char shellgen[]', 'cyan') + ' = {')
 
         # Format as hex bytes, 16 per line
         for i in range(0, len(shellcode_bytes), 16):
@@ -157,7 +157,7 @@ def format_c_array(shellcode_bytes, arch='x86', platform='windows'):
         lines = [
             f'// Length: {len(shellcode_bytes)} bytes',
             '',
-            'unsigned char shellcode[] = {'
+            'unsigned char shellgen[] = {'
         ]
 
         # Format as hex bytes, 16 per line
@@ -208,21 +208,21 @@ from keystone import *
 
 add_break = input("Add int3 breakpoints for debugging? (y/n): ").lower() == 'y'
 
-def run_shellcode(shellcode, add_break=False):
+def run_shellcode(shellgen, add_break=False):
     # Windows Shellcode Execution (VirtualAlloc + CreateThread)
     ptr = ctypes.windll.kernel32.VirtualAlloc(ctypes.c_int(0),
-                                              ctypes.c_int(len(shellcode)),
+                                              ctypes.c_int(len(shellgen)),
                                               ctypes.c_int(0x3000),
                                               ctypes.c_int(0x40))
 
-    buf = (ctypes.c_char * len(shellcode)).from_buffer(shellcode)
+    buf = (ctypes.c_char * len(shellgen)).from_buffer(shellgen)
 
     ctypes.windll.kernel32.RtlMoveMemory(ctypes.c_int(ptr),
                                          buf,
-                                         ctypes.c_int(len(shellcode)))
+                                         ctypes.c_int(len(shellgen)))
 
     print("Shellcode located at address %s" % hex(ptr))
-    print(f"Shellcode size: {{len(shellcode)}} bytes")
+    print(f"Shellcode size: {{len(shellgen)}} bytes")
     input("...PRESS ENTER TO EXECUTE SHELLCODE...")
 
     ht = ctypes.windll.kernel32.CreateThread(ctypes.c_int(0),
@@ -255,28 +255,28 @@ sh = b""
 for e in encoding:
     sh += struct.pack("B", e)
 
-shellcode = bytearray(sh)
+shellgen = bytearray(sh)
 
-print(f"Shellcode length: {{len(shellcode)}} bytes")
+print(f"Shellcode length: {{len(shellgen)}} bytes")
 
-# Print shellcode in Python format
+# Print shellgen in Python format
 print("\\nPython format:")
-print("shellcode = (")
-hex_str = ''.join(f"\\\\x{{b:02x}}" for b in shellcode)
+print("shellgen = (")
+hex_str = ''.join(f"\\\\x{{b:02x}}" for b in shellgen)
 # Split into 80-character chunks
 for i in range(0, len(hex_str), 80):
     chunk = hex_str[i:i+80]
     print(f'    b"{{chunk}}"')
 print(")")
 
-# Print shellcode bytes one per line
+# Print shellgen bytes one per line
 print("\\nByte-by-byte breakdown:")
-for i, b in enumerate(shellcode):
+for i, b in enumerate(shellgen):
     print(f"{{b:02x}}", end=' ' if (i + 1) % 16 else '\\n')
 print()
 
-if input("Run shellcode? (y/n): ").lower() == 'y':
-    run_shellcode(shellcode)
+if input("Run shellgen? (y/n): ").lower() == 'y':
+    run_shellcode(shellgen)
 else:
     if input("Do you want to print the assembly for review? (y/n): ").lower() == 'y':
         print("\\nAssembly code:")
@@ -291,7 +291,7 @@ else:
 
 def format_output(asm_code, output_format, arch='x86', platform='windows'):
     """
-    Format the shellcode in the requested output format.
+    Format the shellgen in the requested output format.
 
     Args:
         asm_code: Assembly source code
@@ -340,17 +340,17 @@ def print_usage_instructions(output_file, output_format, payload_name, verify_en
 
     if output_format == 'asm':
         printer.print_text("\nTo assemble:\n", "bold cyan")
-        printer.print_text(f"  nasm -f bin -o shellcode.bin {output_file}\n", "dim white")
-        printer.print_text(f"  xxd -i shellcode.bin\n", "dim white")
+        printer.print_text(f"  nasm -f bin -o shellgen.bin {output_file}\n", "dim white")
+        printer.print_text(f"  xxd -i shellgen.bin\n", "dim white")
         printer.print_text("\nTo extract bytes for Python:\n", "bold cyan")
-        printer.print_text(f"  python3 -c \"data=open('shellcode.bin','rb').read(); print(''.join(f'\\\\x{{b:02x}}' for b in data))\"\n", "dim white")
+        printer.print_text(f"  python3 -c \"data=open('shellgen.bin','rb').read(); print(''.join(f'\\\\x{{b:02x}}' for b in data))\"\n", "dim white")
         if not verify_enabled:
             printer.print_text("\nTo verify for bad characters:\n", "bold cyan")
-            printer.print_text(f"  python3 shellcode.py --payload {payload_name} [options] --verify\n", "dim white")
+            printer.print_text(f"  python3 shellgen.py --payload {payload_name} [options] --verify\n", "dim white")
 
     elif output_format == 'pyasm':
         printer.print_text("\n✓ Python assembly script generated!\n", "bold green")
-        printer.print_text("\nTo assemble and view shellcode:\n", "bold cyan")
+        printer.print_text("\nTo assemble and view shellgen:\n", "bold cyan")
         printer.print_text(f"  python3 {output_file}\n", "dim white")
         printer.print_text("\nThe script contains:\n", "bold cyan")
         printer.print_text("  - Assembly code as Python tuple with comments\n", "dim white")
@@ -358,17 +358,17 @@ def print_usage_instructions(output_file, output_format, payload_name, verify_en
         printer.print_text("  - print_shellcode_formats() to display in multiple formats\n", "dim white")
         printer.print_text("\nYou can import and use in your own script:\n", "bold cyan")
         printer.print_text(f"  from {output_file.replace('.py', '')} import asm, assemble_shellcode\n", "dim white")
-        printer.print_text(f"  shellcode = assemble_shellcode()\n", "dim white")
+        printer.print_text(f"  shellgen = assemble_shellcode()\n", "dim white")
 
     elif output_format == 'python':
         printer.print_text("\nUsage in Python:\n", "bold cyan")
-        printer.print_text(f"  from {output_file.replace('.py', '')} import shellcode\n", "dim white")
-        printer.print_text("  # shellcode is ready to use as bytes\n", "dim white")
+        printer.print_text(f"  from {output_file.replace('.py', '')} import shellgen\n", "dim white")
+        printer.print_text("  # shellgen is ready to use as bytes\n", "dim white")
 
     elif output_format == 'c':
         printer.print_text("\nUsage in C:\n", "bold cyan")
         printer.print_text(f"  #include \"{output_file}\"\n", "dim white")
-        printer.print_text("  // Use shellcode[] array and shellcode_len\n", "dim white")
+        printer.print_text("  // Use shellgen[] array and shellcode_len\n", "dim white")
 
     elif output_format == 'raw':
         printer.print_text("\nRaw binary file created. Use with:\n", "bold cyan")

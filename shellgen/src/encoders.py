@@ -1,7 +1,7 @@
 """
 Bad Character Encoding Module
 
-Handles encoding of immediate values to avoid bad characters in shellcode.
+Handles encoding of immediate values to avoid bad characters in shellgen.
 Supports both 32-bit (dword) and 64-bit (qword) encoding.
 """
 
@@ -81,7 +81,7 @@ def encode_dword_split(target, bad_chars):
 def encode_qword(target, bad_chars):
     """
     Encode a 64-bit qword by finding a clean pair.
-    For x64 shellcode.
+    For x64 shellgen.
 
     Handles consecutive bad characters by trying multiple offset increments.
     """

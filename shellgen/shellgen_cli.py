@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
 Shellcode Generator CLI Entry Point
-Multi-architecture shellcode generation with bad character avoidance
+Multi-architecture shellgen generation with bad character avoidance
 
-This is the main entry point for the modular shellcode generator.
+This is the main entry point for the modular shellgen generator.
 """
 
 import sys
@@ -14,7 +14,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from shellgen.cli import run_cli
+from src.cli import run_cli
 
 if __name__ == "__main__":
     try:

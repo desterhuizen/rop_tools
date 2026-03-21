@@ -21,7 +21,7 @@ def rop_virtualprotect():
 # -----------------------------------------------------------------------
 # VirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect)
 # WORKS ON: All Windows versions with DEP OptIn/OptOut/AlwaysOn
-# NOTE: Returns new RWX region in EAX - must copy shellcode there then JMP EAX
+# NOTE: Returns new RWX region in EAX - must copy shellgen there then JMP EAX
 # -----------------------------------------------------------------------
 def rop_virtualalloc():
     va  = p32(0x45454545)  # dummy VirtualAlloc Address (API ADDRESS)
@@ -35,7 +35,7 @@ def rop_virtualalloc():
 # -----------------------------------------------------------------------
 # WriteProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, lpBytesWritten)
 # WORKS ON: All Windows versions with DEP OptIn/OptOut/AlwaysOn
-# NOTE: Copies shellcode into an existing executable section (code cave)
+# NOTE: Copies shellgen into an existing executable section (code cave)
 # usually uses code caves
 # -----------------------------------------------------------------------
 def rop_writeprocessmemory():
@@ -43,8 +43,8 @@ def rop_writeprocessmemory():
     wpm += p32(0x46464646)  # Shellcode Return Address (RETURN ADDRESS)
     wpm += p32(0x47474747)  # dummy hProcess use pseudo handle 0xFFFFFFFF for current process
     wpm += p32(0x46464646)  # Shellcode Return Address (RETURN ADDRESS)
-    wpm += p32(0x49494949)  # dummy lpBuffer use address of shellcode on stack or in .data section
-    wpm += p32(0x51515151)  # dummy nSize set to size of shellcode
+    wpm += p32(0x49494949)  # dummy lpBuffer use address of shellgen on stack or in .data section
+    wpm += p32(0x51515151)  # dummy nSize set to size of shellgen
     wpm += p32(0x52525252)  # dummy lpBytesWritten set to NULL or address of writable memory for output
     return wpm
 
@@ -78,7 +78,7 @@ def rop_heapalloc():
 # SetProcessDEPPolicy(dwFlags)
 # WORKS ON: XP SP3, Vista SP1, Server 2008 - ONLY OptIn or OptOut DEP mode
 # FAILS ON: AlwaysOn, /NXCOMPAT linked binaries, if already called once in process
-# NOTE: Disables DEP for entire process - shellcode runs on stack directly after
+# NOTE: Disables DEP for entire process - shellgen runs on stack directly after
 # -----------------------------------------------------------------------
 def rop_setprocessdeppolicy():
     dep  = p32(0x45454545)  # dummy SetProcessDEPPolicy Address (API ADDRESS)
@@ -91,7 +91,7 @@ def rop_setprocessdeppolicy():
 #                          ProcessInformation, ProcessInformationLength)
 # WORKS ON: XP SP3, Vista (pre-/NXCOMPAT) - ONLY OptIn or OptOut DEP mode
 # FAILS ON: AlwaysOn, executables linked with /NXCOMPAT (Vista+), Permanent DEP flag
-# NOTE: Disables DEP at process level via ntdll - shellcode runs on stack after
+# NOTE: Disables DEP at process level via ntdll - shellgen runs on stack after
 # -----------------------------------------------------------------------
 def rop_ntsetinformationprocess():
     nsi  = p32(0x45454545)  # dummy NtSetInformationProcess Address (API ADDRESS)

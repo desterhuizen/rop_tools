@@ -1,7 +1,7 @@
 """
 Payload Builders Module
 
-High-level functions for building common shellcode payloads.
+High-level functions for building common shellgen payloads.
 These are convenience functions that construct the configuration dicts
 used by the architecture-specific generators.
 """
@@ -9,7 +9,7 @@ used by the architecture-specific generators.
 from lib.color_printer import printer
 
 
-def windows_messagebox(title="Pwned", message="Hello from shellcode!", bad_chars=None):
+def windows_messagebox(title="Pwned", message="Hello from shellgen!", bad_chars=None):
     """
     Build a Windows MessageBox payload.
 
@@ -79,7 +79,7 @@ def windows_download_exec(url, save_path="C:\\\\windows\\\\temp\\\\payload.exe",
     """
     Build a Windows URLDownloadToFileA + WinExec payload.
 
-    Uses pre-resolution mode for optimal shellcode size since this payload
+    Uses pre-resolution mode for optimal shellgen size since this payload
     makes multiple API calls (URLDownloadToFileA + WinExec).
 
     Args:
@@ -119,7 +119,7 @@ def windows_createprocess(command, show_window=1, bad_chars=None):
     CreateProcessA is more flexible than WinExec and allows for detailed
     process configuration including window state, handles, and security attributes.
 
-    Uses pre-resolution mode for optimal shellcode size.
+    Uses pre-resolution mode for optimal shellgen size.
 
     Args:
         command: Command line to execute (e.g., "cmd.exe /c calc.exe")
@@ -171,7 +171,7 @@ def windows_shellexecute(file_or_url, operation="open", parameters="", show_cmd=
     - Open URLs in default browser
     - Run verbs like "open", "edit", "print", "runas"
 
-    Uses pre-resolution mode for optimal shellcode size.
+    Uses pre-resolution mode for optimal shellgen size.
 
     Args:
         file_or_url: File path, URL, or document to execute/open
@@ -288,7 +288,7 @@ def windows_reverse_shell(host, port, bad_chars=None, shell="cmd.exe"):
     This creates a true socket-based reverse shell using ws2_32.dll that redirects
     stdin/stdout/stderr to the socket and runs a shell in the current process.
 
-    This implementation matches the proven working shellcode structure:
+    This implementation matches the proven working shellgen structure:
     1. Store kernel32.dll base after PEB walk
     2. Pre-resolve TerminateProcess, LoadLibraryA, CreateProcessA from kernel32
     3. Load ws2_32.dll

@@ -22,7 +22,7 @@ HELP = """[bold cyan]COMMANDS[/bold cyan]
 [yellow]Quick Operations:[/yellow]
   set <target> <value>     Set value directly (alias: s)
   clr <target>             Clear register/stack/named value (alias: clear)
-  name <name> <value>      Create named value (e.g., name shellcode 0x501000)
+  name <name> <value>      Create named value (e.g., name shellgen 0x501000)
   stack <offset> <value>   Set stack value at offset (e.g., stack +0x10 0xdeadbeef)
 
 [yellow]Gadget Library:[/yellow]
@@ -74,8 +74,8 @@ HELP = """[bold cyan]COMMANDS[/bold cyan]
   push EAX                 Push EAX onto stack
   pop EBX                  Pop from stack into EBX
 
-  name shellcode 0x501000  Create named value
-  mov EAX, shellcode       Use named value
+  name shellgen 0x501000  Create named value
+  mov EAX, shellgen       Use named value
   add EAX, 0x100           Add to named value
 
 [bold cyan]EXAMPLES - ROP Chain Workflow[/bold cyan]

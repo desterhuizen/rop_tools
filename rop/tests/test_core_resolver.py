@@ -31,10 +31,10 @@ class TestResolveValue:
     def test_resolve_named_value(self):
         """Test resolution of named values."""
         ws = blank_worksheet()
-        ws["named"]["shellcode"] = "0x00501000"
+        ws["named"]["shellgen"] = "0x00501000"
         ws["named"]["base_addr"] = "0x10000000"
 
-        assert resolve_value("shellcode", ws) == "0x00501000"
+        assert resolve_value("shellgen", ws) == "0x00501000"
         assert resolve_value("base_addr", ws) == "0x10000000"
 
     def test_resolve_stack_offset(self):
@@ -127,7 +127,7 @@ class TestParseTarget:
 
     def test_parse_named_value(self):
         """Test parsing of named value targets."""
-        assert parse_target("shellcode") == ("named", "shellcode")
+        assert parse_target("shellgen") == ("named", "shellgen")
         assert parse_target("base_addr") == ("named", "base_addr")
         assert parse_target("test123") == ("named", "test123")
 

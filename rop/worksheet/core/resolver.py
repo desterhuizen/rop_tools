@@ -15,11 +15,11 @@ def resolve_value(expr: str, ws: Dict[str, Any]) -> Optional[str]:
 
     Supports:
     - Direct hex: 0x12345678
-    - Named value: shellcode
+    - Named value: shellgen
     - Register: EAX
     - Stack offset: [ESP+0x10] or ESP+0x10
     - Dereferenced register: [ECX] (when ECX contains a stack address)
-    - Arithmetic: shellcode+0x100
+    - Arithmetic: shellgen+0x100
 
     Args:
         expr: Expression string to resolve
@@ -108,7 +108,7 @@ def parse_target(target: str) -> Tuple[str, str]:
     - "EAX" -> ("reg", "EAX")
     - "[ESP+0x10]" or "ESP+0x10" -> ("stack", "+0x10")
     - "[ECX]" -> ("deref", "ECX")  (dereference ECX to get stack offset)
-    - "shellcode" -> ("named", "shellcode")
+    - "shellgen" -> ("named", "shellgen")
 
     Args:
         target: Target string to parse

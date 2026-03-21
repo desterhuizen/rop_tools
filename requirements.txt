@@ -1,0 +1,38 @@
+# Pentest Tools Suite - Consolidated Dependencies
+# Install all dependencies: pip install -r requirements.txt
+# Install specific tool: pip install -r shellgen/requirements.txt
+
+# ==============================================================================
+# Core Dependencies (Used by multiple tools)
+# ==============================================================================
+
+# Rich terminal formatting (lib/color_printer, shellgen, rop_worksheet)
+rich>=13.0.0
+
+
+# ==============================================================================
+# ROP Tools Dependencies
+# ==============================================================================
+
+# PE file parsing (get_base_address.py)
+pefile
+
+
+# ==============================================================================
+# Shellcode Generator Dependencies
+# ==============================================================================
+
+# Assembly engine for multi-architecture support
+keystone-engine==0.9.2
+
+# Disassembly engine for debug mode and bad character analysis
+capstone==5.0.7
+
+
+# ==============================================================================
+# Development Dependencies (Optional)
+# ==============================================================================
+
+# Uncomment for testing:
+# pytest>=7.0.0
+# pytest-cov>=4.0.0

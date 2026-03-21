@@ -1,7 +1,7 @@
 """
 Assembly and Verification Module
 
-Handles assembly of shellcode using Keystone Engine and verification
+Handles assembly of shellgen using Keystone Engine and verification
 of assembled bytecode for bad characters.
 """
 
@@ -132,7 +132,7 @@ def assemble_with_keystone(asm_code, arch=None, mode=None):
         clean_asm = clean_asm_for_keystone(asm_code)
 
         # Progress indicator
-        printer.print_text("\n⚙ Assembling shellcode with Keystone Engine...\n", "cyan")
+        printer.print_text("\n⚙ Assembling shellgen with Keystone Engine...\n", "cyan")
 
         # Initialize Keystone
         ks = Ks(arch, mode)
@@ -192,10 +192,10 @@ def assemble_to_binary(asm_code, arch='x86'):
 
 def verify_shellcode_bad_chars(shellcode_bytes, bad_chars):
     """
-    Verify that assembled shellcode doesn't contain bad characters.
+    Verify that assembled shellgen doesn't contain bad characters.
 
     Args:
-        shellcode_bytes: Assembled shellcode as bytes
+        shellcode_bytes: Assembled shellgen as bytes
         bad_chars: Set or list of bad character bytes to check
 
     Returns:
@@ -229,7 +229,7 @@ def verify_shellcode_bad_chars(shellcode_bytes, bad_chars):
 
 def print_bad_char_report(report, bad_chars):
     """
-    Print a detailed report of bad characters found in shellcode.
+    Print a detailed report of bad characters found in shellgen.
 
     Args:
         report: Report dict from verify_shellcode_bad_chars()
@@ -239,15 +239,15 @@ def print_bad_char_report(report, bad_chars):
         print("\n" + "="*72)
         print("✓ SHELLCODE VERIFICATION: PASSED")
         print("="*72)
-        print(f"No bad characters found in {report['total_bytes']} bytes of shellcode!")
+        print(f"No bad characters found in {report['total_bytes']} bytes of shellgen!")
         print(f"Avoided: {{{', '.join(f'0x{b:02x}' for b in sorted(bad_chars))}}}")
         return
 
     print("\n" + "="*72)
     print("✗ SHELLCODE VERIFICATION: FAILED")
     print("="*72)
-    print(f"Found {report['bad_char_count']} bad character(s) in assembled shellcode!")
-    print(f"Total shellcode size: {report['total_bytes']} bytes")
+    print(f"Found {report['bad_char_count']} bad character(s) in assembled shellgen!")
+    print(f"Total shellgen size: {report['total_bytes']} bytes")
     print(f"\nBad characters found: {{{', '.join(f'0x{b:02x}' for b in sorted(report['bad_chars_found']))}}}")
 
     print(f"\nFirst {min(20, len(report['locations']))} occurrences:")
@@ -290,12 +290,12 @@ def print_bad_char_report(report, bad_chars):
 
 def scan_shellcode_for_bad_chars(shellcode_bytes, common_bad_chars=None):
     """
-    Scan assembled shellcode for common bad characters and provide a summary.
+    Scan assembled shellgen for common bad characters and provide a summary.
 
     This is similar to: cat exploit.py | grep -E '00|09|0A|0B|0C|0D|20'
 
     Args:
-        shellcode_bytes: Assembled shellcode as bytes
+        shellcode_bytes: Assembled shellgen as bytes
         common_bad_chars: List of common bad chars to check (default: 0x00-0x0D, 0x20)
 
     Returns:
@@ -338,7 +338,7 @@ def scan_shellcode_for_bad_chars(shellcode_bytes, common_bad_chars=None):
 
 def print_bad_char_summary(scan_result):
     """
-    Print a summary of bad characters found in shellcode.
+    Print a summary of bad characters found in shellgen.
 
     Args:
         scan_result: Result dict from scan_shellcode_for_bad_chars()
@@ -395,8 +395,8 @@ def print_bad_char_summary(scan_result):
     print()
     recommendation = """If these characters are problematic for your exploit:
   1. Use --bad-chars option to specify which bytes to avoid
-  2. Use --verify to confirm shellcode is clean
-  3. Use --debug-shellcode to identify specific instructions
+  2. Use --verify to confirm shellgen is clean
+  3. Use --debug-shellgen to identify specific instructions
 
 Example:
   shellgen_cli.py ... --bad-chars 00,0a,0d,20 --verify"""
@@ -425,9 +425,9 @@ def get_capstone_arch_mode(arch_name):
 
 def debug_shellcode_opcodes(asm_code, arch, bad_chars):
     """
-    Debug shellcode by disassembling and mapping bad chars to instructions.
+    Debug shellgen by disassembling and mapping bad chars to instructions.
 
-    Uses Capstone to disassemble the assembled shellcode and correlate bad characters
+    Uses Capstone to disassemble the assembled shellgen and correlate bad characters
     with their corresponding instructions.
 
     Args:
@@ -436,12 +436,12 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
         bad_chars: Set or list of bad character bytes to check
     """
     if not KEYSTONE_AVAILABLE:
-        print("Error: Keystone Engine is required for --debug-shellcode")
+        print("Error: Keystone Engine is required for --debug-shellgen")
         print("Install with: pip install keystone-engine")
         return
 
     if not CAPSTONE_AVAILABLE:
-        print("Error: Capstone Engine is required for --debug-shellcode")
+        print("Error: Capstone Engine is required for --debug-shellgen")
         print("Install with: pip install capstone")
         return
 
@@ -460,20 +460,20 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
     # Clean the assembly code
     clean_asm = clean_asm_for_keystone(asm_code)
 
-    # Assemble the complete shellcode
+    # Assemble the complete shellgen
     try:
         ks = Ks(ks_arch, ks_mode)
         encoding, count = ks.asm(clean_asm)
 
         if encoding is None:
-            print("Error: Failed to assemble complete shellcode")
+            print("Error: Failed to assemble complete shellgen")
             return
 
         shellcode = bytes(encoding)
-        print(f"\n[+] Complete shellcode assembled: {len(shellcode)} bytes, {count} instructions")
+        print(f"\n[+] Complete shellgen assembled: {len(shellcode)} bytes, {count} instructions")
 
     except Exception as e:
-        print(f"Error assembling complete shellcode: {e}")
+        print(f"Error assembling complete shellgen: {e}")
         return
 
     # Scan for bad characters
@@ -489,13 +489,13 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
 
     # Print status (but DON'T return early - always show disassembly)
     if not bad_char_locations:
-        printer.print_text("\n✓ No bad characters found in the assembled shellcode!", "bold green")
+        printer.print_text("\n✓ No bad characters found in the assembled shellgen!", "bold green")
     else:
-        printer.print_text(f"\n✗ Found {len(bad_char_locations)} bad character(s) in the shellcode", "bold red")
+        printer.print_text(f"\n✗ Found {len(bad_char_locations)} bad character(s) in the shellgen", "bold red")
         bad_bytes_str = ', '.join(f'0x{b:02x}' for b in sorted(set(loc['byte'] for loc in bad_char_locations)))
         printer.print_text(f"Bad bytes: {{{bad_bytes_str}}}", "red")
 
-    # ALWAYS disassemble the shellcode using Capstone (whether bad chars found or not)
+    # ALWAYS disassemble the shellgen using Capstone (whether bad chars found or not)
     printer.print_section("\n" + "="*80, "cyan")
     printer.print_section("DISASSEMBLY WITH BAD CHARACTER HIGHLIGHTING", "bold cyan")
     printer.print_section("="*80, "cyan")
@@ -550,7 +550,7 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
             print(f"{offset_range:<12} {inst.size:<6} {opcodes_str:<48} {marker} {disasm_str}")
 
     except Exception as e:
-        printer.print_text(f"\nError disassembling shellcode: {e}", "red")
+        printer.print_text(f"\nError disassembling shellgen: {e}", "red")
         return
 
     # Only show bad character mapping if there ARE bad chars
@@ -559,11 +559,11 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
         printer.print_section("\n" + "="*80, "bold green")
         printer.print_section("SUMMARY", "bold green")
         printer.print_section("="*80, "bold green")
-        printer.print_text(f"Total shellcode size: ", "cyan", end="")
+        printer.print_text(f"Total shellgen size: ", "cyan", end="")
         printer.print_text(f"{len(shellcode)} bytes\n", "yellow")
         printer.print_text(f"Total instructions: ", "cyan", end="")
         printer.print_text(f"{count}\n", "yellow")
-        printer.print_text("\n✓ No bad characters detected - shellcode is clean!\n", "bold green")
+        printer.print_text("\n✓ No bad characters detected - shellgen is clean!\n", "bold green")
         printer.print_section("="*80, "bold green")
         return
 
@@ -623,7 +623,7 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
     printer.print_section("\n" + "="*80, "bold red")
     printer.print_section("SUMMARY", "bold red")
     printer.print_section("="*80, "bold red")
-    printer.print_text(f"Total shellcode size: ", "cyan", end="")
+    printer.print_text(f"Total shellgen size: ", "cyan", end="")
     printer.print_text(f"{len(shellcode)} bytes\n", "yellow")
     printer.print_text(f"Instructions with bad characters: ", "cyan", end="")
     printer.print_text(f"{len(inst_bad_chars)}\n", "red")

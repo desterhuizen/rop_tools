@@ -41,9 +41,9 @@ importregs   # Paste 'r' output
 importstack  # Paste 'dds esp' output
 
 # Build ROP chain
-name shellcode 0x00501000
+name shellgen 0x00501000
 chain 0x10001234 "pop eax ; ret" "Load shellcode addr"
-stack +0x00 shellcode
+stack +0x00 shellgen
 ```
 
 ---
@@ -891,7 +891,7 @@ pip install rich
 mov EAX, 0xdeadbeef          # Set EAX to value
 mov EAX, EBX                 # Copy EBX to EAX
 mov EAX, ESP+0x10            # Move stack value to EAX
-mov EAX, shellcode           # Use named value
+mov EAX, shellgen           # Use named value
 
 # Arithmetic
 add EAX, 0x100               # EAX = EAX + 0x100
@@ -914,9 +914,9 @@ set ESP+0x10 0x12345678     # Set stack value directly
 clr EAX                     # Clear register
 
 # Named values
-name shellcode 0x00501000   # Create named value
+name shellgen 0x00501000   # Create named value
 name base 0x10000000        # Name a base address
-mov EAX, shellcode+0x100    # Use arithmetic with named values
+mov EAX, shellgen+0x100    # Use arithmetic with named values
 ```
 
 #### Import from WinDbg
@@ -991,22 +991,22 @@ importstack
 # ✓ Imported 12 stack value(s)
 
 # Now build your ROP chain with actual crash state!
-name shellcode 0x00501000
+name shellgen 0x00501000
 chain 0x10001234 "pop eax ; ret" "Load shellcode addr"
-stack +0x00 shellcode
+stack +0x00 shellgen
 ```
 
 ### Example 2: Basic ROP Chain Building
 
 ```bash
 # Set up initial values
-name shellcode 0x00501000
+name shellgen 0x00501000
 name base 0x10000000
 set ESP 0x00000000
 
-# Build a simple ROP chain to call shellcode
+# Build a simple ROP chain to call shellgen
 chain 0x10001234 "pop eax ; ret" "Load shellcode addr"
-stack +0x00 shellcode
+stack +0x00 shellgen
 
 chain 0x10002345 "jmp eax" "Jump to shellcode"
 
@@ -1049,7 +1049,7 @@ xor EBX, 0x12345678          # Encode value
 # Set up base addresses
 name kernel32 0x76d40000
 name ntdll 0x77200000
-name shellcode 0x00501000
+name shellgen 0x00501000
 
 # Build WriteProcessMemory ROP chain
 set ESP 0x00000000
@@ -1060,8 +1060,8 @@ stack +0x00 kernel32+0x12340
 
 # Set up arguments on stack
 stack +0x04 0xffffffff       # hProcess = -1 (current)
-stack +0x08 shellcode        # lpBaseAddress
-stack +0x0c 0x00502000       # lpBuffer (our shellcode)
+stack +0x08 shellgen        # lpBaseAddress
+stack +0x0c 0x00502000       # lpBuffer (our shellgen)
 stack +0x10 0x00000100       # nSize = 256 bytes
 stack +0x14 0x00000000       # lpNumberOfBytesWritten = NULL
 
