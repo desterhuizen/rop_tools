@@ -5,7 +5,7 @@ This module defines the core data structure for the ROP worksheet,
 which tracks registers, stack, named values, gadgets, and ROP chains.
 """
 
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 
 def blank_worksheet() -> Dict[str, Any]:
@@ -25,13 +25,17 @@ def blank_worksheet() -> Dict[str, Any]:
         - log_manual: Log manual operations (bool)
     """
     return {
-        "registers": {r: "0x00000000" for r in ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"]},
-        "stack": {},       # offset -> value (e.g., "+0x00": "0xdeadbeef")
-        "named": {},       # name -> value (e.g., "shellgen": "0x00501000")
-        "gadgets": {},     # address -> instruction string (gadget library)
-        "chain": [],       # list of addresses/values (ROP chain payload)
+        "registers": {
+            r: "0x00000000"
+            for r in
+            ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"]
+        },
+        "stack": {},  # offset -> value (e.g., "+0x00": "0xdeadbeef")
+        "named": {},  # name -> value (e.g., "shellgen": "0x00501000")
+        "gadgets": {},  # address -> instruction string (gadget library)
+        "chain": [],  # list of addresses/values (ROP chain payload)
         "notes": "",
         "auto_gadget": True,  # Auto-execute gadgets when EIP is set
         "execution_log": [],  # Rolling log of executed operations
-        "log_manual": True,   # Log manual operations (mov, add, etc.)
+        "log_manual": True,  # Log manual operations (mov, add, etc.)
     }

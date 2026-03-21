@@ -1,7 +1,9 @@
 """
 Unit tests for worksheet.io.windbg module.
 """
+
 import unittest
+
 from rop.worksheet.core.data import blank_worksheet
 from rop.worksheet.io.windbg import cmd_import_regs, cmd_import_stack
 

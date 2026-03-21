@@ -4,13 +4,13 @@ Integration tests for get_rop_gadgets.py
 Tests the complete ROP gadget tool including CLI argument parsing,
 file processing, filtering, grouping, and output formatting.
 """
-import unittest
-import tempfile
+
 import os
 import subprocess
 import sys
+import tempfile
+import unittest
 from pathlib import Path
-
 
 # Get the path to get_rop_gadgets.py
 ROP_TOOL_PATH = Path(__file__).parent.parent / "get_rop_gadgets.py"
@@ -68,37 +68,46 @@ A total of 15 gadgets found.
 
 class BaseSampleGadgetTest(unittest.TestCase):
     """Base class for tests using SAMPLE_GADGET_FILE"""
+
     def setUp(self):
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+        ) as f:
             f.write(SAMPLE_GADGET_FILE)
             self.sample_gadget_file = f.name
 
     def tearDown(self):
-        if hasattr(self, 'sample_gadget_file'):
+        if hasattr(self, "sample_gadget_file"):
             os.unlink(self.sample_gadget_file)
 
 
 class BaseBadCharsTest(unittest.TestCase):
     """Base class for tests using SAMPLE_BAD_CHARS_FILE"""
+
     def setUp(self):
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+        ) as f:
             f.write(SAMPLE_BAD_CHARS_FILE)
             self.bad_chars_gadget_file = f.name
 
     def tearDown(self):
-        if hasattr(self, 'bad_chars_gadget_file'):
+        if hasattr(self, "bad_chars_gadget_file"):
             os.unlink(self.bad_chars_gadget_file)
 
 
 class BaseBadInstructionsTest(unittest.TestCase):
     """Base class for tests using SAMPLE_BAD_INSTRUCTIONS_FILE"""
+
     def setUp(self):
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+        ) as f:
             f.write(SAMPLE_BAD_INSTRUCTIONS_FILE)
             self.bad_instructions_gadget_file = f.name
 
     def tearDown(self):
-        if hasattr(self, 'bad_instructions_gadget_file'):
+        if hasattr(self, "bad_instructions_gadget_file"):
             os.unlink(self.bad_instructions_gadget_file)
 
 
@@ -108,9 +117,15 @@ class TestBasicParsing(BaseSampleGadgetTest):
     def test_parse_file_basic(self):
         """Test basic file parsing"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -120,9 +135,16 @@ class TestBasicParsing(BaseSampleGadgetTest):
     def test_statistics_display(self):
         """Test statistics display"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '-s', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-s",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -135,9 +157,17 @@ class TestInstructionFiltering(BaseSampleGadgetTest):
     def test_filter_by_instruction_any(self):
         """Test filtering by instruction (any position)"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '-i', 'pop', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-i",
+                "pop",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -146,9 +176,19 @@ class TestInstructionFiltering(BaseSampleGadgetTest):
     def test_filter_by_instruction_first(self):
         """Test filtering by first instruction"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '-i', 'pop', '-p', 'first', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-i",
+                "pop",
+                "-p",
+                "first",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -157,9 +197,19 @@ class TestInstructionFiltering(BaseSampleGadgetTest):
     def test_filter_by_instruction_last(self):
         """Test filtering by last instruction"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '-i', 'ret', '-p', 'last', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-i",
+                "ret",
+                "-p",
+                "last",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -172,9 +222,17 @@ class TestRegexFiltering(BaseSampleGadgetTest):
     def test_filter_by_regex(self):
         """Test regex pattern filtering"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '-r', 'pop.*ret', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-r",
+                "pop.*ret",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -183,9 +241,17 @@ class TestRegexFiltering(BaseSampleGadgetTest):
     def test_filter_by_regex_complex(self):
         """Test complex regex pattern"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '-r', 'pop.*pop.*ret', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-r",
+                "pop.*pop.*ret",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -193,9 +259,19 @@ class TestRegexFiltering(BaseSampleGadgetTest):
     def test_filter_with_exclude(self):
         """Test exclusion filtering"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '-r', 'pop', '-e', 'ebx', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-r",
+                "pop",
+                "-e",
+                "ebx",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -208,9 +284,17 @@ class TestBadCharacterFiltering(BaseBadCharsTest):
     def test_filter_bad_chars_backslash_format(self):
         """Test bad character filtering with \\x format"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.bad_chars_gadget_file, '-b', '\\x00\\x0a', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.bad_chars_gadget_file,
+                "-b",
+                "\\x00\\x0a",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -219,9 +303,17 @@ class TestBadCharacterFiltering(BaseBadCharsTest):
     def test_filter_bad_chars_comma_format(self):
         """Test bad character filtering with comma format"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.bad_chars_gadget_file, '-b', '00,0a,0d', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.bad_chars_gadget_file,
+                "-b",
+                "00,0a,0d",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -234,9 +326,17 @@ class TestCategoryFiltering(BaseSampleGadgetTest):
     def test_filter_by_category(self):
         """Test filtering by category"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '-c', 'stack_pop', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-c",
+                "stack_pop",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -245,9 +345,18 @@ class TestCategoryFiltering(BaseSampleGadgetTest):
     def test_show_category(self):
         """Test showing category for each gadget"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '-i', 'pop', '--show-category', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-i",
+                "pop",
+                "--show-category",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -260,9 +369,17 @@ class TestGrouping(BaseSampleGadgetTest):
     def test_group_by_first(self):
         """Test grouping by first instruction"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '-g', 'first', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-g",
+                "first",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -271,9 +388,17 @@ class TestGrouping(BaseSampleGadgetTest):
     def test_group_by_last(self):
         """Test grouping by last instruction"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '-g', 'last', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-g",
+                "last",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -282,9 +407,17 @@ class TestGrouping(BaseSampleGadgetTest):
     def test_group_by_category(self):
         """Test grouping by category"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '-g', 'category', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-g",
+                "category",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -293,9 +426,17 @@ class TestGrouping(BaseSampleGadgetTest):
     def test_group_by_modified_register(self):
         """Test grouping by modified register"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '-g', 'modified-register', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-g",
+                "modified-register",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -308,9 +449,17 @@ class TestRegisterFiltering(BaseSampleGadgetTest):
     def test_filter_by_register(self):
         """Test filtering by register"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '--register', 'eax', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "--register",
+                "eax",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -319,9 +468,18 @@ class TestRegisterFiltering(BaseSampleGadgetTest):
     def test_filter_by_register_modified_only(self):
         """Test filtering by modified register only"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '--register', 'eax', '--modified-only', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "--register",
+                "eax",
+                "--modified-only",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -334,9 +492,17 @@ class TestDereferencedFiltering(BaseSampleGadgetTest):
     def test_filter_dereferenced_any(self):
         """Test filtering any dereferenced register"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '--deref', '', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "--deref",
+                "",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -345,9 +511,17 @@ class TestDereferencedFiltering(BaseSampleGadgetTest):
     def test_filter_dereferenced_specific(self):
         """Test filtering specific dereferenced register"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '--deref', 'ebx', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "--deref",
+                "ebx",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -359,9 +533,17 @@ class TestSortingAndLimiting(BaseSampleGadgetTest):
     def test_sort_by_count(self):
         """Test sorting by instruction count"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '--sort', 'count', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "--sort",
+                "count",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -369,9 +551,17 @@ class TestSortingAndLimiting(BaseSampleGadgetTest):
     def test_sort_by_address(self):
         """Test sorting by address"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '--sort', 'address', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "--sort",
+                "address",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -379,9 +569,17 @@ class TestSortingAndLimiting(BaseSampleGadgetTest):
     def test_limit_results(self):
         """Test limiting number of results"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '-l', '5', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-l",
+                "5",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -389,9 +587,16 @@ class TestSortingAndLimiting(BaseSampleGadgetTest):
     def test_show_count(self):
         """Test showing instruction count"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '--show-count', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "--show-count",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -404,9 +609,17 @@ class TestOffsetCalculation(BaseSampleGadgetTest):
     def test_offset_hex_format(self):
         """Test offset calculation with hex base address"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '--offset', '0x76d40000', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "--offset",
+                "0x76d40000",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -415,9 +628,17 @@ class TestOffsetCalculation(BaseSampleGadgetTest):
     def test_offset_decimal_format(self):
         """Test offset calculation with decimal base address"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '--offset', '1992294400', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "--offset",
+                "1992294400",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -429,9 +650,18 @@ class TestHighlighting(BaseSampleGadgetTest):
     def test_highlight_matches(self):
         """Test highlighting regex matches"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '-r', 'pop', '--highlight', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-r",
+                "pop",
+                "--highlight",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -443,10 +673,21 @@ class TestComplexFiltering(BaseSampleGadgetTest):
     def test_combined_filters(self):
         """Test combining multiple filters"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file,
-             '-i', 'pop', '-m', '3', '--show-category', '--show-count', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-i",
+                "pop",
+                "-m",
+                "3",
+                "--show-category",
+                "--show-count",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -454,10 +695,21 @@ class TestComplexFiltering(BaseSampleGadgetTest):
     def test_filter_group_and_sort(self):
         """Test filtering, grouping, and sorting together"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file,
-             '-c', 'stack_pop', '-g', 'modified-register', '--sort', 'count', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-c",
+                "stack_pop",
+                "-g",
+                "modified-register",
+                "--sort",
+                "count",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -469,9 +721,9 @@ class TestErrorHandling(BaseSampleGadgetTest):
     def test_missing_file(self):
         """Test error handling for missing file"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', '/nonexistent/file.txt'],
+            [sys.executable, str(ROP_TOOL_PATH), "-f", "/nonexistent/file.txt"],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode != 0
@@ -480,14 +732,20 @@ class TestErrorHandling(BaseSampleGadgetTest):
     def test_invalid_offset_format(self):
         """Test error handling for invalid offset format"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file, '--offset', 'invalid'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "--offset",
+                "invalid",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode != 0
         assert "Error" in result.stderr or "Invalid" in result.stderr
-
 
 
 class TestEndToEndWorkflow(BaseSampleGadgetTest):
@@ -496,10 +754,20 @@ class TestEndToEndWorkflow(BaseSampleGadgetTest):
     def test_find_stack_pop_gadgets(self):
         """Test finding stack pop gadgets for ROP chain"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file,
-             '-c', 'stack_pop', '-m', '3', '--show-count', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-c",
+                "stack_pop",
+                "-m",
+                "3",
+                "--show-count",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -508,10 +776,17 @@ class TestEndToEndWorkflow(BaseSampleGadgetTest):
     def test_find_write_what_where_gadgets(self):
         """Test finding write-what-where gadgets"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file,
-             '-c', 'memory_write', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-c",
+                "memory_write",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -520,20 +795,38 @@ class TestEndToEndWorkflow(BaseSampleGadgetTest):
         """Test typical ROP chain building workflow"""
         # Step 1: Find pop gadgets
         result1 = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file,
-             '-i', 'pop', '-b', '00,0a', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-i",
+                "pop",
+                "-b",
+                "00,0a",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result1.returncode == 0
 
         # Step 2: Group by modified register
         result2 = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.sample_gadget_file,
-             '-c', 'stack_pop', '-g', 'modified-register', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.sample_gadget_file,
+                "-c",
+                "stack_pop",
+                "-g",
+                "modified-register",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result2.returncode == 0
@@ -545,9 +838,15 @@ class TestBadInstructionFiltering(BaseBadInstructionsTest):
     def test_bad_instructions_filtered_by_default(self):
         """Test that gadgets with bad instructions are filtered out by default"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.bad_instructions_gadget_file, '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.bad_instructions_gadget_file,
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -565,15 +864,24 @@ class TestBadInstructionFiltering(BaseBadInstructionsTest):
     def test_keep_bad_instructions_flag(self):
         """Test that --keep-bad-instructions flag preserves bad instruction gadgets"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.bad_instructions_gadget_file,
-             '--keep-bad-instructions', '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.bad_instructions_gadget_file,
+                "--keep-bad-instructions",
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
         # Should NOT show filtering message when flag is used
-        assert "Filtered out" not in result.stdout or "bad instructions" not in result.stdout
+        assert (
+                "Filtered out" not in result.stdout
+                or "bad instructions" not in result.stdout
+        )
         # All gadgets should be present
         assert "call [eax]" in result.stdout
         assert "jmp esp" in result.stdout
@@ -583,9 +891,15 @@ class TestBadInstructionFiltering(BaseBadInstructionsTest):
     def test_bad_instruction_filter_count_output(self):
         """Test that filtering message shows correct count"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.bad_instructions_gadget_file, '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.bad_instructions_gadget_file,
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -597,9 +911,15 @@ class TestBadInstructionFiltering(BaseBadInstructionsTest):
     def test_filter_call_instruction(self):
         """Test that call instructions are filtered"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.bad_instructions_gadget_file, '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.bad_instructions_gadget_file,
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -609,9 +929,15 @@ class TestBadInstructionFiltering(BaseBadInstructionsTest):
     def test_filter_jmp_instruction(self):
         """Test that jmp instructions are filtered"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.bad_instructions_gadget_file, '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.bad_instructions_gadget_file,
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -620,9 +946,15 @@ class TestBadInstructionFiltering(BaseBadInstructionsTest):
     def test_filter_conditional_jumps(self):
         """Test that conditional jumps (je, jne, etc.) are filtered"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.bad_instructions_gadget_file, '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.bad_instructions_gadget_file,
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -634,9 +966,15 @@ class TestBadInstructionFiltering(BaseBadInstructionsTest):
     def test_filter_interrupt_instructions(self):
         """Test that interrupt instructions (int, cli, etc.) are filtered"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.bad_instructions_gadget_file, '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.bad_instructions_gadget_file,
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -648,9 +986,15 @@ class TestBadInstructionFiltering(BaseBadInstructionsTest):
     def test_filter_leave_instruction(self):
         """Test that leave instruction is filtered"""
         result = subprocess.run(
-            [sys.executable, str(ROP_TOOL_PATH), '-f', self.bad_instructions_gadget_file, '--no-color'],
+            [
+                sys.executable,
+                str(ROP_TOOL_PATH),
+                "-f",
+                self.bad_instructions_gadget_file,
+                "--no-color",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -669,15 +1013,18 @@ class TestBadInstructionFiltering(BaseBadInstructionsTest):
 
 A total of 4 gadgets found.
 """
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+        ) as f:
             f.write(uppercase_gadgets)
             temp_path = f.name
 
         try:
             result = subprocess.run(
-                [sys.executable, str(ROP_TOOL_PATH), '-f', temp_path, '--no-color'],
+                [sys.executable, str(ROP_TOOL_PATH), "-f", temp_path,
+                 "--no-color"],
                 capture_output=True,
-                text=True
+                text=True,
             )
 
             assert result.returncode == 0

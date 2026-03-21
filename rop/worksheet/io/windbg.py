@@ -5,7 +5,7 @@ This module handles importing register and stack values from WinDbg output forma
 """
 
 import re
-from typing import Dict, Any, Tuple, Optional
+from typing import Any, Dict, Optional, Tuple
 
 
 def cmd_import_regs(ws: Dict[str, Any], text: str) -> Tuple[bool, str]:
@@ -27,7 +27,7 @@ def cmd_import_regs(ws: Dict[str, Any], text: str) -> Tuple[bool, str]:
 
     # Parse register=value pairs
     # Match patterns like "eax=00000001" or "esp=01bd744c"
-    pattern = r'(eax|ebx|ecx|edx|esi|edi|ebp|esp|eip)=([0-9a-fA-F]{8})'
+    pattern = r"(eax|ebx|ecx|edx|esi|edi|ebp|esp|eip)=([0-9a-fA-F]{8})"
     matches = re.findall(pattern, text, re.IGNORECASE)
 
     for reg_name, value in matches:
@@ -68,7 +68,7 @@ def cmd_import_stack(ws: Dict[str, Any], text: str) -> Tuple[bool, str]:
 
     # Parse each line: address followed by 1-4 DWORD values
     # Pattern: address (8 hex digits) followed by 1-4 hex values
-    lines = text.strip().split('\n')
+    lines = text.strip().split("\n")
 
     for line in lines:
         line = line.strip()
@@ -84,7 +84,7 @@ def cmd_import_stack(ws: Dict[str, Any], text: str) -> Tuple[bool, str]:
         try:
             addr_str = parts[0]
             # Remove any trailing colons or extra characters
-            addr_str = addr_str.rstrip(':')
+            addr_str = addr_str.rstrip(":")
             stack_addr = int(addr_str, 16)
         except ValueError:
             continue
@@ -94,7 +94,7 @@ def cmd_import_stack(ws: Dict[str, Any], text: str) -> Tuple[bool, str]:
             try:
                 # Clean the value (remove any non-hex characters)
                 value_str = value_str.strip()
-                if not re.match(r'^[0-9a-fA-F]+$', value_str):
+                if not re.match(r"^[0-9a-fA-F]+$", value_str):
                     continue
 
                 # Calculate the address for this DWORD

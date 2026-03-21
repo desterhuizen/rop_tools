@@ -1,9 +1,15 @@
 """
 Unit tests for worksheet.gadgets.library module.
 """
+
 import unittest
+
 from rop.worksheet.core.data import blank_worksheet
-from rop.worksheet.gadgets.library import cmd_gadget_add, cmd_gadget_del, cmd_gadget_clear
+from rop.worksheet.gadgets.library import (
+    cmd_gadget_add,
+    cmd_gadget_clear,
+    cmd_gadget_del,
+)
 
 
 class TestCmdGadgetAdd(unittest.TestCase):

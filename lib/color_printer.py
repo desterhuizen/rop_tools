@@ -11,6 +11,7 @@ import re
 try:
     from rich.console import Console
     from rich.text import Text
+
     COLORS_AVAILABLE = True
 except ImportError:
     # Fallback if rich not installed
@@ -45,7 +46,8 @@ class ColorPrinter:
         else:
             print(f"\n{text}")
 
-    def print_labeled(self, label, value, label_style="cyan", value_style="yellow"):
+    def print_labeled(self, label, value, label_style="cyan",
+                      value_style="yellow"):
         """Print a 'Label: Value' pair with different styles"""
         if self.enabled:
             output = Text()
@@ -105,9 +107,10 @@ class ColorPrinter:
             styled_text = Text(str(text), style=style)
             # Use console to render to string with ANSI codes
             from io import StringIO
+
             buffer = StringIO()
             temp_console = Console(file=buffer, force_terminal=True, width=200)
-            temp_console.print(styled_text, end='')
+            temp_console.print(styled_text, end="")
             return buffer.getvalue()
         return str(text)
 
@@ -123,8 +126,12 @@ class ColorPrinter:
         """
         if self.enabled:
             from rich.panel import Panel
+
             styled_content = Text(str(content), style=style)
-            panel = Panel(styled_content, title=title, border_style=border_style, expand=False)
+            panel = Panel(
+                styled_content, title=title, border_style=border_style,
+                expand=False
+            )
             self.console.print(panel)
         else:
             # Fallback to simple bordered output
@@ -158,10 +165,10 @@ class ColorPrinter:
         # Build hex string (split into two groups of 8 for readability)
         hex_parts = []
         for i in range(0, len(preview_bytes), 8):
-            chunk = preview_bytes[i:i+8]
-            hex_str = ' '.join(f'{b:02x}' for b in chunk)
+            chunk = preview_bytes[i: i + 8]
+            hex_str = " ".join(f"{b:02x}" for b in chunk)
             hex_parts.append(hex_str)
-        hex_line = '  '.join(hex_parts)
+        hex_line = "  ".join(hex_parts)
 
         # Build ASCII representation
         ascii_chars = []
@@ -169,8 +176,8 @@ class ColorPrinter:
             if 32 <= b <= 126:  # Printable ASCII range
                 ascii_chars.append(chr(b))
             else:
-                ascii_chars.append('·')  # Middle dot for non-printable
-        ascii_line = ''.join(ascii_chars)
+                ascii_chars.append("·")  # Middle dot for non-printable
+        ascii_line = "".join(ascii_chars)
 
         # Print with color
         if self.enabled:
@@ -205,7 +212,12 @@ class ColorPrinter:
         if self.enabled:
             from rich.table import Table
 
-            table = Table(title=title, title_style=title_style, show_header=True, header_style="bold yellow")
+            table = Table(
+                title=title,
+                title_style=title_style,
+                show_header=True,
+                header_style="bold yellow",
+            )
 
             # Add columns
             for col in columns:

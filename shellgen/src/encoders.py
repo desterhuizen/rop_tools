@@ -32,8 +32,26 @@ def encode_dword(target, bad_chars):
 
     # Strategy 1: Try small offsets with varying increments
     # This handles consecutive bad characters better
-    increment_strategies = [1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41,
-                           0x101, 0x1001, 0x10001, 0x100001]
+    increment_strategies = [
+        1,
+        2,
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19,
+        23,
+        29,
+        31,
+        37,
+        41,
+        0x101,
+        0x1001,
+        0x10001,
+        0x100001,
+    ]
 
     for increment in increment_strategies:
         for multiplier in range(1, 1000):
@@ -45,8 +63,9 @@ def encode_dword(target, bad_chars):
             clean_bytes = struct.pack("<I", clean)
             offset_bytes = struct.pack("<I", offset)
 
-            if (not contains_bad_chars(clean_bytes, bad_chars) and
-                    not contains_bad_chars(offset_bytes, bad_chars)):
+            if not contains_bad_chars(
+                clean_bytes, bad_chars
+            ) and not contains_bad_chars(offset_bytes, bad_chars):
                 return (clean, offset)
 
     # Strategy 2: Try addition pairs (val1 + val2 = target)
@@ -57,8 +76,10 @@ def encode_dword(target, bad_chars):
         # Return special marker for add operation
         return ("ADD", val1, val2)
 
-    raise ValueError(f"Cannot encode 0x{target:08x} avoiding bad chars: "
-                     f"{{{', '.join(f'0x{b:02x}' for b in bad_chars)}}}")
+    raise ValueError(
+        f"Cannot encode 0x{target:08x} avoiding bad chars: "
+        f"{{{', '.join(f'0x{b:02x}' for b in bad_chars)}}}"
+    )
 
 
 def encode_dword_split(target, bad_chars):
@@ -72,8 +93,9 @@ def encode_dword_split(target, bad_chars):
         val2 = (target - val1) & 0xFFFFFFFF
         val1_bytes = struct.pack("<I", val1)
         val2_bytes = struct.pack("<I", val2)
-        if (not contains_bad_chars(val1_bytes, bad_chars) and
-                not contains_bad_chars(val2_bytes, bad_chars)):
+        if not contains_bad_chars(val1_bytes, bad_chars) and not contains_bad_chars(
+            val2_bytes, bad_chars
+        ):
             return (val1, val2)
     return None
 
@@ -92,9 +114,29 @@ def encode_qword(target, bad_chars):
         return None
 
     # Strategy 1: Try varying increments to handle consecutive bad chars
-    increment_strategies = [1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41,
-                           0x101, 0x1001, 0x10001, 0x100001, 0x1000001,
-                           0x10000001, 0x100000001]
+    increment_strategies = [
+        1,
+        2,
+        3,
+        5,
+        7,
+        11,
+        13,
+        17,
+        19,
+        23,
+        29,
+        31,
+        37,
+        41,
+        0x101,
+        0x1001,
+        0x10001,
+        0x100001,
+        0x1000001,
+        0x10000001,
+        0x100000001,
+    ]
 
     for increment in increment_strategies:
         for multiplier in range(1, 1000):
@@ -106,8 +148,9 @@ def encode_qword(target, bad_chars):
             clean_bytes = struct.pack("<Q", clean)
             offset_bytes = struct.pack("<Q", offset)
 
-            if (not contains_bad_chars(clean_bytes, bad_chars) and
-                    not contains_bad_chars(offset_bytes, bad_chars)):
+            if not contains_bad_chars(
+                clean_bytes, bad_chars
+            ) and not contains_bad_chars(offset_bytes, bad_chars):
                 return (clean, offset)
 
     # Strategy 2: Try 64-bit addition pairs
@@ -118,8 +161,9 @@ def encode_qword(target, bad_chars):
         val2 = (target - val1) & 0xFFFFFFFFFFFFFFFF
         val1_bytes = struct.pack("<Q", val1)
         val2_bytes = struct.pack("<Q", val2)
-        if (not contains_bad_chars(val1_bytes, bad_chars) and
-                not contains_bad_chars(val2_bytes, bad_chars)):
+        if not contains_bad_chars(val1_bytes, bad_chars) and not contains_bad_chars(
+            val2_bytes, bad_chars
+        ):
             return ("ADD", val1, val2)
 
     raise ValueError(f"Cannot encode 0x{target:016x} avoiding bad chars")
@@ -137,7 +181,7 @@ def string_to_push_dwords(s):
 
     dwords = []
     for i in range(0, len(s_bytes), 4):
-        dword = struct.unpack("<I", s_bytes[i:i+4])[0]
+        dword = struct.unpack("<I", s_bytes[i : i + 4])[0]
         dwords.append(dword)
 
     return dwords

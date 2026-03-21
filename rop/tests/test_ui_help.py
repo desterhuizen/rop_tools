@@ -5,7 +5,9 @@ Tests help text constants and help panel generation.
 """
 
 import unittest
+
 from rich.panel import Panel
+
 from rop.worksheet.ui.help import HELP, build_help_panel
 
 
@@ -200,7 +202,8 @@ class TestHelpTextCompleteness(unittest.TestCase):
 
     def test_all_basic_asm_ops_documented(self):
         """Test that all basic ASM operations are documented."""
-        asm_ops = ["mov", "add", "xor", "xchg", "inc", "dec", "neg", "push", "pop"]
+        asm_ops = ["mov", "add", "xor", "xchg", "inc", "dec", "neg", "push",
+                   "pop"]
         for op in asm_ops:
             with self.subTest(op=op):
                 self.assertIn(op, HELP)

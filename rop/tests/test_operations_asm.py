@@ -1,10 +1,18 @@
 """
 Unit tests for worksheet.operations.asm_ops module.
 """
+
 import unittest
+
 from rop.worksheet.core.data import blank_worksheet
 from rop.worksheet.operations.asm_ops import (
-    cmd_move, cmd_add, cmd_xor, cmd_xchg, cmd_inc, cmd_dec, cmd_neg
+    cmd_add,
+    cmd_dec,
+    cmd_inc,
+    cmd_move,
+    cmd_neg,
+    cmd_xchg,
+    cmd_xor,
 )
 
 

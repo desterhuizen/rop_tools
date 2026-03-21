@@ -1,7 +1,9 @@
 """
 Unit tests for worksheet.core.data module.
 """
+
 import unittest
+
 from rop.worksheet.core.data import blank_worksheet
 
 
@@ -26,7 +28,17 @@ class TestBlankWorksheet(unittest.TestCase):
         """Test that all registers are initialized to 0x00000000."""
         ws = blank_worksheet()
 
-        expected_registers = ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"]
+        expected_registers = [
+            "EAX",
+            "EBX",
+            "ECX",
+            "EDX",
+            "ESI",
+            "EDI",
+            "EBP",
+            "ESP",
+            "EIP",
+        ]
 
         # Check all expected registers exist
         for reg in expected_registers:

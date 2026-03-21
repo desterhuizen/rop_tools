@@ -1,9 +1,12 @@
 """
 Unit tests for worksheet.chain.manager module.
 """
+
 import unittest
+
+from rop.worksheet.chain.manager import cmd_chain_add, cmd_chain_clear, \
+    cmd_chain_del
 from rop.worksheet.core.data import blank_worksheet
-from rop.worksheet.chain.manager import cmd_chain_add, cmd_chain_del, cmd_chain_clear
 
 
 class TestCmdChainAdd(unittest.TestCase):

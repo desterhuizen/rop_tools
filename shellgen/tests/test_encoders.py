@@ -4,15 +4,16 @@ Tests for src/encoders.py
 Tests bad character encoding, dword/qword encoding, and ROR13 hash calculation.
 """
 
-import unittest
 import struct
+import unittest
+
 from shellgen.src.encoders import (
     contains_bad_chars,
     encode_dword,
+    encode_dword_split,
     encode_qword,
-    string_to_push_dwords,
     ror13_hash,
-    encode_dword_split
+    string_to_push_dwords,
 )
 
 
@@ -21,32 +22,32 @@ class TestContainsBadChars(unittest.TestCase):
 
     def test_no_bad_chars(self):
         """Test bytes with no bad characters."""
-        value_bytes = b'\x12\x34\x56\x78'
-        bad_chars = {0x00, 0x0a, 0x0d}
+        value_bytes = b"\x12\x34\x56\x78"
+        bad_chars = {0x00, 0x0A, 0x0D}
         self.assertFalse(contains_bad_chars(value_bytes, bad_chars))
 
     def test_with_bad_chars(self):
         """Test bytes containing bad characters."""
-        value_bytes = b'\x12\x00\x56\x78'
-        bad_chars = {0x00, 0x0a, 0x0d}
+        value_bytes = b"\x12\x00\x56\x78"
+        bad_chars = {0x00, 0x0A, 0x0D}
         self.assertTrue(contains_bad_chars(value_bytes, bad_chars))
 
     def test_multiple_bad_chars(self):
         """Test bytes with multiple bad characters."""
-        value_bytes = b'\x00\x0a\x0d\x78'
-        bad_chars = {0x00, 0x0a, 0x0d}
+        value_bytes = b"\x00\x0a\x0d\x78"
+        bad_chars = {0x00, 0x0A, 0x0D}
         self.assertTrue(contains_bad_chars(value_bytes, bad_chars))
 
     def test_empty_bad_chars(self):
         """Test with empty bad chars set."""
-        value_bytes = b'\x00\x0a\x0d\x78'
+        value_bytes = b"\x00\x0a\x0d\x78"
         bad_chars = set()
         self.assertFalse(contains_bad_chars(value_bytes, bad_chars))
 
     def test_all_bad_chars(self):
         """Test when all bytes are bad."""
-        value_bytes = b'\x00\x0a'
-        bad_chars = {0x00, 0x0a}
+        value_bytes = b"\x00\x0a"
+        bad_chars = {0x00, 0x0A}
         self.assertTrue(contains_bad_chars(value_bytes, bad_chars))
 
 
@@ -56,7 +57,7 @@ class TestEncodeDword(unittest.TestCase):
     def test_clean_value_no_encoding(self):
         """Test that clean values return None (no encoding needed)."""
         target = 0x12345678
-        bad_chars = {0x00, 0x0a, 0x0d}
+        bad_chars = {0x00, 0x0A, 0x0D}
         result = encode_dword(target, bad_chars)
         self.assertIsNone(result)
 
@@ -79,8 +80,8 @@ class TestEncodeDword(unittest.TestCase):
 
     def test_encode_with_multiple_bad_chars(self):
         """Test encoding with multiple bad characters."""
-        target = 0x000a0d00
-        bad_chars = {0x00, 0x0a, 0x0d}
+        target = 0x000A0D00
+        bad_chars = {0x00, 0x0A, 0x0D}
         result = encode_dword(target, bad_chars)
         self.assertIsNotNone(result)
 
@@ -273,8 +274,8 @@ class TestRor13Hash(unittest.TestCase):
         """Test against known ROR13 hash values."""
         # Known hashes from Windows shellcode development
         known_hashes = {
-            'LoadLibraryA': 0xec0e4e8e,
-            'GetProcAddress': 0x7c0dfcaa,
+            "LoadLibraryA": 0xEC0E4E8E,
+            "GetProcAddress": 0x7C0DFCAA,
         }
 
         for func_name, expected_hash in known_hashes.items():
@@ -334,7 +335,7 @@ class TestEncodingEdgeCases(unittest.TestCase):
 
     def test_all_bytes_bad(self):
         """Test encoding when all bytes are bad (should raise ValueError)."""
-        target = 0x000a0d20
+        target = 0x000A0D20
         # Make almost all bytes bad
         bad_chars = set(range(256))
 

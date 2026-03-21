@@ -3,9 +3,12 @@ Unit tests for rop/core/categories.py
 
 Tests gadget categorization logic and category styling.
 """
+
 import unittest
+
+from rop.core.categories import GadgetCategory, categorize_gadget, \
+    get_category_style
 from rop.core.gadget import Gadget
-from rop.core.categories import GadgetCategory, categorize_gadget, get_category_style
 
 
 class TestStackCategories(unittest.TestCase):
@@ -17,7 +20,7 @@ class TestStackCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["pop eax", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.STACK_POP
 
@@ -27,7 +30,7 @@ class TestStackCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["pop eax", "pop ebx", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.STACK_POP
 
@@ -37,7 +40,7 @@ class TestStackCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["push eax", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.STACK_PUSH
 
@@ -47,7 +50,7 @@ class TestStackCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["xchg eax, esp", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.STACK_PIVOT
 
@@ -57,7 +60,7 @@ class TestStackCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["add esp, 0x10", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.STACK_PIVOT
 
@@ -67,7 +70,7 @@ class TestStackCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["sub esp, 0x10", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.STACK_PIVOT
 
@@ -81,7 +84,7 @@ class TestRegisterCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["mov eax, ebx", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.MOVE_REGISTER
 
@@ -91,7 +94,7 @@ class TestRegisterCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["xchg eax, ebx", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.XCHG_REGISTER
 
@@ -101,7 +104,7 @@ class TestRegisterCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["lea eax, [ebx+4]", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.LOAD_REGISTER
 
@@ -115,7 +118,7 @@ class TestMemoryCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["mov eax, [ebx]", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.MEMORY_READ
 
@@ -125,7 +128,7 @@ class TestMemoryCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["mov eax, [ebx+8]", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.MEMORY_READ
 
@@ -135,7 +138,7 @@ class TestMemoryCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["mov [eax], ebx", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.MEMORY_WRITE
 
@@ -145,7 +148,7 @@ class TestMemoryCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["mov [eax+4], ebx", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.MEMORY_WRITE
 
@@ -159,7 +162,7 @@ class TestArithmeticLogicCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["add eax, 0x10", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.ARITHMETIC
 
@@ -169,7 +172,7 @@ class TestArithmeticLogicCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["sub eax, ebx", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.ARITHMETIC
 
@@ -179,7 +182,7 @@ class TestArithmeticLogicCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["inc eax", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.ARITHMETIC
 
@@ -189,7 +192,7 @@ class TestArithmeticLogicCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["neg eax", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.ARITHMETIC
 
@@ -199,7 +202,7 @@ class TestArithmeticLogicCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["xor eax, eax", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.LOGIC
 
@@ -209,7 +212,7 @@ class TestArithmeticLogicCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["and eax, 0xff", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.LOGIC
 
@@ -219,7 +222,7 @@ class TestArithmeticLogicCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["shl eax, 2", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.LOGIC
 
@@ -230,9 +233,7 @@ class TestControlFlowCategories(unittest.TestCase):
     def test_categorize_call(self):
         """Test call category"""
         g = Gadget(
-            address="0x12345678",
-            instructions=["call eax"],
-            raw_line="test",
+            address="0x12345678", instructions=["call eax"], raw_line="test",
             count=1
         )
         assert categorize_gadget(g) == GadgetCategory.CALL
@@ -240,9 +241,7 @@ class TestControlFlowCategories(unittest.TestCase):
     def test_categorize_call_indirect(self):
         """Test call category with indirect call"""
         g = Gadget(
-            address="0x12345678",
-            instructions=["call [eax]"],
-            raw_line="test",
+            address="0x12345678", instructions=["call [eax]"], raw_line="test",
             count=1
         )
         assert categorize_gadget(g) == GadgetCategory.CALL
@@ -250,9 +249,7 @@ class TestControlFlowCategories(unittest.TestCase):
     def test_categorize_jmp(self):
         """Test jmp category"""
         g = Gadget(
-            address="0x12345678",
-            instructions=["jmp eax"],
-            raw_line="test",
+            address="0x12345678", instructions=["jmp eax"], raw_line="test",
             count=1
         )
         assert categorize_gadget(g) == GadgetCategory.JMP
@@ -263,7 +260,7 @@ class TestControlFlowCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["je 0x1234", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.CONDITIONAL
 
@@ -273,7 +270,7 @@ class TestControlFlowCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["jne 0x1234", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.CONDITIONAL
 
@@ -287,19 +284,18 @@ class TestSystemCategories(unittest.TestCase):
             address="0x12345678",
             instructions=["syscall", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         # syscall is caught by categorize_gadget, but only if it's NOT ending with "call"
         # Since "syscall" ends with "call", it gets categorized as CALL
         # Let's test it properly ends with ret so the last instruction check doesn't hit
-        assert categorize_gadget(g) in [GadgetCategory.SYSCALL, GadgetCategory.CALL]
+        assert categorize_gadget(g) in [GadgetCategory.SYSCALL,
+                                        GadgetCategory.CALL]
 
     def test_categorize_sysenter(self):
         """Test sysenter category"""
         g = Gadget(
-            address="0x12345678",
-            instructions=["sysenter"],
-            raw_line="test",
+            address="0x12345678", instructions=["sysenter"], raw_line="test",
             count=1
         )
         assert categorize_gadget(g) == GadgetCategory.SYSCALL
@@ -307,9 +303,7 @@ class TestSystemCategories(unittest.TestCase):
     def test_categorize_interrupt_80(self):
         """Test interrupt category with int 0x80"""
         g = Gadget(
-            address="0x12345678",
-            instructions=["int 0x80"],
-            raw_line="test",
+            address="0x12345678", instructions=["int 0x80"], raw_line="test",
             count=1
         )
         assert categorize_gadget(g) == GadgetCategory.SYSCALL
@@ -317,9 +311,7 @@ class TestSystemCategories(unittest.TestCase):
     def test_categorize_interrupt_other(self):
         """Test interrupt category with other interrupts"""
         g = Gadget(
-            address="0x12345678",
-            instructions=["int 0x21"],
-            raw_line="test",
+            address="0x12345678", instructions=["int 0x21"], raw_line="test",
             count=1
         )
         assert categorize_gadget(g) == GadgetCategory.INTERRUPT
@@ -331,21 +323,20 @@ class TestStringCategories(unittest.TestCase):
     def test_categorize_string_movs(self):
         """Test string_ops category with movs"""
         g = Gadget(
-            address="0x12345678",
-            instructions=["movs", "ret"],
-            raw_line="test",
+            address="0x12345678", instructions=["movs", "ret"], raw_line="test",
             count=1
         )
         # Note: movs contains "mov" so it gets categorized as MOVE_REGISTER
         # due to the ordering of checks in categorize_gadget
-        assert categorize_gadget(g) in [GadgetCategory.STRING_OPS, GadgetCategory.MOVE_REGISTER]
+        assert categorize_gadget(g) in [
+            GadgetCategory.STRING_OPS,
+            GadgetCategory.MOVE_REGISTER,
+        ]
 
     def test_categorize_string_lods(self):
         """Test string_ops category with lods"""
         g = Gadget(
-            address="0x12345678",
-            instructions=["lods", "ret"],
-            raw_line="test",
+            address="0x12345678", instructions=["lods", "ret"], raw_line="test",
             count=1
         )
         assert categorize_gadget(g) == GadgetCategory.STRING_OPS
@@ -353,9 +344,7 @@ class TestStringCategories(unittest.TestCase):
     def test_categorize_string_stos(self):
         """Test string_ops category with stos"""
         g = Gadget(
-            address="0x12345678",
-            instructions=["stos", "ret"],
-            raw_line="test",
+            address="0x12345678", instructions=["stos", "ret"], raw_line="test",
             count=1
         )
         assert categorize_gadget(g) == GadgetCategory.STRING_OPS
@@ -367,9 +356,7 @@ class TestOtherCategory(unittest.TestCase):
     def test_categorize_other_nop(self):
         """Test other category with nop"""
         g = Gadget(
-            address="0x12345678",
-            instructions=["nop", "ret"],
-            raw_line="test",
+            address="0x12345678", instructions=["nop", "ret"], raw_line="test",
             count=1
         )
         assert categorize_gadget(g) == GadgetCategory.OTHER
@@ -380,7 +367,7 @@ class TestOtherCategory(unittest.TestCase):
             address="0x12345678",
             instructions=["foobar", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert categorize_gadget(g) == GadgetCategory.OTHER
 

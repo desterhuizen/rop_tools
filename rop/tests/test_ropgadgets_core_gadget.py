@@ -5,7 +5,9 @@ Tests the Gadget dataclass and its methods for analyzing
 ROP gadgets including instruction parsing, register analysis,
 and bad character detection.
 """
+
 import unittest
+
 from rop.core.gadget import Gadget
 
 
@@ -18,7 +20,7 @@ class TestGadgetBasics(unittest.TestCase):
             address="0x12345678",
             instructions=["pop eax", "ret"],
             raw_line="0x12345678: pop eax ; ret ; (1 found)",
-            count=1
+            count=1,
         )
         assert g.address == "0x12345678"
         assert len(g.instructions) == 2
@@ -30,7 +32,7 @@ class TestGadgetBasics(unittest.TestCase):
             address="0x12345678",
             instructions=["pop eax", "pop ebx", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert g.get_instruction_chain() == "pop eax ; pop ebx ; ret"
 
@@ -40,7 +42,7 @@ class TestGadgetBasics(unittest.TestCase):
             address="0x12345678",
             instructions=["pop eax", "pop ebx", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert g.get_first_instruction() == "pop eax"
 
@@ -50,18 +52,14 @@ class TestGadgetBasics(unittest.TestCase):
             address="0x12345678",
             instructions=["pop eax", "pop ebx", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert g.get_last_instruction() == "ret"
 
     def test_empty_instructions(self):
         """Test gadget with no instructions"""
-        g = Gadget(
-            address="0x12345678",
-            instructions=[],
-            raw_line="test",
-            count=1
-        )
+        g = Gadget(address="0x12345678", instructions=[], raw_line="test",
+                   count=1)
         assert g.get_first_instruction() == ""
         assert g.get_last_instruction() == ""
         assert g.get_instruction_chain() == ""
@@ -76,7 +74,7 @@ class TestBadCharacterDetection(unittest.TestCase):
             address="0x12345678",
             instructions=["pop eax", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         bad_chars = {"00", "0a", "0d"}
         assert not g.contains_bad_chars(bad_chars)
@@ -87,7 +85,7 @@ class TestBadCharacterDetection(unittest.TestCase):
             address="0x00123456",
             instructions=["pop eax", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         bad_chars = {"00"}
         assert g.contains_bad_chars(bad_chars)
@@ -98,7 +96,7 @@ class TestBadCharacterDetection(unittest.TestCase):
             address="0x1234560a",
             instructions=["pop eax", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         bad_chars = {"0a"}
         assert g.contains_bad_chars(bad_chars)
@@ -109,7 +107,7 @@ class TestBadCharacterDetection(unittest.TestCase):
             address="0x00340a56",
             instructions=["pop eax", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         bad_chars = {"00", "0a", "0d"}
         assert g.contains_bad_chars(bad_chars)
@@ -124,7 +122,7 @@ class TestRegisterAnalysis(unittest.TestCase):
             address="0x12345678",
             instructions=["mov eax, ebx", "add ecx, edx"],
             raw_line="test",
-            count=1
+            count=1,
         )
         regs = g.get_affected_registers()
         assert "eax" in regs
@@ -138,7 +136,7 @@ class TestRegisterAnalysis(unittest.TestCase):
             address="0x12345678",
             instructions=["mov rax, rbx", "pop rdi"],
             raw_line="test",
-            count=1
+            count=1,
         )
         regs = g.get_affected_registers()
         assert "rax" in regs
@@ -151,7 +149,7 @@ class TestRegisterAnalysis(unittest.TestCase):
             address="0x12345678",
             instructions=["mov eax, ebx", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         modified = g.get_modified_registers()
         assert "eax" in modified
@@ -163,7 +161,7 @@ class TestRegisterAnalysis(unittest.TestCase):
             address="0x12345678",
             instructions=["pop eax", "pop ebx", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         modified = g.get_modified_registers()
         assert "eax" in modified
@@ -175,7 +173,7 @@ class TestRegisterAnalysis(unittest.TestCase):
             address="0x12345678",
             instructions=["add eax, 0x10", "sub ebx, ecx"],
             raw_line="test",
-            count=1
+            count=1,
         )
         modified = g.get_modified_registers()
         assert "eax" in modified
@@ -188,7 +186,7 @@ class TestRegisterAnalysis(unittest.TestCase):
             address="0x12345678",
             instructions=["xchg eax, ebx", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         modified = g.get_modified_registers()
         assert "eax" in modified
@@ -204,7 +202,7 @@ class TestDereferencedRegisters(unittest.TestCase):
             address="0x12345678",
             instructions=["mov eax, [ebx]", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         derefs = g.get_dereferenced_registers()
         assert "ebx" in derefs
@@ -215,7 +213,7 @@ class TestDereferencedRegisters(unittest.TestCase):
             address="0x12345678",
             instructions=["mov eax, [ebx+4]", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         derefs = g.get_dereferenced_registers()
         assert "ebx" in derefs
@@ -226,7 +224,7 @@ class TestDereferencedRegisters(unittest.TestCase):
             address="0x12345678",
             instructions=["mov rax, [rsp+8]", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         derefs = g.get_dereferenced_registers()
         assert "rsp" in derefs
@@ -237,7 +235,7 @@ class TestDereferencedRegisters(unittest.TestCase):
             address="0x12345678",
             instructions=["mov eax, [ebx]", "add ecx, [edx+8]"],
             raw_line="test",
-            count=1
+            count=1,
         )
         derefs = g.get_dereferenced_registers()
         assert "ebx" in derefs
@@ -249,7 +247,7 @@ class TestDereferencedRegisters(unittest.TestCase):
             address="0x12345678",
             instructions=["mov eax, [ebx]", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert g.has_dereferenced_register()
 
@@ -259,7 +257,7 @@ class TestDereferencedRegisters(unittest.TestCase):
             address="0x12345678",
             instructions=["mov eax, [ebx]", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert g.has_dereferenced_register("ebx")
         assert not g.has_dereferenced_register("eax")
@@ -270,7 +268,7 @@ class TestDereferencedRegisters(unittest.TestCase):
             address="0x12345678",
             instructions=["mov eax, ebx", "ret"],
             raw_line="test",
-            count=1
+            count=1,
         )
         assert not g.has_dereferenced_register()
         derefs = g.get_dereferenced_registers()

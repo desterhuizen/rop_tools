@@ -1,4 +1,3 @@
-
 """
 Command Line Interface Module
 
@@ -6,22 +5,22 @@ Handles argument parsing and orchestration of the shellgen generation workflow.
 """
 
 import argparse
-import sys
 import json
+import sys
 
 from lib.color_printer import printer
 
-from .generators import WindowsGenerator, LinuxGenerator
-from .payloads import get_payload_builder, list_payloads
 from .assembler import (
-    verify_shellcode_bad_chars,
-    print_bad_char_report,
     assemble_to_binary,
     debug_shellcode_opcodes,
+    print_bad_char_report,
+    print_bad_char_summary,
     scan_shellcode_for_bad_chars,
-    print_bad_char_summary
+    verify_shellcode_bad_chars,
 )
 from .formatters import format_output, print_usage_instructions
+from .generators import LinuxGenerator, WindowsGenerator
+from .payloads import get_payload_builder, list_payloads
 
 
 def parse_bad_chars(bad_chars_str):
@@ -35,13 +34,13 @@ def parse_bad_chars(bad_chars_str):
         list: List of integer byte values
     """
     if not bad_chars_str:
-        return [0x00, 0x0a, 0x0d]  # default
+        return [0x00, 0x0A, 0x0D]  # default
 
     bad_chars = []
-    for byte_str in bad_chars_str.split(','):
+    for byte_str in bad_chars_str.split(","):
         byte_str = byte_str.strip()
         try:
-            if byte_str.startswith('0x') or byte_str.startswith('0X'):
+            if byte_str.startswith("0x") or byte_str.startswith("0X"):
                 bad_chars.append(int(byte_str, 16))
             else:
                 bad_chars.append(int(byte_str, 16))
@@ -77,24 +76,24 @@ def load_custom_json(json_path):
         }
     """
     try:
-        with open(json_path, 'r') as f:
+        with open(json_path, "r") as f:
             config = json.load(f)
 
         # Convert bad_chars list to set if present
-        if 'bad_chars' in config:
-            config['bad_chars'] = set(config['bad_chars'])
+        if "bad_chars" in config:
+            config["bad_chars"] = set(config["bad_chars"])
         else:
-            config['bad_chars'] = {0x00, 0x0a, 0x0d}  # default
+            config["bad_chars"] = {0x00, 0x0A, 0x0D}  # default
 
         # Validate required fields
-        if 'calls' not in config:
+        if "calls" not in config:
             printer.print_text("✗ ERROR: ", "bold red", end="")
             printer.print_text("JSON must contain 'calls' array\n", "red")
             sys.exit(1)
 
         # Set default exit if not specified
-        if 'exit' not in config:
-            config['exit'] = True
+        if "exit" not in config:
+            config["exit"] = True
 
         return config
 
@@ -154,85 +153,98 @@ Examples:
 
   # List available payloads
   %(prog)s --list-payloads
-        """
+        """,
     )
 
     parser.add_argument(
-        '--list-payloads',
-        action='store_true',
-        help='List all available payloads and exit'
+        "--list-payloads",
+        action="store_true",
+        help="List all available payloads and exit",
     )
 
     parser.add_argument(
-        '--platform',
-        choices=['windows', 'linux'],
-        help='Target platform: windows or linux'
+        "--platform",
+        choices=["windows", "linux"],
+        help="Target platform: windows or linux",
     )
 
     parser.add_argument(
-        '--payload',
-        help='Payload name (use --list-payloads to see available options)'
+        "--payload", help="Payload name (use --list-payloads to see available options)"
     )
 
     parser.add_argument(
-        '--arch',
-        choices=['x86', 'x64', 'arm', 'arm64'],
-        default='x86',
-        help='Architecture: x86 (default), x64, arm, arm64'
+        "--arch",
+        choices=["x86", "x64", "arm", "arm64"],
+        default="x86",
+        help="Architecture: x86 (default), x64, arm, arm64",
     )
 
     parser.add_argument(
-        '--bad-chars',
-        default='00',
-        help='Comma-separated hex bytes to avoid (default: 00)'
+        "--bad-chars",
+        default="00",
+        help="Comma-separated hex bytes to avoid (default: 00)",
     )
 
     # Payload-specific arguments
-    parser.add_argument('--title', help='MessageBox title')
-    parser.add_argument('--message', help='MessageBox message')
-    parser.add_argument('--cmd', help='Command to execute')
-    parser.add_argument('--show-window', type=int, default=1, help='Window visibility (0=hidden, 1=normal)')
-    parser.add_argument('--url', help='URL to download from')
-    parser.add_argument('--save-path', default='C:\\\\temp\\\\payload.exe', help='Local save path for download')
-    parser.add_argument('--host', help='Target IP address for reverse shell')
-    parser.add_argument('--port', type=int, help='Port number (target port for reverse shell, listen port for bind shell)')
-    parser.add_argument('--shell', help='Shell to execute (e.g., cmd.exe, powershell.exe, /bin/bash)')
+    parser.add_argument("--title", help="MessageBox title")
+    parser.add_argument("--message", help="MessageBox message")
+    parser.add_argument("--cmd", help="Command to execute")
+    parser.add_argument(
+        "--show-window",
+        type=int,
+        default=1,
+        help="Window visibility (0=hidden, 1=normal)",
+    )
+    parser.add_argument("--url", help="URL to download from")
+    parser.add_argument(
+        "--save-path",
+        default="C:\\\\temp\\\\payload.exe",
+        help="Local save path for download",
+    )
+    parser.add_argument("--host", help="Target IP address for reverse shell")
+    parser.add_argument(
+        "--port",
+        type=int,
+        help="Port number (target port for reverse shell, listen port for bind shell)",
+    )
+    parser.add_argument(
+        "--shell", help="Shell to execute (e.g., cmd.exe, powershell.exe, /bin/bash)"
+    )
 
     # Custom JSON payload
     parser.add_argument(
-        '--json',
-        help='Load custom payload from JSON file (replaces --payload and payload-specific args)'
+        "--json",
+        help="Load custom payload from JSON file (replaces --payload and payload-specific args)",
     )
 
     # Output options
     parser.add_argument(
-        '--output',
-        help='Output filename (if not specified, prints to stdout)'
+        "--output", help="Output filename (if not specified, prints to stdout)"
     )
 
     parser.add_argument(
-        '--format',
-        choices=['asm', 'python', 'c', 'raw', 'pyasm'],
-        default='asm',
-        help='Output format (default: asm)'
+        "--format",
+        choices=["asm", "python", "c", "raw", "pyasm"],
+        default="asm",
+        help="Output format (default: asm)",
     )
 
     parser.add_argument(
-        '--verify',
-        action='store_true',
-        help='Verify assembled shellgen for bad characters (requires Keystone)'
+        "--verify",
+        action="store_true",
+        help="Verify assembled shellgen for bad characters (requires Keystone)",
     )
 
     parser.add_argument(
-        '--debug-shellgen',
-        action='store_true',
-        help='Print opcodes line by line to identify bad characters'
+        "--debug-shellgen",
+        action="store_true",
+        help="Print opcodes line by line to identify bad characters",
     )
 
     parser.add_argument(
-        '--no-exit',
-        action='store_true',
-        help='Skip ExitProcess at the end (Windows only)'
+        "--no-exit",
+        action="store_true",
+        help="Skip ExitProcess at the end (Windows only)",
     )
 
     return parser
@@ -254,13 +266,17 @@ def validate_args(args):
     if not args.platform:
         printer.print_text("✗ ERROR: ", "bold red", end="")
         printer.print_text("--platform is required ", "red", end="")
-        printer.print_text("(use --list-payloads to see available options)\n", "dim white")
+        printer.print_text(
+            "(use --list-payloads to see available options)\n", "dim white"
+        )
         sys.exit(1)
 
     if not args.payload:
         printer.print_text("✗ ERROR: ", "bold red", end="")
         printer.print_text("--payload is required ", "red", end="")
-        printer.print_text("(use --list-payloads to see available options)\n", "dim white")
+        printer.print_text(
+            "(use --list-payloads to see available options)\n", "dim white"
+        )
         sys.exit(1)
 
     # NOTE: All architectures (x86, x64, ARM, ARM64) are now supported on both platforms
@@ -283,106 +299,123 @@ def build_payload_config(args, bad_chars):
     except ValueError as e:
         printer.print_text("✗ ERROR: ", "bold red", end="")
         printer.print_text(f"{e}\n", "red")
-        printer.print_text("\nUse --list-payloads to see available options.\n", "dim white")
+        printer.print_text(
+            "\nUse --list-payloads to see available options.\n", "dim white"
+        )
         sys.exit(1)
 
     # Build kwargs based on payload type
-    kwargs = {'bad_chars': set(bad_chars)}
+    kwargs = {"bad_chars": set(bad_chars)}
 
     # Common arguments
-    if args.payload == 'messagebox':
+    if args.payload == "messagebox":
         if not args.title or not args.message:
             printer.print_text("✗ ERROR: ", "bold red", end="")
-            printer.print_text("--title and --message are required for messagebox payload\n", "red")
+            printer.print_text(
+                "--title and --message are required for messagebox payload\n", "red"
+            )
             sys.exit(1)
-        kwargs['title'] = args.title
-        kwargs['message'] = args.message
+        kwargs["title"] = args.title
+        kwargs["message"] = args.message
 
-    elif args.payload == 'winexec':
+    elif args.payload == "winexec":
         if not args.cmd:
             printer.print_text("✗ ERROR: ", "bold red", end="")
             printer.print_text("--cmd is required for winexec payload\n", "red")
             sys.exit(1)
-        kwargs['command'] = args.cmd
-        kwargs['show_window'] = args.show_window
+        kwargs["command"] = args.cmd
+        kwargs["show_window"] = args.show_window
 
-    elif args.payload == 'createprocess':
+    elif args.payload == "createprocess":
         if not args.cmd:
             printer.print_text("✗ ERROR: ", "bold red", end="")
             printer.print_text("--cmd is required for createprocess payload\n", "red")
             sys.exit(1)
-        kwargs['command'] = args.cmd
-        kwargs['show_window'] = args.show_window
+        kwargs["command"] = args.cmd
+        kwargs["show_window"] = args.show_window
 
-    elif args.payload == 'shellexecute':
+    elif args.payload == "shellexecute":
         if not args.cmd:
             printer.print_text("✗ ERROR: ", "bold red", end="")
-            printer.print_text("--cmd is required for shellexecute payload (file/URL to execute)\n", "red")
+            printer.print_text(
+                "--cmd is required for shellexecute payload (file/URL to execute)\n",
+                "red",
+            )
             sys.exit(1)
-        kwargs['file_or_url'] = args.cmd
+        kwargs["file_or_url"] = args.cmd
         # Optional parameters can be added via additional CLI args if needed
-        if hasattr(args, 'operation') and args.operation:
-            kwargs['operation'] = args.operation
-        if hasattr(args, 'parameters') and args.parameters:
-            kwargs['parameters'] = args.parameters
-        kwargs['show_cmd'] = args.show_window
+        if hasattr(args, "operation") and args.operation:
+            kwargs["operation"] = args.operation
+        if hasattr(args, "parameters") and args.parameters:
+            kwargs["parameters"] = args.parameters
+        kwargs["show_cmd"] = args.show_window
 
-    elif args.payload == 'system':
+    elif args.payload == "system":
         if not args.cmd:
             printer.print_text("✗ ERROR: ", "bold red", end="")
             printer.print_text("--cmd is required for system payload\n", "red")
             sys.exit(1)
-        kwargs['command'] = args.cmd
+        kwargs["command"] = args.cmd
 
-    elif args.payload == 'download_exec':
+    elif args.payload == "download_exec":
         if not args.url:
             printer.print_text("✗ ERROR: ", "bold red", end="")
             printer.print_text("--url is required for download_exec payload\n", "red")
             sys.exit(1)
-        kwargs['url'] = args.url
-        kwargs['save_path'] = args.save_path
+        kwargs["url"] = args.url
+        kwargs["save_path"] = args.save_path
 
-    elif args.payload in ('reverse_shell', 'reverse_shell_x64', 'reverse_shell_powershell'):
+    elif args.payload in (
+        "reverse_shell",
+        "reverse_shell_x64",
+        "reverse_shell_powershell",
+    ):
         if not args.host or not args.port:
             printer.print_text("✗ ERROR: ", "bold red", end="")
-            printer.print_text(f"--host and --port are required for {args.payload} payload\n", "red")
+            printer.print_text(
+                f"--host and --port are required for {args.payload} payload\n", "red"
+            )
             sys.exit(1)
-        kwargs['host'] = args.host
-        kwargs['port'] = args.port
+        kwargs["host"] = args.host
+        kwargs["port"] = args.port
         if args.shell:
-            kwargs['shell'] = args.shell
-        if args.platform == 'linux':
-            kwargs['arch'] = args.arch
+            kwargs["shell"] = args.shell
+        if args.platform == "linux":
+            kwargs["arch"] = args.arch
 
-    elif args.payload in ('bind_shell', 'bind_shell_x64'):
+    elif args.payload in ("bind_shell", "bind_shell_x64"):
         if not args.port:
             printer.print_text("✗ ERROR: ", "bold red", end="")
-            printer.print_text(f"--port is required for {args.payload} payload\n", "red")
+            printer.print_text(
+                f"--port is required for {args.payload} payload\n", "red"
+            )
             sys.exit(1)
-        kwargs['port'] = args.port
+        kwargs["port"] = args.port
         if args.shell:
-            kwargs['shell'] = args.shell
-        if args.platform == 'linux':
-            kwargs['arch'] = args.arch
+            kwargs["shell"] = args.shell
+        if args.platform == "linux":
+            kwargs["arch"] = args.arch
 
-    elif args.payload == 'bind_shell_simple':
+    elif args.payload == "bind_shell_simple":
         if not args.port:
             printer.print_text("✗ ERROR: ", "bold red", end="")
-            printer.print_text("--port is required for bind_shell_simple payload\n", "red")
+            printer.print_text(
+                "--port is required for bind_shell_simple payload\n", "red"
+            )
             sys.exit(1)
-        kwargs['port'] = args.port
+        kwargs["port"] = args.port
         if args.cmd:
-            kwargs['command'] = args.cmd
+            kwargs["command"] = args.cmd
 
-    elif args.payload == 'execve':
+    elif args.payload == "execve":
         if not args.cmd:
             printer.print_text("✗ ERROR: ", "bold red", end="")
             printer.print_text("--cmd is required for execve payload\n", "red")
             sys.exit(1)
-        kwargs['command'] = args.cmd
-        kwargs['arch'] = args.arch
+        kwargs["command"] = args.cmd
+        kwargs["arch"] = args.arch
         if args.shell:
-            kwargs['shell'] = args.shell
+            kwargs["shell"] = args.shell
 
     return builder(**kwargs)
 
@@ -398,15 +431,15 @@ def generate_shellcode(args, config):
     Returns:
         str: Generated assembly code
     """
-    if args.platform == 'windows':
+    if args.platform == "windows":
         # Windows shellgen generation (x86, x64, ARM, ARM64)
-        bad_chars = config.get('bad_chars', set())
+        bad_chars = config.get("bad_chars", set())
         generator = WindowsGenerator(bad_chars, args.arch)
         return generator.generate(config)
 
-    elif args.platform == 'linux':
+    elif args.platform == "linux":
         # Linux shellgen generation (x86, x64, ARM, ARM64)
-        bad_chars = config.get('bad_chars', set())
+        bad_chars = config.get("bad_chars", set())
         generator = LinuxGenerator(bad_chars, args.arch)
         return generator.generate(config)
 
@@ -434,19 +467,25 @@ def run_cli():
 
         # Check if --bad-chars was explicitly provided (not just the default)
         # The default is '00', so if user provides something else, they want to override
-        if args.bad_chars != '00':
+        if args.bad_chars != "00":
             # CLI --bad-chars overrides JSON bad_chars
             bad_chars = parse_bad_chars(args.bad_chars)
-            config['bad_chars'] = set(bad_chars)
+            config["bad_chars"] = set(bad_chars)
             printer.print_text("ℹ ", "cyan", end="")
-            printer.print_text(f"Using bad_chars from CLI (overriding JSON): ", "dim white", end="")
-            printer.print_text(f"{{{', '.join(f'0x{b:02x}' for b in sorted(bad_chars))}}}\n", "yellow")
+            printer.print_text(
+                f"Using bad_chars from CLI (overriding JSON): ", "dim white", end=""
+            )
+            printer.print_text(
+                f"{{{', '.join(f'0x{b:02x}' for b in sorted(bad_chars))}}}\n", "yellow"
+            )
         else:
             # Use bad_chars from JSON
-            bad_chars = list(config.get('bad_chars', {0x00, 0x0a, 0x0d}))
+            bad_chars = list(config.get("bad_chars", {0x00, 0x0A, 0x0D}))
             printer.print_text("ℹ ", "cyan", end="")
             printer.print_text(f"Using bad_chars from JSON: ", "dim white", end="")
-            printer.print_text(f"{{{', '.join(f'0x{b:02x}' for b in sorted(bad_chars))}}}\n", "yellow")
+            printer.print_text(
+                f"{{{', '.join(f'0x{b:02x}' for b in sorted(bad_chars))}}}\n", "yellow"
+            )
     else:
         # Build payload from CLI arguments
         bad_chars = parse_bad_chars(args.bad_chars)
@@ -455,12 +494,12 @@ def run_cli():
 
         # Set exit flag for Windows payloads (only if user explicitly set --no-exit)
         # Don't override reverse_shell which has its own exit handling via WaitForSingleObject
-        if args.platform == 'windows' and 'exit' in config:
-            if args.payload != 'reverse_shell':
-                config['exit'] = do_exit
+        if args.platform == "windows" and "exit" in config:
+            if args.payload != "reverse_shell":
+                config["exit"] = do_exit
             elif args.no_exit:
                 # Allow user to force no exit even for reverse_shell
-                config['exit'] = False
+                config["exit"] = False
 
     # Generate shellgen
     try:
@@ -481,21 +520,21 @@ def run_cli():
     # Write to file or stdout
     if args.output:
         # Write to file if --output is specified
-        if args.format == 'raw':
+        if args.format == "raw":
             # Write binary to file
-            with open(args.output, 'wb') as f:
+            with open(args.output, "wb") as f:
                 f.write(output_data)
             printer.print_text("✓ ", "bold green", end="")
             printer.print_text(f"Raw binary written to: {args.output}\n", "green")
         else:
             # Write text to file
-            with open(args.output, 'w') as f:
+            with open(args.output, "w") as f:
                 f.write(output_data)
             printer.print_text("✓ ", "bold green", end="")
             printer.print_text(f"Output written to: {args.output}\n", "green")
     else:
         # Print to stdout if no --output specified
-        if args.format == 'raw':
+        if args.format == "raw":
             # For raw binary, write to stdout in binary mode
             sys.stdout.buffer.write(output_data)
         else:
@@ -518,10 +557,10 @@ def run_cli():
 
     # Verify shellgen for bad characters if requested
     if args.verify:
-        print("\n" + "="*72)
+        print("\n" + "=" * 72)
         print("VERIFYING ASSEMBLED SHELLCODE...")
         print("Assembler: Keystone Engine")
-        print("="*72)
+        print("=" * 72)
         try:
             shellcode_bytes = assemble_to_binary(asm_code, args.arch)
             is_clean, report = verify_shellcode_bad_chars(shellcode_bytes, bad_chars)

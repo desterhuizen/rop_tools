@@ -4,17 +4,18 @@ Integration tests for the ROP worksheet.
 These tests verify that all components work correctly together,
 ensuring backward compatibility after refactoring.
 """
+
 import unittest
+
+from rop.worksheet.chain.manager import cmd_chain_add
 from rop.worksheet.core.data import blank_worksheet
-from rop.worksheet.core.resolver import resolve_value, parse_target
-from rop.worksheet.operations.asm_ops import cmd_move, cmd_add, cmd_xor
-from rop.worksheet.operations.stack_ops import cmd_push, cmd_pop
-from rop.worksheet.operations.quick_ops import cmd_set, cmd_clear
+from rop.worksheet.core.resolver import parse_target, resolve_value
 from rop.worksheet.gadgets.library import cmd_gadget_add
 from rop.worksheet.gadgets.processor import process_gadget
-from rop.worksheet.chain.manager import cmd_chain_add
 from rop.worksheet.io.windbg import cmd_import_regs
-
+from rop.worksheet.operations.asm_ops import cmd_add, cmd_move, cmd_xor
+from rop.worksheet.operations.quick_ops import cmd_clear, cmd_set
+from rop.worksheet.operations.stack_ops import cmd_pop, cmd_push
 
 
 def test_core_integration():
@@ -28,7 +29,6 @@ def test_core_integration():
     assert "chain" in ws
     assert ws["registers"]["EAX"] == "0x00000000"
     print("✓ Core data structures OK")
-
 
 
 def test_resolver_integration():
@@ -55,7 +55,6 @@ def test_resolver_integration():
     print("✓ Value resolution OK")
 
 
-
 def test_operations_integration():
     """Test ASM operations."""
     print("\nTesting ASM operations...")
@@ -79,7 +78,6 @@ def test_operations_integration():
     print("✓ ASM operations OK")
 
 
-
 def test_stack_ops_integration():
     """Test stack operations."""
     print("\nTesting stack operations...")
@@ -99,7 +97,6 @@ def test_stack_ops_integration():
     assert ws["registers"]["EAX"] == "0xdeadbeef"
 
     print("✓ Stack operations OK")
-
 
 
 def test_gadgets_integration():
@@ -122,7 +119,6 @@ def test_gadgets_integration():
     assert ws["registers"]["EAX"] == "0xdeadbeef"
 
     print("✓ Gadget processing OK")
-
 
 
 def test_chain_integration():
@@ -148,14 +144,15 @@ def test_chain_integration():
     print("✓ ROP chain management OK")
 
 
-
 def test_windbg_import_integration():
     """Test WinDbg import."""
     print("\nTesting WinDbg import...")
     ws = blank_worksheet()
 
     # Test register import
-    windbg_output = "eax=00000001 ebx=00000000 ecx=005cdeaa edx=0000034e esi=005c1716 edi=010237f8"
+    windbg_output = (
+        "eax=00000001 ebx=00000000 ecx=005cdeaa edx=0000034e esi=005c1716 edi=010237f8"
+    )
     success, msg = cmd_import_regs(ws, windbg_output)
     assert success
     assert ws["registers"]["EAX"] == "0x00000001"
@@ -163,7 +160,6 @@ def test_windbg_import_integration():
     assert ws["registers"]["ECX"] == "0x005cdeaa"
 
     print("✓ WinDbg import OK")
-
 
 
 def test_quick_ops_integration():

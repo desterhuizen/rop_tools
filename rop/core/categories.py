@@ -5,6 +5,7 @@ Defines categories for ROP gadgets and provides categorization logic.
 """
 
 import re
+
 from .gadget import Gadget
 
 
@@ -52,67 +53,92 @@ def categorize_gadget(gadget: Gadget) -> str:
     last_inst = instructions_lower[-1] if instructions_lower else ""
 
     # Stack pivots (esp/rsp manipulation)
-    if any(re.match(r'(xchg|xor|add|sub|lea).*[er]sp', inst) for inst in instructions_lower):
+    if any(
+            re.match(r"(xchg|xor|add|sub|lea).*[er]sp", inst) for inst in
+            instructions_lower
+    ):
         return GadgetCategory.STACK_PIVOT
 
     # Stack pops
-    if 'pop' in first_inst:
+    if "pop" in first_inst:
         return GadgetCategory.STACK_POP
 
     # Stack push
-    if 'push' in first_inst:
+    if "push" in first_inst:
         return GadgetCategory.STACK_PUSH
 
     # Calls
-    if 'call' in last_inst:
+    if "call" in last_inst:
         return GadgetCategory.CALL
 
     # Jumps
-    if 'jmp' in last_inst or 'jne' in last_inst or 'je' in last_inst:
+    if "jmp" in last_inst or "jne" in last_inst or "je" in last_inst:
         return GadgetCategory.JMP
 
     # Conditionals
-    if any(inst.startswith(('jne', 'je', 'jz', 'jnz', 'jl', 'jg', 'jle', 'jge')) for inst in instructions_lower):
+    if any(
+            inst.startswith(
+                ("jne", "je", "jz", "jnz", "jl", "jg", "jle", "jge"))
+            for inst in instructions_lower
+    ):
         return GadgetCategory.CONDITIONAL
 
     # Memory read operations
-    if any(re.match(r'mov.*,.*\[', inst) for inst in instructions_lower):
+    if any(re.match(r"mov.*,.*\[", inst) for inst in instructions_lower):
         return GadgetCategory.MEMORY_READ
 
     # Memory write operations
-    if any(re.match(r'mov.*\[.*,', inst) for inst in instructions_lower):
+    if any(re.match(r"mov.*\[.*,", inst) for inst in instructions_lower):
         return GadgetCategory.MEMORY_WRITE
 
     # Register moves
-    if 'mov' in first_inst and '[' not in first_inst:
+    if "mov" in first_inst and "[" not in first_inst:
         return GadgetCategory.MOVE_REGISTER
 
     # Register exchange
-    if 'xchg' in first_inst:
+    if "xchg" in first_inst:
         return GadgetCategory.XCHG_REGISTER
 
     # Load operations
-    if any(inst.startswith(('lea', 'ld', 'ldr', 'ldd')) for inst in instructions_lower):
+    if any(inst.startswith(("lea", "ld", "ldr", "ldd")) for inst in
+           instructions_lower):
         return GadgetCategory.LOAD_REGISTER
 
     # Arithmetic
-    if any(inst.split()[0] in ('add', 'sub', 'inc', 'dec', 'mul', 'imul', 'div', 'idiv', 'neg') for inst in instructions_lower):
+    if any(
+            inst.split()[0]
+            in ("add", "sub", "inc", "dec", "mul", "imul", "div", "idiv", "neg")
+            for inst in instructions_lower
+    ):
         return GadgetCategory.ARITHMETIC
 
     # Logic operations
-    if any(inst.split()[0] in ('and', 'or', 'xor', 'not', 'shl', 'shr', 'ror', 'rol', 'sal', 'sar') for inst in instructions_lower):
+    if any(
+            inst.split()[0]
+            in ("and", "or", "xor", "not", "shl", "shr", "ror", "rol", "sal",
+                "sar")
+            for inst in instructions_lower
+    ):
         return GadgetCategory.LOGIC
 
     # String operations
-    if any(inst.split()[0] in ('movs', 'lods', 'stos', 'scas', 'cmps', 'movsb', 'movsw', 'movsd') for inst in instructions_lower):
+    if any(
+            inst.split()[0]
+            in ("movs", "lods", "stos", "scas", "cmps", "movsb", "movsw",
+                "movsd")
+            for inst in instructions_lower
+    ):
         return GadgetCategory.STRING_OPS
 
     # System calls
-    if any(inst in ('syscall', 'sysenter', 'int 0x80', 'int 0x2e') for inst in instructions_lower):
+    if any(
+            inst in ("syscall", "sysenter", "int 0x80", "int 0x2e")
+            for inst in instructions_lower
+    ):
         return GadgetCategory.SYSCALL
 
     # Interrupts
-    if any(inst.startswith('int') for inst in instructions_lower):
+    if any(inst.startswith("int") for inst in instructions_lower):
         return GadgetCategory.INTERRUPT
 
     return GadgetCategory.OTHER

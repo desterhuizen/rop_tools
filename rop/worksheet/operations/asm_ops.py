@@ -5,11 +5,13 @@ This module implements Intel-syntax assembly operations:
 mov, add, xor, xchg, inc, dec, neg
 """
 
-from typing import Dict, Any, Tuple, Optional
-from ..core.resolver import resolve_value, parse_target
+from typing import Any, Dict, Optional, Tuple
+
+from ..core.resolver import parse_target, resolve_value
 
 
-def log_execution(ws: Dict[str, Any], exec_type: str, source: str, operation: str):
+def log_execution(ws: Dict[str, Any], exec_type: str, source: str,
+                  operation: str):
     """
     Add an operation to the execution log.
 
@@ -19,11 +21,7 @@ def log_execution(ws: Dict[str, Any], exec_type: str, source: str, operation: st
         source: "User" for manual, address for auto
         operation: The operation string
     """
-    log_entry = {
-        "type": exec_type,
-        "source": source,
-        "operation": operation
-    }
+    log_entry = {"type": exec_type, "source": source, "operation": operation}
 
     ws["execution_log"].append(log_entry)
 
@@ -32,7 +30,8 @@ def log_execution(ws: Dict[str, Any], exec_type: str, source: str, operation: st
         ws["execution_log"] = ws["execution_log"][-10:]
 
 
-def cmd_move(ws: Dict[str, Any], dst: str, src: str) -> Tuple[bool, Optional[str]]:
+def cmd_move(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
+    bool, Optional[str]]:
     """
     Move value: mov dst, src (Intel syntax).
 
@@ -106,7 +105,8 @@ def cmd_move(ws: Dict[str, Any], dst: str, src: str) -> Tuple[bool, Optional[str
     return True, None
 
 
-def cmd_add(ws: Dict[str, Any], dst: str, src: str) -> Tuple[bool, Optional[str]]:
+def cmd_add(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
+    bool, Optional[str]]:
     """
     Add: add dst, src (dst = dst + src).
 
@@ -145,7 +145,8 @@ def cmd_add(ws: Dict[str, Any], dst: str, src: str) -> Tuple[bool, Optional[str]
         return False, "Invalid operands for add"
 
 
-def cmd_xor(ws: Dict[str, Any], dst: str, src: str) -> Tuple[bool, Optional[str]]:
+def cmd_xor(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
+    bool, Optional[str]]:
     """
     XOR: xor dst, src (dst = dst ^ src).
 
@@ -182,7 +183,8 @@ def cmd_xor(ws: Dict[str, Any], dst: str, src: str) -> Tuple[bool, Optional[str]
         return False, "Invalid operands for xor"
 
 
-def cmd_xchg(ws: Dict[str, Any], dst: str, src: str) -> Tuple[bool, Optional[str]]:
+def cmd_xchg(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
+    bool, Optional[str]]:
     """
     Exchange: xchg dst, src (swap values).
 
@@ -244,7 +246,7 @@ def cmd_inc(ws: Dict[str, Any], dst: str) -> Tuple[bool, Optional[str]]:
         return False, "Cannot resolve operand"
 
     try:
-        result = (int(dst_val, 16) + 1) & 0xffffffff
+        result = (int(dst_val, 16) + 1) & 0xFFFFFFFF
         result_hex = f"0x{result:08x}"
 
         dst_type, dst_key = parse_target(dst)
@@ -279,7 +281,7 @@ def cmd_dec(ws: Dict[str, Any], dst: str) -> Tuple[bool, Optional[str]]:
         return False, "Cannot resolve operand"
 
     try:
-        result = (int(dst_val, 16) - 1) & 0xffffffff
+        result = (int(dst_val, 16) - 1) & 0xFFFFFFFF
         result_hex = f"0x{result:08x}"
 
         dst_type, dst_key = parse_target(dst)
@@ -315,7 +317,7 @@ def cmd_neg(ws: Dict[str, Any], dst: str) -> Tuple[bool, Optional[str]]:
 
     try:
         # Two's complement negation
-        result = (~int(dst_val, 16) + 1) & 0xffffffff
+        result = (~int(dst_val, 16) + 1) & 0xFFFFFFFF
         result_hex = f"0x{result:08x}"
 
         dst_type, dst_key = parse_target(dst)

@@ -7,17 +7,18 @@ Provides file parsing, filtering, and grouping functionality for ROP gadgets.
 import re
 import sys
 from collections import defaultdict
-from typing import List, Dict, Optional, Set
+from typing import Dict, List, Optional, Set
 
-from .gadget import Gadget
 from .categories import categorize_gadget
+from .gadget import Gadget
 
 
 class ROPGadgetParser:
     """Parser for rp++ output files"""
 
     # Regex pattern to match gadget lines
-    GADGET_PATTERN = re.compile(r'^(0x[0-9a-fA-F]+):\s+(.+?)\s+;\s+\((\d+)\s+found\)$')
+    GADGET_PATTERN = re.compile(
+        r"^(0x[0-9a-fA-F]+):\s+(.+?)\s+;\s+\((\d+)\s+found\)$")
 
     def __init__(self, filepath: Optional[str] = None):
         self.filepath = filepath
@@ -31,19 +32,19 @@ class ROPGadgetParser:
         Returns the detected encoding: 'utf-8', 'utf-16-le', 'utf-16-be', or 'utf-8' as fallback.
         """
         try:
-            with open(filepath, 'rb') as f:
+            with open(filepath, "rb") as f:
                 # Read first few bytes to check for BOM
                 raw_bytes = f.read(4)
 
                 # Check for UTF-16 BOM
-                if raw_bytes.startswith(b'\xff\xfe'):
-                    return 'utf-16-le'  # UTF-16 Little Endian
-                elif raw_bytes.startswith(b'\xfe\xff'):
-                    return 'utf-16-be'  # UTF-16 Big Endian
+                if raw_bytes.startswith(b"\xff\xfe"):
+                    return "utf-16-le"  # UTF-16 Little Endian
+                elif raw_bytes.startswith(b"\xfe\xff"):
+                    return "utf-16-be"  # UTF-16 Big Endian
 
                 # Check for UTF-8 BOM
-                if raw_bytes.startswith(b'\xef\xbb\xbf'):
-                    return 'utf-8'
+                if raw_bytes.startswith(b"\xef\xbb\xbf"):
+                    return "utf-8"
 
                 # Read more bytes for heuristic detection
                 f.seek(0)
@@ -51,7 +52,7 @@ class ROPGadgetParser:
 
                 # Heuristic: UTF-16 files have lots of null bytes
                 # Count null bytes in sample
-                null_count = sample.count(b'\x00')
+                null_count = sample.count(b"\x00")
 
                 # If more than 30% null bytes, likely UTF-16
                 if null_count > len(sample) * 0.3:
@@ -60,20 +61,26 @@ class ROPGadgetParser:
                     # UTF-16-BE has pattern: 0x00, char
                     if len(sample) >= 2:
                         # Count positions of null bytes
-                        even_nulls = sum(1 for i in range(0, len(sample)-1, 2) if sample[i] == 0)
-                        odd_nulls = sum(1 for i in range(1, len(sample), 2) if sample[i] == 0)
+                        even_nulls = sum(
+                            1 for i in range(0, len(sample) - 1, 2) if
+                            sample[i] == 0
+                        )
+                        odd_nulls = sum(
+                            1 for i in range(1, len(sample), 2) if
+                            sample[i] == 0
+                        )
 
                         if odd_nulls > even_nulls:
-                            return 'utf-16-le'
+                            return "utf-16-le"
                         elif even_nulls > odd_nulls:
-                            return 'utf-16-be'
+                            return "utf-16-be"
 
                 # Default to UTF-8
-                return 'utf-8'
+                return "utf-8"
 
         except Exception:
             # If detection fails, default to UTF-8
-            return 'utf-8'
+            return "utf-8"
 
     def parse_file(self, filepath: Optional[str] = None) -> List[Gadget]:
         """Parse the rp++ output file with automatic encoding detection"""
@@ -90,7 +97,10 @@ class ROPGadgetParser:
         detected_encoding = self.detect_encoding(self.filepath)
 
         try:
-            with open(self.filepath, 'r', encoding=detected_encoding, errors='replace') as f:
+            with open(
+                    self.filepath, "r", encoding=detected_encoding,
+                    errors="replace"
+            ) as f:
                 for line in f:
                     line = line.rstrip()
 
@@ -100,15 +110,15 @@ class ROPGadgetParser:
 
                     # Parse metadata lines
                     if line.startswith("Trying to open"):
-                        self.metadata['dll'] = line.split("'")[1]
+                        self.metadata["dll"] = line.split("'")[1]
                     elif line.startswith("FileFormat:"):
-                        parts = line.split(',')
-                        self.metadata['format'] = parts[0].split(':')[1].strip()
-                        self.metadata['arch'] = parts[1].split(':')[1].strip()
+                        parts = line.split(",")
+                        self.metadata["format"] = parts[0].split(":")[1].strip()
+                        self.metadata["arch"] = parts[1].split(":")[1].strip()
                     elif "total of" in line and "gadgets found" in line:
-                        match = re.search(r'(\d+)\s+gadgets', line)
+                        match = re.search(r"(\d+)\s+gadgets", line)
                         if match:
-                            self.metadata['total_gadgets'] = match.group(1)
+                            self.metadata["total_gadgets"] = match.group(1)
 
                     # Parse gadget lines
                     match = self.GADGET_PATTERN.match(line)
@@ -118,18 +128,21 @@ class ROPGadgetParser:
                         count = int(match.group(3))
 
                         # Split instructions by ';' and clean them
-                        instructions = [inst.strip() for inst in instructions_str.split(';')]
+                        instructions = [
+                            inst.strip() for inst in instructions_str.split(";")
+                        ]
 
                         gadget = Gadget(
                             address=address,
                             instructions=instructions,
                             raw_line=line,
-                            count=count
+                            count=count,
                         )
                         self.gadgets.append(gadget)
 
         except FileNotFoundError:
-            print(f"[!] Error: File '{self.filepath}' not found", file=sys.stderr)
+            print(f"[!] Error: File '{self.filepath}' not found",
+                  file=sys.stderr)
             sys.exit(1)
         except Exception as e:
             print(f"[!] Error parsing file: {e}", file=sys.stderr)
@@ -137,7 +150,9 @@ class ROPGadgetParser:
 
         return self.gadgets
 
-    def filter_by_instruction(self, instruction: str, position: str = "any") -> List[Gadget]:
+    def filter_by_instruction(
+            self, instruction: str, position: str = "any"
+    ) -> List[Gadget]:
         """
         Filter gadgets by instruction
         position: 'any', 'first', 'last'
@@ -147,13 +162,18 @@ class ROPGadgetParser:
 
         for gadget in self.gadgets:
             if position == "first":
-                if gadget.get_first_instruction().lower().startswith(instruction_lower):
+                if gadget.get_first_instruction().lower().startswith(
+                        instruction_lower):
                     filtered.append(gadget)
             elif position == "last":
-                if gadget.get_last_instruction().lower().startswith(instruction_lower):
+                if gadget.get_last_instruction().lower().startswith(
+                        instruction_lower):
                     filtered.append(gadget)
             else:  # any
-                if any(instruction_lower in inst.lower() for inst in gadget.instructions):
+                if any(
+                        instruction_lower in inst.lower() for inst in
+                        gadget.instructions
+                ):
                     filtered.append(gadget)
 
         return filtered
@@ -172,10 +192,13 @@ class ROPGadgetParser:
     def filter_bad_chars(self, bad_chars: List[str]) -> List[Gadget]:
         """Filter out gadgets containing bad characters in their addresses"""
         # Convert bad chars to set of hex strings (without 0x prefix)
-        bad_char_set = {f"{ord(c):02x}" if len(c) == 1 else c.replace('0x', '').lower()
-                        for c in bad_chars}
+        bad_char_set = {
+            f"{ord(c):02x}" if len(c) == 1 else c.replace("0x", "").lower()
+            for c in bad_chars
+        }
 
-        return [g for g in self.gadgets if not g.contains_bad_chars(bad_char_set)]
+        return [g for g in self.gadgets if
+                not g.contains_bad_chars(bad_char_set)]
 
     def filter_by_max_instructions(self, max_count: int) -> List[Gadget]:
         """Filter gadgets with at most max_count instructions"""
@@ -235,7 +258,9 @@ class ROPGadgetParser:
 
         return dict(groups)
 
-    def group_by_affected_register(self, gadgets: Optional[List[Gadget]] = None) -> Dict[str, List[Gadget]]:
+    def group_by_affected_register(
+            self, gadgets: Optional[List[Gadget]] = None
+    ) -> Dict[str, List[Gadget]]:
         """Group gadgets by registers they affect"""
         groups = defaultdict(list)
         source = gadgets if gadgets is not None else self.gadgets
@@ -243,14 +268,16 @@ class ROPGadgetParser:
         for gadget in source:
             registers = gadget.get_affected_registers()
             if not registers:
-                groups['none'].append(gadget)
+                groups["none"].append(gadget)
             else:
                 for reg in registers:
                     groups[reg].append(gadget)
 
         return dict(groups)
 
-    def group_by_modified_register(self, gadgets: Optional[List[Gadget]] = None) -> Dict[str, List[Gadget]]:
+    def group_by_modified_register(
+            self, gadgets: Optional[List[Gadget]] = None
+    ) -> Dict[str, List[Gadget]]:
         """Group gadgets by registers they modify"""
         groups = defaultdict(list)
         source = gadgets if gadgets is not None else self.gadgets
@@ -258,14 +285,16 @@ class ROPGadgetParser:
         for gadget in source:
             registers = gadget.get_modified_registers()
             if not registers:
-                groups['none'].append(gadget)
+                groups["none"].append(gadget)
             else:
                 for reg in registers:
                     groups[reg].append(gadget)
 
         return dict(groups)
 
-    def filter_by_register(self, register: str, modified_only: bool = False) -> List[Gadget]:
+    def filter_by_register(
+            self, register: str, modified_only: bool = False
+    ) -> List[Gadget]:
         """Filter gadgets that affect or modify a specific register"""
         register_lower = register.lower()
         filtered = []
@@ -281,7 +310,9 @@ class ROPGadgetParser:
 
         return filtered
 
-    def filter_dereferenced_registers(self, register: Optional[str] = None) -> List[Gadget]:
+    def filter_dereferenced_registers(
+            self, register: Optional[str] = None
+    ) -> List[Gadget]:
         """Filter gadgets that use dereferenced registers (e.g., [eax], [rsp+8])"""
         filtered = []
 
@@ -297,7 +328,9 @@ class ROPGadgetParser:
 
         return filtered
 
-    def group_by_dereferenced_register(self, gadgets: Optional[List[Gadget]] = None) -> Dict[str, List[Gadget]]:
+    def group_by_dereferenced_register(
+            self, gadgets: Optional[List[Gadget]] = None
+    ) -> Dict[str, List[Gadget]]:
         """Group gadgets by dereferenced registers"""
         groups = defaultdict(list)
         source = gadgets if gadgets is not None else self.gadgets
@@ -305,14 +338,16 @@ class ROPGadgetParser:
         for gadget in source:
             derefs = gadget.get_dereferenced_registers()
             if not derefs:
-                groups['none'].append(gadget)
+                groups["none"].append(gadget)
             else:
                 for reg in derefs:
                     groups[reg].append(gadget)
 
         return dict(groups)
 
-    def group_by_category_and_register(self, gadgets: Optional[List[Gadget]] = None) -> Dict[str, Dict[str, List[Gadget]]]:
+    def group_by_category_and_register(
+            self, gadgets: Optional[List[Gadget]] = None
+    ) -> Dict[str, Dict[str, List[Gadget]]]:
         """Group gadgets by category, then by modified registers within each category"""
         nested_groups = defaultdict(lambda: defaultdict(list))
         source = gadgets if gadgets is not None else self.gadgets
@@ -322,7 +357,7 @@ class ROPGadgetParser:
             registers = gadget.get_modified_registers()
 
             if not registers:
-                nested_groups[category]['none'].append(gadget)
+                nested_groups[category]["none"].append(gadget)
             else:
                 for reg in registers:
                     nested_groups[category][reg].append(gadget)
@@ -332,21 +367,24 @@ class ROPGadgetParser:
     def get_statistics(self) -> Dict:
         """Get statistics about parsed gadgets"""
         stats = {
-            'total_gadgets': len(self.gadgets),
-            'unique_addresses': len(set(g.address for g in self.gadgets)),
+            "total_gadgets": len(self.gadgets),
+            "unique_addresses": len(set(g.address for g in self.gadgets)),
         }
 
         # Count instructions
         last_inst_groups = self.group_by_last_instruction()
-        sorted_groups = sorted(last_inst_groups.items(),
-                              key=lambda x: len(x[1]),
-                              reverse=True)[:10]
-        stats['last_instruction_counts'] = {k: len(v) for k, v in sorted_groups}
+        sorted_groups = sorted(
+            last_inst_groups.items(), key=lambda x: len(x[1]), reverse=True
+        )[:10]
+        stats["last_instruction_counts"] = {k: len(v) for k, v in sorted_groups}
 
         # Count categories
         category_groups = self.group_by_category()
-        stats['category_counts'] = {k: len(v) for k, v in sorted(category_groups.items(),
-                                                                  key=lambda x: len(x[1]),
-                                                                  reverse=True)}
+        stats["category_counts"] = {
+            k: len(v)
+            for k, v in sorted(
+                category_groups.items(), key=lambda x: len(x[1]), reverse=True
+            )
+        }
 
         return stats

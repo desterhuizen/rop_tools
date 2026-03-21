@@ -6,10 +6,11 @@ when EIP is set (if auto-gadget mode is enabled).
 """
 
 import re
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 
-def log_execution(ws: Dict[str, Any], exec_type: str, source: str, operation: str):
+def log_execution(ws: Dict[str, Any], exec_type: str, source: str,
+                  operation: str):
     """
     Add an operation to the execution log.
 
@@ -19,11 +20,7 @@ def log_execution(ws: Dict[str, Any], exec_type: str, source: str, operation: st
         source: "User" for manual, address for auto (e.g., "0x1010adf1")
         operation: The operation string (e.g., "mov EAX, 0xdeadbeef")
     """
-    log_entry = {
-        "type": exec_type,
-        "source": source,
-        "operation": operation
-    }
+    log_entry = {"type": exec_type, "source": source, "operation": operation}
 
     # Add to log
     ws["execution_log"].append(log_entry)
@@ -47,7 +44,9 @@ def find_gadget_by_address(ws: Dict[str, Any], addr: str) -> Optional[str]:
     return ws.get("gadgets", {}).get(addr.lower(), None)
 
 
-def process_gadget(ws: Dict[str, Any], gadget_str: str, gadget_addr: Optional[str] = None) -> List[str]:
+def process_gadget(
+        ws: Dict[str, Any], gadget_str: str, gadget_addr: Optional[str] = None
+) -> List[str]:
     """
     Automatically process a gadget instruction chain.
 
@@ -67,8 +66,16 @@ def process_gadget(ws: Dict[str, Any], gadget_str: str, gadget_addr: Optional[st
         List of successfully executed instruction strings
     """
     # Import operations here to avoid circular dependency
-    from ..operations.asm_ops import cmd_move, cmd_add, cmd_xor, cmd_xchg, cmd_inc, cmd_dec, cmd_neg
-    from ..operations.stack_ops import cmd_push, cmd_pop
+    from ..operations.asm_ops import (
+        cmd_add,
+        cmd_dec,
+        cmd_inc,
+        cmd_move,
+        cmd_neg,
+        cmd_xchg,
+        cmd_xor,
+    )
+    from ..operations.stack_ops import cmd_pop, cmd_push
 
     known_regs = ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"]
 
@@ -76,7 +83,7 @@ def process_gadget(ws: Dict[str, Any], gadget_str: str, gadget_addr: Optional[st
     ws["_in_auto_gadget"] = True
 
     # Split by semicolon
-    instructions = [inst.strip() for inst in gadget_str.split(';')]
+    instructions = [inst.strip() for inst in gadget_str.split(";")]
 
     executed = []
 
@@ -85,7 +92,7 @@ def process_gadget(ws: Dict[str, Any], gadget_str: str, gadget_addr: Optional[st
             continue
 
         # Stop at ret
-        if inst.lower() in ['ret', 'retn']:
+        if inst.lower() in ["ret", "retn"]:
             break
 
         # Parse instruction: opcode operand1, operand2
@@ -97,7 +104,7 @@ def process_gadget(ws: Dict[str, Any], gadget_str: str, gadget_addr: Optional[st
         operands_str = parts[1] if len(parts) > 1 else ""
 
         # Split operands by comma
-        operands = [op.strip() for op in operands_str.split(',')]
+        operands = [op.strip() for op in operands_str.split(",")]
 
         # Validate operands - must be known registers or hex values
         valid = True
@@ -108,13 +115,14 @@ def process_gadget(ws: Dict[str, Any], gadget_str: str, gadget_addr: Optional[st
             if op.upper() in known_regs:
                 continue
             # Check if it's a hex value
-            if re.match(r'^0x[0-9a-fA-F]+$', op, re.IGNORECASE):
+            if re.match(r"^0x[0-9a-fA-F]+$", op, re.IGNORECASE):
                 continue
             # Check if it's a stack reference like [esp+0x10]
-            if re.match(r'\[?ESP[+-]0x[0-9a-fA-F]+\]?', op, re.IGNORECASE):
+            if re.match(r"\[?ESP[+-]0x[0-9a-fA-F]+\]?", op, re.IGNORECASE):
                 continue
             # Check if it's a dereferenced register like [eax], [ecx], etc.
-            if re.match(r'\[(' + '|'.join(known_regs) + r')\]', op, re.IGNORECASE):
+            if re.match(r"\[(" + "|".join(known_regs) + r")\]", op,
+                        re.IGNORECASE):
                 continue
             # Unknown operand - skip this instruction
             valid = False

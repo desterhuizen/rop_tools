@@ -4,12 +4,15 @@ Unit tests for rop/core/pe_info.py
 Tests the PEAnalyzer class for extracting PE file information,
 including base addresses, sections, and Import Address Table (IAT) entries.
 """
-import unittest
-import sys
+
 import shutil
+import sys
+import unittest
 from pathlib import Path
-from rop.core.pe_info import PEAnalyzer, PEInfo, PESection, IATEntry
+
 import pefile
+
+from rop.core.pe_info import IATEntry, PEAnalyzer, PEInfo, PESection
 
 
 # Check if we can find a real PE file for testing
@@ -42,7 +45,8 @@ class TestPEAnalyzerBasics(unittest.TestCase):
         assert isinstance(base_address, int)
         assert base_address > 0
         # Common ImageBase values
-        assert base_address in [0x00400000, 0x10000000, 0x140000000] or base_address > 0
+        assert base_address in [0x00400000, 0x10000000,
+                                0x140000000] or base_address > 0
 
     def test_analyze_file_structure(self):
         """Test PEInfo dataclass population"""
@@ -93,12 +97,16 @@ class TestPEAnalyzerBasics(unittest.TestCase):
         pe_info = PEAnalyzer.analyze_file(TEST_PE_FILE)
 
         # Should detect valid machine type
-        assert pe_info.machine_type in [
-            "x86 (I386)",
-            "x64 (AMD64)",
-            "ARM",
-            "ARM64",
-        ] or "Unknown" in pe_info.machine_type
+        assert (
+                pe_info.machine_type
+                in [
+                    "x86 (I386)",
+                    "x64 (AMD64)",
+                    "ARM",
+                    "ARM64",
+                ]
+                or "Unknown" in pe_info.machine_type
+        )
 
     def test_entry_point_calculation(self):
         """Test absolute entry point calculation"""
@@ -140,7 +148,9 @@ class TestIATExtraction(unittest.TestCase):
         iat_entries = PEAnalyzer.get_iat_entries(TEST_PE_FILE)
 
         # Filter to named imports (not ordinal-only)
-        named_imports = [e for e in iat_entries if not e.function.startswith("Ordinal_")]
+        named_imports = [
+            e for e in iat_entries if not e.function.startswith("Ordinal_")
+        ]
 
         # Should have some named imports
         assert len(named_imports) > 0
@@ -198,8 +208,12 @@ class TestSectionCharacteristics(unittest.TestCase):
         assert isinstance(flags, list)
         # Flags should be valid strings
         valid_flags = [
-            "EXECUTABLE", "READABLE", "WRITABLE",
-            "CODE", "INITIALIZED_DATA", "UNINITIALIZED_DATA"
+            "EXECUTABLE",
+            "READABLE",
+            "WRITABLE",
+            "CODE",
+            "INITIALIZED_DATA",
+            "UNINITIALIZED_DATA",
         ]
         for flag in flags:
             assert flag in valid_flags
@@ -247,9 +261,9 @@ class TestSectionCharacteristics(unittest.TestCase):
             # Name should be a string
             assert isinstance(section.name, str)
             # Name should not contain null bytes
-            assert '\x00' not in section.name
+            assert "\x00" not in section.name
             # Common section names
-            if section.name in ['.text', '.data', '.rdata', '.bss', '.idata']:
+            if section.name in [".text", ".data", ".rdata", ".bss", ".idata"]:
                 assert len(section.name) > 0
 
 
@@ -263,7 +277,7 @@ class TestDataClasses(unittest.TestCase):
             virtual_address=0x1000,
             virtual_size=0x2000,
             raw_size=0x2000,
-            characteristics=0x60000020  # CODE | EXECUTABLE | READABLE
+            characteristics=0x60000020,  # CODE | EXECUTABLE | READABLE
         )
 
         assert section.name == ".text"
@@ -280,9 +294,7 @@ class TestDataClasses(unittest.TestCase):
     def test_iat_entry_dataclass(self):
         """Test IATEntry dataclass creation"""
         entry = IATEntry(
-            dll="kernel32.dll",
-            function="WriteFile",
-            address=0x2000,
+            dll="kernel32.dll", function="WriteFile", address=0x2000,
             ordinal=123
         )
 
@@ -296,11 +308,8 @@ class TestDataClasses(unittest.TestCase):
 
     def test_iat_entry_without_ordinal(self):
         """Test IATEntry without ordinal"""
-        entry = IATEntry(
-            dll="user32.dll",
-            function="MessageBoxA",
-            address=0x3000
-        )
+        entry = IATEntry(dll="user32.dll", function="MessageBoxA",
+                         address=0x3000)
 
         assert entry.dll == "user32.dll"
         assert entry.function == "MessageBoxA"
@@ -309,9 +318,7 @@ class TestDataClasses(unittest.TestCase):
 
     def test_pe_info_dataclass(self):
         """Test PEInfo dataclass creation"""
-        sections = [
-            PESection(".text", 0x1000, 0x2000, 0x2000, 0x60000020)
-        ]
+        sections = [PESection(".text", 0x1000, 0x2000, 0x2000, 0x60000020)]
 
         pe_info = PEInfo(
             filepath="/path/to/test.exe",
@@ -319,7 +326,7 @@ class TestDataClasses(unittest.TestCase):
             entry_point=0x1550,
             machine_type="x86 (I386)",
             subsystem="WINDOWS_GUI",
-            sections=sections
+            sections=sections,
         )
 
         assert pe_info.filepath == "/path/to/test.exe"

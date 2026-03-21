@@ -5,10 +5,11 @@ Tests tab completion functionality for commands, registers, stack offsets,
 named values, and file names.
 """
 
-import unittest
-from unittest.mock import patch, MagicMock
 import os
 import tempfile
+import unittest
+from unittest.mock import MagicMock, patch
+
 from rop.worksheet.repl.completer import WorksheetCompleter
 
 
@@ -20,8 +21,8 @@ class TestWorksheetCompleter(unittest.TestCase):
         self.ws = {
             "registers": {
                 "EAX": 0x12345678,
-                "EBX": 0xdeadbeef,
-                "ESP": 0x0012ff00,
+                "EBX": 0xDEADBEEF,
+                "ESP": 0x0012FF00,
             },
             "stack": {
                 "+0x00": 0x11111111,
@@ -34,8 +35,10 @@ class TestWorksheetCompleter(unittest.TestCase):
                 "gadget1": 0x10001234,
             },
             "chain": [
-                {"addr": 0x10001234, "gadget": "pop eax ; ret", "effect": "Load value"},
-                {"addr": 0x10005678, "gadget": "pop ebx ; ret", "effect": "Load value"},
+                {"addr": 0x10001234, "gadget": "pop eax ; ret",
+                 "effect": "Load value"},
+                {"addr": 0x10005678, "gadget": "pop ebx ; ret",
+                 "effect": "Load value"},
             ],
         }
         self.completer = WorksheetCompleter(self.ws)
@@ -47,7 +50,7 @@ class TestWorksheetCompleter(unittest.TestCase):
         self.assertIn("EAX", self.completer.registers)
         self.assertIn("ESP+0x00", self.completer.common_stack_offsets)
 
-    @patch('readline.get_line_buffer')
+    @patch("readline.get_line_buffer")
     def test_command_completion(self, mock_readline):
         """Test command name completion."""
         # Test 'mo' -> 'mov'
@@ -70,7 +73,7 @@ class TestWorksheetCompleter(unittest.TestCase):
         result = self.completer.complete("xyz", 0)
         self.assertIsNone(result)
 
-    @patch('readline.get_line_buffer')
+    @patch("readline.get_line_buffer")
     def test_register_completion_after_mov(self, mock_readline):
         """Test register completion after 'mov' command."""
         # Test 'mov ea' -> 'EAX'
@@ -86,9 +89,12 @@ class TestWorksheetCompleter(unittest.TestCase):
         # Test 'mov e' -> multiple registers
         mock_readline.return_value = "mov e"
         result = self.completer.complete("e", 0)
-        self.assertIn(result, ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"])
+        self.assertIn(
+            result,
+            ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"]
+        )
 
-    @patch('readline.get_line_buffer')
+    @patch("readline.get_line_buffer")
     def test_stack_offset_completion(self, mock_readline):
         """Test stack offset completion."""
         # Test 'mov esp+0x' -> stack offsets
@@ -101,7 +107,7 @@ class TestWorksheetCompleter(unittest.TestCase):
         result = self.completer.complete("ESP+0x", 0)
         self.assertIsNotNone(result)
 
-    @patch('readline.get_line_buffer')
+    @patch("readline.get_line_buffer")
     def test_named_value_completion(self, mock_readline):
         """Test named value completion from worksheet."""
         # Test 'mov shell' -> 'shellcode'
@@ -119,7 +125,7 @@ class TestWorksheetCompleter(unittest.TestCase):
         result = self.completer.complete("gad", 0)
         self.assertEqual(result, "gadget1")
 
-    @patch('readline.get_line_buffer')
+    @patch("readline.get_line_buffer")
     def test_stack_entry_completion_from_worksheet(self, mock_readline):
         """Test stack entry completion from worksheet stack."""
         # Test 'mov ESP+0x00' -> should complete from worksheet stack
@@ -128,7 +134,7 @@ class TestWorksheetCompleter(unittest.TestCase):
         # Should match common stack offset
         self.assertIsNotNone(result)
 
-    @patch('readline.get_line_buffer')
+    @patch("readline.get_line_buffer")
     def test_chain_index_completion_after_del(self, mock_readline):
         """Test chain index completion after 'del' command."""
         # Test 'del 1' -> should complete with chain indices
@@ -146,12 +152,17 @@ class TestWorksheetCompleter(unittest.TestCase):
         result = self.completer.complete("3", 0)
         self.assertIsNone(result)
 
-    @patch('readline.get_line_buffer')
-    @patch('os.listdir')
+    @patch("readline.get_line_buffer")
+    @patch("os.listdir")
     def test_file_completion_after_save(self, mock_listdir, mock_readline):
         """Test file completion after 'save' command."""
         # Mock JSON files in directory
-        mock_listdir.return_value = ["rop.json", "test.json", "backup.json", "other.txt"]
+        mock_listdir.return_value = [
+            "rop.json",
+            "test.json",
+            "backup.json",
+            "other.txt",
+        ]
 
         # Test 'save rop' -> 'rop.json'
         mock_readline.return_value = "save rop"
@@ -170,8 +181,8 @@ class TestWorksheetCompleter(unittest.TestCase):
         # Should NOT include non-JSON files
         self.assertNotEqual(result, "other.txt")
 
-    @patch('readline.get_line_buffer')
-    @patch('os.listdir')
+    @patch("readline.get_line_buffer")
+    @patch("os.listdir")
     def test_file_completion_after_load(self, mock_listdir, mock_readline):
         """Test file completion after 'load' command."""
         mock_listdir.return_value = ["rop.json", "test.json"]
@@ -181,8 +192,8 @@ class TestWorksheetCompleter(unittest.TestCase):
         result = self.completer.complete("rop", 0)
         self.assertEqual(result, "rop.json")
 
-    @patch('readline.get_line_buffer')
-    @patch('os.listdir')
+    @patch("readline.get_line_buffer")
+    @patch("os.listdir")
     def test_file_completion_error_handling(self, mock_listdir, mock_readline):
         """Test file completion handles errors gracefully."""
         # Simulate directory access error
@@ -192,7 +203,7 @@ class TestWorksheetCompleter(unittest.TestCase):
         result = self.completer.complete("test", 0)
         self.assertIsNone(result)
 
-    @patch('readline.get_line_buffer')
+    @patch("readline.get_line_buffer")
     def test_completion_with_multiple_states(self, mock_readline):
         """Test completion with multiple candidates."""
         # Test 'mov e' -> should have multiple matches
@@ -213,35 +224,35 @@ class TestWorksheetCompleter(unittest.TestCase):
         self.assertTrue(result0.startswith("E"))
         self.assertTrue(result1.startswith("E"))
 
-    @patch('readline.get_line_buffer')
+    @patch("readline.get_line_buffer")
     def test_completion_for_xchg_command(self, mock_readline):
         """Test completion works for xchg command."""
         mock_readline.return_value = "xchg ea"
         result = self.completer.complete("ea", 0)
         self.assertEqual(result, "EAX")
 
-    @patch('readline.get_line_buffer')
+    @patch("readline.get_line_buffer")
     def test_completion_for_set_command(self, mock_readline):
         """Test completion works for set command."""
         mock_readline.return_value = "set ea"
         result = self.completer.complete("ea", 0)
         self.assertEqual(result, "EAX")
 
-    @patch('readline.get_line_buffer')
+    @patch("readline.get_line_buffer")
     def test_completion_for_clr_command(self, mock_readline):
         """Test completion works for clr command."""
         mock_readline.return_value = "clr ea"
         result = self.completer.complete("ea", 0)
         self.assertEqual(result, "EAX")
 
-    @patch('readline.get_line_buffer')
+    @patch("readline.get_line_buffer")
     def test_completion_for_stack_command(self, mock_readline):
         """Test completion works for stack command."""
         mock_readline.return_value = "stack ea"
         result = self.completer.complete("ea", 0)
         self.assertEqual(result, "EAX")
 
-    @patch('readline.get_line_buffer')
+    @patch("readline.get_line_buffer")
     def test_no_completion_for_unknown_context(self, mock_readline):
         """Test no completion for unknown contexts."""
         # Test after 'help' command (no special completion)
@@ -249,7 +260,7 @@ class TestWorksheetCompleter(unittest.TestCase):
         result = self.completer.complete("something", 0)
         self.assertIsNone(result)
 
-    @patch('readline.get_line_buffer')
+    @patch("readline.get_line_buffer")
     def test_empty_worksheet_named_values(self, mock_readline):
         """Test completion with empty named values."""
         # Create completer with empty named values
@@ -262,7 +273,7 @@ class TestWorksheetCompleter(unittest.TestCase):
         result = completer.complete("ea", 0)
         self.assertEqual(result, "EAX")
 
-    @patch('readline.get_line_buffer')
+    @patch("readline.get_line_buffer")
     def test_empty_chain(self, mock_readline):
         """Test completion with empty chain."""
         # Create completer with empty chain
@@ -275,7 +286,7 @@ class TestWorksheetCompleter(unittest.TestCase):
         result = completer.complete("1", 0)
         self.assertIsNone(result)
 
-    @patch('readline.get_line_buffer')
+    @patch("readline.get_line_buffer")
     def test_case_insensitive_command_completion(self, mock_readline):
         """Test case insensitive command completion."""
         # Test 'MO' -> 'mov'

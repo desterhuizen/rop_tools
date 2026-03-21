@@ -6,7 +6,7 @@ arithmetic) and parsing target destinations for operations.
 """
 
 import re
-from typing import Dict, Any, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 
 def resolve_value(expr: str, ws: Dict[str, Any]) -> Optional[str]:
@@ -40,13 +40,13 @@ def resolve_value(expr: str, ws: Dict[str, Any]) -> Optional[str]:
             return None
 
     # Stack reference [ESP+offset]
-    m = re.match(r'\[?ESP([+-]0x[0-9a-fA-F]+)\]?', expr, re.IGNORECASE)
+    m = re.match(r"\[?ESP([+-]0x[0-9a-fA-F]+)\]?", expr, re.IGNORECASE)
     if m:
         offset = m.group(1)
         return ws["stack"].get(offset, None)
 
     # Dereferenced register: [EAX], [EBX], etc. (when it points to a stack address)
-    m = re.match(r'\[([A-Z]{3}|EIP)\]', expr, re.IGNORECASE)
+    m = re.match(r"\[([A-Z]{3}|EIP)\]", expr, re.IGNORECASE)
     if m:
         reg_name = m.group(1).upper()
         if reg_name in ws["registers"]:
@@ -82,7 +82,7 @@ def resolve_value(expr: str, ws: Dict[str, Any]) -> Optional[str]:
         return ws["named"][expr]
 
     # Arithmetic: name+0x100 or name-0x10
-    m = re.match(r'^([A-Za-z_]\w*)\s*([+-])\s*(0x[0-9a-fA-F]+)$', expr)
+    m = re.match(r"^([A-Za-z_]\w*)\s*([+-])\s*(0x[0-9a-fA-F]+)$", expr)
     if m:
         name, op, offset_str = m.groups()
         base = resolve_value(name, ws)
@@ -125,14 +125,14 @@ def parse_target(target: str) -> Tuple[str, str]:
         return ("reg", target_upper)
 
     # Dereferenced register: [EAX], [ECX], etc.
-    m = re.match(r'\[([A-Z]{3}|EIP)\]', original, re.IGNORECASE)
+    m = re.match(r"\[([A-Z]{3}|EIP)\]", original, re.IGNORECASE)
     if m:
         reg_name = m.group(1).upper()
         if reg_name in regs:
             return ("deref", reg_name)
 
     # Stack offset (case-insensitive)
-    m = re.match(r'\[?ESP([+-]0x[0-9a-fA-F]+)\]?', original, re.IGNORECASE)
+    m = re.match(r"\[?ESP([+-]0x[0-9a-fA-F]+)\]?", original, re.IGNORECASE)
     if m:
         return ("stack", m.group(1))
 

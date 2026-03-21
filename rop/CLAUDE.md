@@ -7,14 +7,15 @@ AI-assisted development tracking for the ROP Tools Suite.
 ## Development Guidelines
 
 ### Critical Rules
+
 1. **NO GIT OPERATIONS**: Never execute git commands (add, commit, push, etc.)
-   - Only print summaries of changes when requested
-   - User handles all version control operations
+    - Only print summaries of changes when requested
+    - User handles all version control operations
 
 2. **DOCUMENTATION REQUIREMENTS**: Always update when making major changes:
-   - `README.md` - User-facing documentation
-   - `CLAUDE.md` - Development notes and technical details
-   - Tool-specific docs in respective directories
+    - `README.md` - User-facing documentation
+    - `CLAUDE.md` - Development notes and technical details
+    - Tool-specific docs in respective directories
 
 3. **CONSISTENCY**: Follow existing patterns, naming conventions, code style
 
@@ -39,24 +40,30 @@ rop_tools/
         └── formatters.py       # Uses lib/color_printer
 ```
 
-**Benefits**: Separation of concerns, testable modules, shared ColorPrinter, library independence
+**Benefits**: Separation of concerns, testable modules, shared ColorPrinter,
+library independence
 
 ---
 
 ## Recent Features
 
 ### Bad Instruction Filtering (March 20, 2026)
-- Auto-filters 44 harmful instructions (privileged, I/O, control flow, interrupts)
+
+- Auto-filters 44 harmful instructions (privileged, I/O, control flow,
+  interrupts)
 - `--keep-bad-instructions` flag to disable filtering
-- **Filtered**: clts, hlt, mov cr/dr, in/out, cli/sti, call, jmp, conditional jumps, etc.
+- **Filtered**: clts, hlt, mov cr/dr, in/out, cli/sti, call, jmp, conditional
+  jumps, etc.
 
 ### IAT Display (March 16, 2026)
+
 - `--iat` flag shows Import Address Table
 - `--dll <name>` filters by specific DLL
 - Displays: function names, RVAs, absolute addresses
 - Grouped by DLL for organized output
 
 ### get_base_address.py Refactor (March 16, 2026)
+
 - Created `core/pe_info.py` module (PESection, PEInfo, PEAnalyzer)
 - Rewrote with argparse + ColorPrinter
 - Added verbose (`-v`), quiet (`-q`), `--no-color` modes
@@ -66,17 +73,24 @@ rop_tools/
 ## get_rop_gadgets.py - Key Features
 
 ### Core Capabilities
-- **18 Gadget Categories**: Stack (pivot/pop/push), register (load/move/xchg), memory (read/write), arithmetic, logic, control flow, syscall, string ops
+
+- **18 Gadget Categories**: Stack (pivot/pop/push), register (load/move/xchg),
+  memory (read/write), arithmetic, logic, control flow, syscall, string ops
 - **Auto Encoding Detection**: UTF-8/UTF-16 with BOM detection
 - **Register Analysis**: Affected vs modified registers (32/64/16/8-bit)
-- **Multi-level Grouping**: By instruction/category/register, category→register drill-down
+- **Multi-level Grouping**: By instruction/category/register, category→register
+  drill-down
 
 ### Filtering
-- Instruction (`-i`), category (`-c`), register (`--register`), dereferenced (`--deref`)
-- Regex (`-r`) with highlighting (`--highlight`), exclusion (`-e`), bad chars (`-b`)
+
+- Instruction (`-i`), category (`-c`), register (`--register`), dereferenced (
+  `--deref`)
+- Regex (`-r`) with highlighting (`--highlight`), exclusion (`-e`), bad chars (
+  `-b`)
 - Max instruction count (`-m`)
 
 ### Display
+
 - Instruction/category display, smart sorting (count/address)
 - Offset calculation (`--offset`), colored output with `--no-color` fallback
 - Statistics: totals, top 10 instructions, category distribution
@@ -86,14 +100,19 @@ rop_tools/
 ## rop_worksheet.py - Interactive Builder
 
 ### Features
-- **Register Tracking**: All x86 32-bit regs (EAX-ESP, EIP), named value matching
-- **Stack Management**: ESP-relative offsets, absolute addresses, register-based addressing
-- **ASM Operations**: mov, add, xor, xchg, inc, dec, neg, push/pop (auto ESP tracking)
+
+- **Register Tracking**: All x86 32-bit regs (EAX-ESP, EIP), named value
+  matching
+- **Stack Management**: ESP-relative offsets, absolute addresses, register-based
+  addressing
+- **ASM Operations**: mov, add, xor, xchg, inc, dec, neg, push/pop (auto ESP
+  tracking)
 - **WinDbg Integration**: `importregs`, `importstack` (multi-line paste)
 - **ROP Chains**: Add gadgets, delete entries, visual display
 - **Workflow**: Save/load JSON, command history, tab completion
 
 ### Bug Fixes (March 15, 2026)
+
 - Fixed push/pop to use ESP-relative offsets
 - Fixed value resolution in `stack`/`set` commands
 - Added EIP tracking (previously missing)
@@ -103,24 +122,25 @@ rop_tools/
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 3.3.0 | Mar 2026 | Bad instruction filtering (44 instructions), IAT display, --dll filter |
-| 3.2.0 | Mar 2026 | Shared lib/color_printer, symlink support |
-| 3.1.0 | Mar 2026 | Modular architecture (core/, display/), ~350 line main |
-| 3.0.0 | Mar 2026 | Rich library migration, ColorPrinter abstraction |
-| 2.5.0 | Mar 2026 | Offset calculation, get_base_address.py |
-| 2.4.0 | Mar 2026 | Auto UTF-8/UTF-16 detection |
-| 2.3.0 | Mar 2026 | Exclusion filtering (-e) |
-| 2.2.0 | Mar 2026 | Regex highlighting (--highlight) |
-| 2.1.0 | Mar 2026 | Sorting (--sort), count display |
-| 2.0.0 | Earlier | Core features (categories, register analysis, colors) |
+| Version | Date     | Changes                                                                |
+|---------|----------|------------------------------------------------------------------------|
+| 3.3.0   | Mar 2026 | Bad instruction filtering (44 instructions), IAT display, --dll filter |
+| 3.2.0   | Mar 2026 | Shared lib/color_printer, symlink support                              |
+| 3.1.0   | Mar 2026 | Modular architecture (core/, display/), ~350 line main                 |
+| 3.0.0   | Mar 2026 | Rich library migration, ColorPrinter abstraction                       |
+| 2.5.0   | Mar 2026 | Offset calculation, get_base_address.py                                |
+| 2.4.0   | Mar 2026 | Auto UTF-8/UTF-16 detection                                            |
+| 2.3.0   | Mar 2026 | Exclusion filtering (-e)                                               |
+| 2.2.0   | Mar 2026 | Regex highlighting (--highlight)                                       |
+| 2.1.0   | Mar 2026 | Sorting (--sort), count display                                        |
+| 2.0.0   | Earlier  | Core features (categories, register analysis, colors)                  |
 
 ---
 
 ## Code Examples
 
 ### ROPGadgetParser
+
 ```python
 from core import ROPGadgetParser, GadgetCategory
 
@@ -132,6 +152,7 @@ grouped = parser.group_by_register(gadgets)
 ```
 
 ### PEAnalyzer
+
 ```python
 from core import PEAnalyzer
 
@@ -141,6 +162,7 @@ print(f"ImageBase: 0x{pe_info.image_base:x}")
 ```
 
 ### ColorPrinter
+
 ```python
 from lib.color_printer import ColorPrinter
 
@@ -155,16 +177,19 @@ printer.disable()  # No colors
 ## Future Enhancements
 
 ### get_rop_gadgets.py
+
 - Secondary sorting, gadget complexity scoring
 - JSON/CSV export, interactive re-filtering
 - Auto-suggest gadget chains
 
 ### rop_worksheet.py
+
 - 64-bit support (RSI, RDI, R8-R15)
 - Export to Python exploit code
 - Chain simulation, constraint checking, disassembly
 
 ### get_base_address.py
+
 - Runtime base detection, import/export tables
 - Security features display (ASLR, DEP, CFG)
 
@@ -190,6 +215,7 @@ printer.disable()  # No colors
 ## Defensive Security Use
 
 **Authorized defensive purposes only:**
+
 - Understanding ROP attack techniques
 - Analyzing binaries and malware
 - Developing exploit mitigations

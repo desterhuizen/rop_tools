@@ -5,11 +5,11 @@ Tests the ColorPrinter abstraction layer for colored terminal output.
 Tests both Rich-enabled and fallback modes.
 """
 
-import unittest
-from unittest.mock import patch, MagicMock, call
-import sys
 import io
 import re
+import sys
+import unittest
+from unittest.mock import MagicMock, call, patch
 
 
 class TestColorPrinterWithRich(unittest.TestCase):
@@ -19,7 +19,9 @@ class TestColorPrinterWithRich(unittest.TestCase):
         """Set up test fixtures with Rich available."""
         # Import fresh module for each test
         import importlib
+
         import lib.color_printer
+
         importlib.reload(lib.color_printer)
         from lib.color_printer import ColorPrinter
 
@@ -44,7 +46,7 @@ class TestColorPrinterWithRich(unittest.TestCase):
         printer.disable()
         self.assertFalse(printer.enabled)
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_text_with_style(self, mock_stdout):
         """Test print_text with styling."""
         printer = self.ColorPrinter()
@@ -55,7 +57,7 @@ class TestColorPrinterWithRich(unittest.TestCase):
             # Console.print was called
             self.assertIsNotNone(mock_stdout.getvalue())
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_text_without_style(self, mock_stdout):
         """Test print_text without styling falls back to plain print."""
         printer = self.ColorPrinter()
@@ -64,7 +66,7 @@ class TestColorPrinterWithRich(unittest.TestCase):
         output = mock_stdout.getvalue()
         self.assertIn("Test message", output)
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_header(self, mock_stdout):
         """Test print_header method."""
         printer = self.ColorPrinter()
@@ -73,7 +75,7 @@ class TestColorPrinterWithRich(unittest.TestCase):
         output = mock_stdout.getvalue()
         self.assertIn("Test Header", output)
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_labeled(self, mock_stdout):
         """Test print_labeled method."""
         printer = self.ColorPrinter()
@@ -90,6 +92,7 @@ class TestColorPrinterWithRich(unittest.TestCase):
 
         if printer.enabled:
             from rich.text import Text
+
             self.assertIsInstance(result, Text)
         else:
             self.assertIsInstance(result, str)
@@ -104,6 +107,7 @@ class TestColorPrinterWithRich(unittest.TestCase):
 
         if printer.enabled:
             from rich.text import Text
+
             self.assertIsInstance(result, Text)
         else:
             self.assertEqual(result, text)
@@ -119,10 +123,11 @@ class TestColorPrinterWithRich(unittest.TestCase):
         # Should return text without crashing
         if printer.enabled:
             from rich.text import Text
+
             # Should return Text object even with invalid pattern
             self.assertIsNotNone(result)
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_method(self, mock_stdout):
         """Test print wrapper method."""
         printer = self.ColorPrinter()
@@ -131,7 +136,7 @@ class TestColorPrinterWithRich(unittest.TestCase):
         output = mock_stdout.getvalue()
         self.assertIn("Test message", output)
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_section(self, mock_stdout):
         """Test print_section method."""
         printer = self.ColorPrinter()
@@ -148,7 +153,7 @@ class TestColorPrinterWithRich(unittest.TestCase):
         self.assertIsInstance(result, str)
         self.assertIn("Test", result)
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_panel(self, mock_stdout):
         """Test print_panel method."""
         printer = self.ColorPrinter()
@@ -157,11 +162,11 @@ class TestColorPrinterWithRich(unittest.TestCase):
         output = mock_stdout.getvalue()
         self.assertIn("Panel content", output)
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_hex_preview(self, mock_stdout):
         """Test print_hex_preview method."""
         printer = self.ColorPrinter()
-        data = b'\x89\xe5\x81\xc4\xf0\xf9\xff\xff'
+        data = b"\x89\xe5\x81\xc4\xf0\xf9\xff\xff"
 
         printer.print_hex_preview(data, max_bytes=8, title="Test Preview")
 
@@ -170,17 +175,17 @@ class TestColorPrinterWithRich(unittest.TestCase):
         # Should contain hex values
         self.assertIn("89", output)
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_hex_preview_empty_data(self, mock_stdout):
         """Test print_hex_preview with empty data."""
         printer = self.ColorPrinter()
-        printer.print_hex_preview(b'')
+        printer.print_hex_preview(b"")
 
         # Should not crash and not print anything
         output = mock_stdout.getvalue()
         self.assertEqual(output, "")
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_table(self, mock_stdout):
         """Test print_table method."""
         printer = self.ColorPrinter()
@@ -204,23 +209,29 @@ class TestColorPrinterFallback(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures simulating Rich not available."""
         # Mock Rich as not available
-        self.rich_patcher = patch.dict('sys.modules', {
-            'rich': None,
-            'rich.console': None,
-            'rich.text': None,
-            'rich.panel': None,
-            'rich.table': None,
-        })
+        self.rich_patcher = patch.dict(
+            "sys.modules",
+            {
+                "rich": None,
+                "rich.console": None,
+                "rich.text": None,
+                "rich.panel": None,
+                "rich.table": None,
+            },
+        )
         self.rich_patcher.start()
 
         # Reload module to trigger ImportError for Rich
         import importlib
+
         import lib.color_printer
+
         lib.color_printer.COLORS_AVAILABLE = False
         lib.color_printer.Console = None
         lib.color_printer.Text = None
 
         from lib.color_printer import ColorPrinter
+
         self.ColorPrinter = ColorPrinter
 
     def tearDown(self):
@@ -233,7 +244,7 @@ class TestColorPrinterFallback(unittest.TestCase):
         self.assertFalse(printer.enabled)
         self.assertIsNone(printer.console)
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_text_fallback(self, mock_stdout):
         """Test print_text falls back to plain print."""
         printer = self.ColorPrinter()
@@ -242,7 +253,7 @@ class TestColorPrinterFallback(unittest.TestCase):
         output = mock_stdout.getvalue()
         self.assertEqual(output, "Test message\n")
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_header_fallback(self, mock_stdout):
         """Test print_header in fallback mode."""
         printer = self.ColorPrinter()
@@ -251,7 +262,7 @@ class TestColorPrinterFallback(unittest.TestCase):
         output = mock_stdout.getvalue()
         self.assertIn("Header", output)
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_labeled_fallback(self, mock_stdout):
         """Test print_labeled in fallback mode."""
         printer = self.ColorPrinter()
@@ -283,7 +294,7 @@ class TestColorPrinterFallback(unittest.TestCase):
 
         self.assertEqual(result, "Test")
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_panel_fallback(self, mock_stdout):
         """Test print_panel fallback with simple borders."""
         printer = self.ColorPrinter()
@@ -294,11 +305,11 @@ class TestColorPrinterFallback(unittest.TestCase):
         self.assertIn("Title", output)
         self.assertIn("=", output)  # Border
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_hex_preview_fallback(self, mock_stdout):
         """Test print_hex_preview in fallback mode."""
         printer = self.ColorPrinter()
-        data = b'\x41\x42\x43'
+        data = b"\x41\x42\x43"
 
         printer.print_hex_preview(data)
 
@@ -307,7 +318,7 @@ class TestColorPrinterFallback(unittest.TestCase):
         self.assertIn("42", output)
         self.assertIn("43", output)
 
-    @patch('sys.stdout', new_callable=io.StringIO)
+    @patch("sys.stdout", new_callable=io.StringIO)
     def test_print_table_fallback(self, mock_stdout):
         """Test print_table in fallback mode."""
         printer = self.ColorPrinter()
@@ -329,6 +340,7 @@ class TestColorPrinterEdgeCases(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         from lib.color_printer import ColorPrinter
+
         self.ColorPrinter = ColorPrinter
 
     def test_print_text_with_empty_string(self):
@@ -344,7 +356,7 @@ class TestColorPrinterEdgeCases(unittest.TestCase):
         """Test print_labeled with None value."""
         printer = self.ColorPrinter()
         # Should convert None to string
-        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
             printer.print_labeled("Label", None)
             output = mock_stdout.getvalue()
             self.assertIn("Label", output)
@@ -358,6 +370,7 @@ class TestColorPrinterEdgeCases(unittest.TestCase):
         # Should convert to string
         if printer.enabled:
             from rich.text import Text
+
             self.assertIsInstance(result, (Text, str))
         else:
             self.assertEqual(result, "123")
@@ -389,7 +402,7 @@ class TestColorPrinterEdgeCases(unittest.TestCase):
         printer = self.ColorPrinter()
         data = bytes(range(256))
 
-        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
             printer.print_hex_preview(data, max_bytes=16)
             output = mock_stdout.getvalue()
 
@@ -403,9 +416,9 @@ class TestColorPrinterEdgeCases(unittest.TestCase):
         """Test print_hex_preview ASCII representation."""
         printer = self.ColorPrinter()
         # Printable ASCII: ABC
-        data = b'ABC\x00\x01\x02'
+        data = b"ABC\x00\x01\x02"
 
-        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
             printer.print_hex_preview(data)
             output = mock_stdout.getvalue()
 
@@ -416,9 +429,10 @@ class TestColorPrinterEdgeCases(unittest.TestCase):
 
             # Should contain ASCII representation (may have middle dots for non-printable)
             # 'A', 'B', 'C' should appear
-            lines = output.split('\n')
+            lines = output.split("\n")
             # Look for line with ASCII chars
-            ascii_line = [line for line in lines if 'A' in line and not '41' in line]
+            ascii_line = [line for line in lines if
+                          "A" in line and not "41" in line]
             # At least the printable chars should be visible
 
     def test_print_table_with_empty_rows(self):
@@ -427,7 +441,7 @@ class TestColorPrinterEdgeCases(unittest.TestCase):
         columns = ["Col1", "Col2"]
         rows = []
 
-        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
             printer.print_table(columns, rows, title="Empty Table")
             output = mock_stdout.getvalue()
 
@@ -443,7 +457,7 @@ class TestColorPrinterEdgeCases(unittest.TestCase):
             ["Feature2", "✗"],
         ]
 
-        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
             printer.print_table(columns, rows)
             output = mock_stdout.getvalue()
 
@@ -455,7 +469,7 @@ class TestColorPrinterEdgeCases(unittest.TestCase):
         """Test print_panel with empty title."""
         printer = self.ColorPrinter()
 
-        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
             printer.print_panel("Content", title="")
             output = mock_stdout.getvalue()
 
@@ -465,7 +479,7 @@ class TestColorPrinterEdgeCases(unittest.TestCase):
         """Test multiple operations on the same printer instance."""
         printer = self.ColorPrinter()
 
-        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
             printer.print_text("Line 1", "bold")
             printer.print_text("Line 2", "cyan")
             printer.print_header("Header")

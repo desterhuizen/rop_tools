@@ -8,6 +8,7 @@ from typing import List, Optional
 
 try:
     from rich.text import Text
+
     RICH_AVAILABLE = True
 except ImportError:
     RICH_AVAILABLE = False
@@ -17,7 +18,14 @@ from lib.color_printer import printer
 from rop.core import Gadget, ROPGadgetParser, get_category_style
 
 
-def print_gadget_colored(gadget: Gadget, parser: ROPGadgetParser, show_category: bool = False, show_count: bool = False, highlight_pattern: Optional[str] = None, base_address: Optional[int] = None):
+def print_gadget_colored(
+        gadget: Gadget,
+        parser: ROPGadgetParser,
+        show_category: bool = False,
+        show_count: bool = False,
+        highlight_pattern: Optional[str] = None,
+        base_address: Optional[int] = None,
+):
     """Print a single gadget with colors using ColorPrinter"""
     if not printer.enabled:
         prefix = ""
@@ -39,7 +47,7 @@ def print_gadget_colored(gadget: Gadget, parser: ROPGadgetParser, show_category:
         return
 
     # Parse the gadget line
-    parts = gadget.raw_line.split(':', 1)
+    parts = gadget.raw_line.split(":", 1)
     if len(parts) == 2:
         address = parts[0]
         rest = parts[1]
@@ -83,13 +91,27 @@ def print_gadget_colored(gadget: Gadget, parser: ROPGadgetParser, show_category:
         print(gadget)
 
 
-def print_gadgets(gadgets: List[Gadget], limit: Optional[int] = None,
-                 parser: Optional[ROPGadgetParser] = None, show_category: bool = False, show_count: bool = False, highlight_pattern: Optional[str] = None, base_address: Optional[int] = None):
+def print_gadgets(
+        gadgets: List[Gadget],
+        limit: Optional[int] = None,
+        parser: Optional[ROPGadgetParser] = None,
+        show_category: bool = False,
+        show_count: bool = False,
+        highlight_pattern: Optional[str] = None,
+        base_address: Optional[int] = None,
+):
     """Pretty print gadgets with optional color using ColorPrinter"""
     count = 0
     for gadget in gadgets:
         if parser and printer.enabled:
-            print_gadget_colored(gadget, parser, show_category, show_count, highlight_pattern, base_address)
+            print_gadget_colored(
+                gadget,
+                parser,
+                show_category,
+                show_count,
+                highlight_pattern,
+                base_address,
+            )
         else:
             print(gadget)
         count += 1
@@ -97,7 +119,8 @@ def print_gadgets(gadgets: List[Gadget], limit: Optional[int] = None,
             remaining = len(gadgets) - limit
             if remaining > 0:
                 if printer.enabled:
-                    printer.print_text(f"\n... and {remaining} more gadgets", "yellow")
+                    printer.print_text(f"\n... and {remaining} more gadgets",
+                                       "yellow")
                 else:
                     print(f"\n... and {remaining} more gadgets")
             break
@@ -108,8 +131,8 @@ def print_statistics(parser: ROPGadgetParser):
     stats = parser.get_statistics()
 
     printer.print_header("=== Gadget Statistics ===", "bold green")
-    printer.print_labeled("Total gadgets", stats['total_gadgets'])
-    printer.print_labeled("Unique addresses", stats['unique_addresses'])
+    printer.print_labeled("Total gadgets", stats["total_gadgets"])
+    printer.print_labeled("Unique addresses", stats["unique_addresses"])
 
     if parser.metadata:
         printer.print_header("=== File Metadata ===", "bold green")
@@ -117,11 +140,18 @@ def print_statistics(parser: ROPGadgetParser):
             printer.print_labeled(key, value)
 
     printer.print_header("=== Top 10 Last Instructions ===", "bold green")
-    for inst, count in stats['last_instruction_counts'].items():
-        printer.print_labeled(inst, f"{count} gadgets", label_style="yellow", value_style="white")
+    for inst, count in stats["last_instruction_counts"].items():
+        printer.print_labeled(
+            inst, f"{count} gadgets", label_style="yellow", value_style="white"
+        )
 
-    if 'category_counts' in stats:
+    if "category_counts" in stats:
         printer.print_header("=== Gadget Categories ===", "bold green")
-        for category, count in stats['category_counts'].items():
+        for category, count in stats["category_counts"].items():
             category_style = get_category_style(category)
-            printer.print_labeled(category, f"{count} gadgets", label_style=category_style, value_style="white")
+            printer.print_labeled(
+                category,
+                f"{count} gadgets",
+                label_style=category_style,
+                value_style="white",
+            )

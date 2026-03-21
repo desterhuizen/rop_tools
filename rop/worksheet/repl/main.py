@@ -8,24 +8,33 @@ user input, command parsing, and display updates.
 import json
 import os
 import readline
-from typing import Dict, Any
+from typing import Any, Dict
 
 try:
     from rich.console import Console
-    from rich.prompt import Prompt, Confirm
+    from rich.prompt import Confirm, Prompt
 except ImportError:
     import sys
+
     sys.exit("[!] Install rich first:  pip install rich")
 
+from ..chain.manager import cmd_chain_add, cmd_chain_clear, cmd_chain_del
 from ..core.data import blank_worksheet
-from ..ui.display import build_worksheet_view
-from ..ui.help import build_help_panel, HELP
-from ..operations.asm_ops import cmd_move, cmd_add, cmd_xor, cmd_xchg, cmd_inc, cmd_dec, cmd_neg
-from ..operations.stack_ops import cmd_push, cmd_pop, cmd_stack
-from ..operations.quick_ops import cmd_set, cmd_clear
-from ..gadgets.library import cmd_gadget_add, cmd_gadget_del, cmd_gadget_clear
-from ..chain.manager import cmd_chain_add, cmd_chain_del, cmd_chain_clear
+from ..gadgets.library import cmd_gadget_add, cmd_gadget_clear, cmd_gadget_del
 from ..io.windbg import cmd_import_regs, cmd_import_stack
+from ..operations.asm_ops import (
+    cmd_add,
+    cmd_dec,
+    cmd_inc,
+    cmd_move,
+    cmd_neg,
+    cmd_xchg,
+    cmd_xor,
+)
+from ..operations.quick_ops import cmd_clear, cmd_set
+from ..operations.stack_ops import cmd_pop, cmd_push, cmd_stack
+from ..ui.display import build_worksheet_view
+from ..ui.help import HELP, build_help_panel
 from .completer import WorksheetCompleter
 
 console = Console()
@@ -38,7 +47,7 @@ def main():
     # Setup tab completion
     completer = WorksheetCompleter(ws)
     readline.set_completer(completer.complete)
-    readline.set_completer_delims(' \t\n')
+    readline.set_completer_delims(" \t\n")
 
     # Configure readline - only complete on TAB, don't show lists
     readline.parse_and_bind("tab: complete")
@@ -78,7 +87,7 @@ def main():
             # ASM Operations
             elif action in ["mov", "move", "m"]:
                 # Strip commas to support: mov EAX, 0x123 or mov EAX 0x123
-                args_clean = args.replace(',', ' ')
+                args_clean = args.replace(",", " ")
                 args_list = args_clean.split(None, 1)
                 if len(args_list) == 2:
                     success, msg = cmd_move(ws, args_list[0], args_list[1])
@@ -90,7 +99,7 @@ def main():
 
             elif action == "add":
                 # Strip commas to support: add EAX, 0x100 or add EAX 0x100
-                args_clean = args.replace(',', ' ')
+                args_clean = args.replace(",", " ")
                 args_list = args_clean.split(None, 1)
                 if len(args_list) == 2:
                     success, msg = cmd_add(ws, args_list[0], args_list[1])
@@ -103,7 +112,7 @@ def main():
 
             elif action == "xor":
                 # Strip commas to support: xor EAX, EBX or xor EAX EBX
-                args_clean = args.replace(',', ' ')
+                args_clean = args.replace(",", " ")
                 args_list = args_clean.split(None, 1)
                 if len(args_list) == 2:
                     success, msg = cmd_xor(ws, args_list[0], args_list[1])
@@ -116,7 +125,7 @@ def main():
 
             elif action == "xchg":
                 # Strip commas to support: xchg EAX, EBX or xchg EAX EBX
-                args_clean = args.replace(',', ' ')
+                args_clean = args.replace(",", " ")
                 args_list = args_clean.split(None, 1)
                 if len(args_list) == 2:
                     success, msg = cmd_xchg(ws, args_list[0], args_list[1])
@@ -182,7 +191,7 @@ def main():
             # Stack manipulation
             elif action == "stack":
                 # Strip commas to support: stack ECX, EAX or stack ECX EAX
-                args_clean = args.replace(',', ' ')
+                args_clean = args.replace(",", " ")
                 args_list = args_clean.split(None, 1)
                 if len(args_list) == 2:
                     success, msg = cmd_stack(ws, args_list[0], args_list[1])
@@ -196,7 +205,7 @@ def main():
             # Set
             elif action in ["set", "s"]:
                 # Strip commas to support: set EAX, 1234 or set EAX 1234
-                args_clean = args.replace(',', ' ')
+                args_clean = args.replace(",", " ")
                 args_list = args_clean.split(None, 1)
                 if len(args_list) == 2:
                     target = args_list[0].strip()
@@ -204,7 +213,8 @@ def main():
 
                     # Auto-convert plain hex numbers to 0x format
                     # Check if value looks like hex (no 0x prefix but valid hex chars)
-                    if not value.startswith("0x") and not value.startswith("0X"):
+                    if not value.startswith("0x") and not value.startswith(
+                            "0X"):
                         try:
                             # Try to parse as hex and convert to proper format
                             num = int(value, 16)
@@ -240,7 +250,9 @@ def main():
                 # Parse subcommand: gadget add <addr> "<instructions>" OR gadget del <addr> OR gadget clear
                 subargs = args.split(None, 1)
                 if not subargs:
-                    console.print('[red]Usage: gadget <address> "<instructions>" OR gadget del <address> OR gadget clear[/red]')
+                    console.print(
+                        '[red]Usage: gadget <address> "<instructions>" OR gadget del <address> OR gadget clear[/red]'
+                    )
                     continue
 
                 subcommand = subargs[0].lower()
@@ -269,20 +281,25 @@ def main():
                     address = subcommand
                     # Parse for quoted instructions
                     import re
+
                     match = re.match(r'(\S+)\s+"([^"]+)"', args)
                     if match:
                         address, instructions = match.groups()
                         cmd_gadget_add(ws, address, instructions)
                         display()
                     else:
-                        console.print('[red]Usage: gadget <address> "<instructions>"[/red]')
+                        console.print(
+                            '[red]Usage: gadget <address> "<instructions>"[/red]'
+                        )
 
             # Chain commands
             elif action == "chain":
                 # Parse subcommand: chain add <value> OR chain del <index> OR chain clear
                 subargs = args.split(None, 1)
                 if not subargs:
-                    console.print('[red]Usage: chain add <value> OR chain del <index> OR chain clear[/red]')
+                    console.print(
+                        "[red]Usage: chain add <value> OR chain del <index> OR chain clear[/red]"
+                    )
                     continue
 
                 subcommand = subargs[0].lower()
@@ -318,7 +335,9 @@ def main():
                         display()
 
                 else:
-                    console.print('[red]Usage: chain add <value> OR chain del <index> OR chain clear[/red]')
+                    console.print(
+                        "[red]Usage: chain add <value> OR chain del <index> OR chain clear[/red]"
+                    )
 
             # Delete (backward compatibility for chain delete)
             elif action in ["del", "delete", "rm"]:
@@ -333,7 +352,9 @@ def main():
 
             # Import registers
             elif action in ["importregs", "importreg", "impreg"]:
-                console.print("[cyan]Paste WinDbg register output (end with empty line):[/cyan]")
+                console.print(
+                    "[cyan]Paste WinDbg register output (end with empty line):[/cyan]"
+                )
                 lines = []
                 while True:
                     try:
@@ -345,7 +366,7 @@ def main():
                         break
 
                 if lines:
-                    text = '\n'.join(lines)
+                    text = "\n".join(lines)
                     success, msg = cmd_import_regs(ws, text)
                     if success:
                         console.print(f"[green]✓ {msg}[/green]")
@@ -357,7 +378,9 @@ def main():
 
             # Import stack
             elif action in ["importstack", "impstack", "impst"]:
-                console.print("[cyan]Paste WinDbg stack dump (end with empty line):[/cyan]")
+                console.print(
+                    "[cyan]Paste WinDbg stack dump (end with empty line):[/cyan]"
+                )
                 lines = []
                 while True:
                     try:
@@ -369,7 +392,7 @@ def main():
                         break
 
                 if lines:
-                    text = '\n'.join(lines)
+                    text = "\n".join(lines)
                     success, msg = cmd_import_stack(ws, text)
                     if success:
                         console.print(f"[green]✓ {msg}[/green]")
@@ -403,21 +426,24 @@ def main():
 
             # New
             elif action == "new":
-                if Confirm.ask("Start new worksheet? (unsaved changes will be lost)"):
+                if Confirm.ask(
+                        "Start new worksheet? (unsaved changes will be lost)"):
                     ws = blank_worksheet()
                     display()
 
             # Auto-gadget toggle
             elif action == "auto":
                 ws["auto_gadget"] = not ws.get("auto_gadget", True)
-                status = "[green]ON[/green]" if ws["auto_gadget"] else "[red]OFF[/red]"
+                status = "[green]ON[/green]" if ws[
+                    "auto_gadget"] else "[red]OFF[/red]"
                 console.print(f"Auto-gadget processing: {status}")
                 display()
 
             # Log-manual toggle
             elif action == "logmanual":
                 ws["log_manual"] = not ws.get("log_manual", True)
-                status = "[green]ON[/green]" if ws["log_manual"] else "[red]OFF[/red]"
+                status = "[green]ON[/green]" if ws[
+                    "log_manual"] else "[red]OFF[/red]"
                 console.print(f"Manual operation logging: {status}")
                 display()
 

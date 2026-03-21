@@ -5,11 +5,13 @@ This module implements stack operations: push, pop, and direct stack manipulatio
 """
 
 import re
-from typing import Dict, Any, Tuple, Optional
-from ..core.resolver import resolve_value, parse_target
+from typing import Any, Dict, Optional, Tuple
+
+from ..core.resolver import parse_target, resolve_value
 
 
-def log_execution(ws: Dict[str, Any], exec_type: str, source: str, operation: str):
+def log_execution(ws: Dict[str, Any], exec_type: str, source: str,
+                  operation: str):
     """
     Add an operation to the execution log.
 
@@ -19,11 +21,7 @@ def log_execution(ws: Dict[str, Any], exec_type: str, source: str, operation: st
         source: "User" for manual, address for auto
         operation: The operation string
     """
-    log_entry = {
-        "type": exec_type,
-        "source": source,
-        "operation": operation
-    }
+    log_entry = {"type": exec_type, "source": source, "operation": operation}
 
     ws["execution_log"].append(log_entry)
 
@@ -54,7 +52,7 @@ def cmd_push(ws: Dict[str, Any], src: str) -> Tuple[bool, Optional[str]]:
     try:
         # Decrement ESP by 4 FIRST
         current_esp = int(esp_val, 16)
-        new_esp = (current_esp - 4) & 0xffffffff
+        new_esp = (current_esp - 4) & 0xFFFFFFFF
         ws["registers"]["ESP"] = f"0x{new_esp:08x}"
 
         # Adjust all existing stack offsets by +4 (they're farther from new ESP)
@@ -117,7 +115,7 @@ def cmd_pop(ws: Dict[str, Any], dst: str) -> Tuple[bool, Optional[str]]:
 
     # Increment ESP by 4 FIRST
     current_esp = int(esp_val, 16)
-    new_esp = (current_esp + 4) & 0xffffffff
+    new_esp = (current_esp + 4) & 0xFFFFFFFF
     ws["registers"]["ESP"] = f"0x{new_esp:08x}"
 
     # Adjust all stack offsets by -4 (they're all 4 bytes closer to ESP now)
@@ -155,7 +153,9 @@ def cmd_pop(ws: Dict[str, Any], dst: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def cmd_stack(ws: Dict[str, Any], offset_str: str, value: str) -> Tuple[bool, Optional[str]]:
+def cmd_stack(
+        ws: Dict[str, Any], offset_str: str, value: str
+) -> Tuple[bool, Optional[str]]:
     """
     Directly set stack value at offset without affecting ESP.
 
@@ -171,7 +171,8 @@ def cmd_stack(ws: Dict[str, Any], offset_str: str, value: str) -> Tuple[bool, Op
     offset_str = offset_str.strip()
 
     # Check if offset_str is a register name
-    if offset_str.upper() in ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP"]:
+    if offset_str.upper() in ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP",
+                              "ESP"]:
         # Get the register's value
         reg_value = ws["registers"].get(offset_str.upper(), "0x00000000")
         if not reg_value or reg_value == "0x00000000":
@@ -201,11 +202,11 @@ def cmd_stack(ws: Dict[str, Any], offset_str: str, value: str) -> Tuple[bool, Op
             offset_str = offset_str[3:]
 
         # Ensure it starts with + or -
-        if not offset_str.startswith('+') and not offset_str.startswith('-'):
-            offset_str = '+' + offset_str
+        if not offset_str.startswith("+") and not offset_str.startswith("-"):
+            offset_str = "+" + offset_str
 
         # Validate offset format (case-insensitive for 0x)
-        if not re.match(r'^[+-]0x[0-9a-fA-F]+$', offset_str, re.IGNORECASE):
+        if not re.match(r"^[+-]0x[0-9a-fA-F]+$", offset_str, re.IGNORECASE):
             return False, f"Invalid offset format: {offset_str}"
 
     # Try to resolve the value (handles registers, stack refs, named values)

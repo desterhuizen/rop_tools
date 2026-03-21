@@ -1,9 +1,11 @@
 """
 Unit tests for worksheet.operations.quick_ops module.
 """
+
 import unittest
+
 from rop.worksheet.core.data import blank_worksheet
-from rop.worksheet.operations.quick_ops import cmd_set, cmd_clear
+from rop.worksheet.operations.quick_ops import cmd_clear, cmd_set
 
 
 class TestCmdSet(unittest.TestCase):

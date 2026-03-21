@@ -1,9 +1,11 @@
 """
 Unit tests for worksheet.core.resolver module.
 """
+
 import unittest
+
 from rop.worksheet.core.data import blank_worksheet
-from rop.worksheet.core.resolver import resolve_value, parse_target
+from rop.worksheet.core.resolver import parse_target, resolve_value
 
 
 class TestResolveValue(unittest.TestCase):
@@ -104,7 +106,8 @@ class TestParseTarget(unittest.TestCase):
 
     def test_parse_all_registers(self):
         """Test parsing of all valid registers."""
-        registers = ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"]
+        registers = ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP",
+                     "EIP"]
 
         for reg in registers:
             tgt_type, tgt_key = parse_target(reg)
@@ -115,7 +118,12 @@ class TestParseTarget(unittest.TestCase):
         """Test parsing of stack offset targets."""
         assert parse_target("ESP+0x10") == ("stack", "+0x10")
         assert parse_target("[ESP+0x10]") == ("stack", "+0x10")
-        assert parse_target("esp+0x00", ) == ("stack", "+0x00")  # Case insensitive
+        assert parse_target(
+            "esp+0x00",
+        ) == (
+                   "stack",
+                   "+0x00",
+               )  # Case insensitive
         assert parse_target("ESP-0x04") == ("stack", "-0x04")
 
     def test_parse_dereferenced_register(self):

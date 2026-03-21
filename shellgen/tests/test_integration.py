@@ -5,12 +5,13 @@ Tests the overall workflow of shellcode generation including CLI integration,
 payload building, encoding, and output formatting.
 """
 
-import unittest
-from unittest.mock import patch, MagicMock
 import sys
-from shellgen.src.encoders import ror13_hash, encode_dword, string_to_push_dwords
-from shellgen.src.formatters import format_output
+import unittest
+from unittest.mock import MagicMock, patch
+
 from shellgen.hash_generator import generate_hash_dict
+from shellgen.src.encoders import encode_dword, ror13_hash, string_to_push_dwords
+from shellgen.src.formatters import format_output
 
 
 class TestEncoderIntegration(unittest.TestCase):
@@ -19,7 +20,7 @@ class TestEncoderIntegration(unittest.TestCase):
     def test_string_to_dwords_with_encoding(self):
         """Test converting string to dwords and encoding them."""
         test_string = "kernel32.dll"
-        bad_chars = {0x00, 0x0a, 0x0d}
+        bad_chars = {0x00, 0x0A, 0x0D}
 
         # Convert string to dwords
         dwords = string_to_push_dwords(test_string)
@@ -29,6 +30,7 @@ class TestEncoderIntegration(unittest.TestCase):
         for dword in dwords:
             # Check if encoding is needed
             import struct
+
             dword_bytes = struct.pack("<I", dword)
             has_bad = any(b in bad_chars for b in dword_bytes)
 
@@ -41,10 +43,10 @@ class TestEncoderIntegration(unittest.TestCase):
         """Test complete workflow of generating API hashes."""
         # Common Windows APIs
         api_functions = [
-            'LoadLibraryA',
-            'GetProcAddress',
-            'ExitProcess',
-            'VirtualAlloc',
+            "LoadLibraryA",
+            "GetProcAddress",
+            "ExitProcess",
+            "VirtualAlloc",
         ]
 
         # Generate hashes
@@ -54,8 +56,8 @@ class TestEncoderIntegration(unittest.TestCase):
         self.assertEqual(len(hash_dict), len(api_functions))
 
         # Verify known hashes
-        self.assertEqual(hash_dict['LoadLibraryA'], 0xec0e4e8e)
-        self.assertEqual(hash_dict['GetProcAddress'], 0x7c0dfcaa)
+        self.assertEqual(hash_dict["LoadLibraryA"], 0xEC0E4E8E)
+        self.assertEqual(hash_dict["GetProcAddress"], 0x7C0DFCAA)
 
         # Verify all hashes are valid 32-bit values
         for func_name, hash_value in hash_dict.items():
@@ -73,28 +75,32 @@ class TestFormatterIntegration(unittest.TestCase):
         simple_asm = "mov eax, ebx\nret"
 
         # Test ASM format
-        result_asm = format_output(simple_asm, 'asm', arch='x86', platform='windows')
+        result_asm = format_output(simple_asm, "asm", arch="x86", platform="windows")
         self.assertEqual(result_asm, simple_asm)
 
         # Test pyasm format
-        result_pyasm = format_output(simple_asm, 'pyasm', arch='x86', platform='windows')
-        self.assertIn('#!/usr/bin/env python3', result_pyasm)
-        self.assertIn('from keystone import *', result_pyasm)
+        result_pyasm = format_output(
+            simple_asm, "pyasm", arch="x86", platform="windows"
+        )
+        self.assertIn("#!/usr/bin/env python3", result_pyasm)
+        self.assertIn("from keystone import *", result_pyasm)
 
     def test_cross_architecture_formatting(self):
         """Test formatting across different architectures."""
         asm_code = "mov r0, r1"
-        architectures = ['x86', 'x64', 'arm', 'arm64']
+        architectures = ["x86", "x64", "arm", "arm64"]
 
         for arch in architectures:
             with self.subTest(arch=arch):
                 # ASM format should work for all
-                result = format_output(asm_code, 'asm', arch=arch, platform='linux')
+                result = format_output(asm_code, "asm", arch=arch, platform="linux")
                 self.assertIsNotNone(result)
 
                 # pyasm format should have correct constants
-                result_pyasm = format_output(asm_code, 'pyasm', arch=arch, platform='linux')
-                self.assertIn('ks = Ks(', result_pyasm)
+                result_pyasm = format_output(
+                    asm_code, "pyasm", arch=arch, platform="linux"
+                )
+                self.assertIn("ks = Ks(", result_pyasm)
 
 
 class TestHashAndEncoderIntegration(unittest.TestCase):
@@ -103,13 +109,14 @@ class TestHashAndEncoderIntegration(unittest.TestCase):
     def test_hash_encoding_workflow(self):
         """Test encoding API hashes for shellcode."""
         # Generate hash
-        api_name = 'GetProcAddress'
+        api_name = "GetProcAddress"
         api_hash = ror13_hash(api_name)
 
         # Try to encode hash avoiding bad chars
-        bad_chars = {0x00, 0x0a, 0x0d}
+        bad_chars = {0x00, 0x0A, 0x0D}
 
         import struct
+
         hash_bytes = struct.pack("<I", api_hash)
         has_bad = any(b in bad_chars for b in hash_bytes)
 
@@ -125,7 +132,7 @@ class TestHashAndEncoderIntegration(unittest.TestCase):
 
     def test_multiple_api_hashes_encoding(self):
         """Test encoding multiple API hashes."""
-        apis = ['LoadLibraryA', 'GetProcAddress', 'ExitProcess']
+        apis = ["LoadLibraryA", "GetProcAddress", "ExitProcess"]
         bad_chars = {0x00}
 
         for api in apis:
@@ -143,7 +150,7 @@ class TestEndToEndScenarios(unittest.TestCase):
     def test_simple_windows_shellcode_workflow(self):
         """Test a simple Windows shellcode generation workflow."""
         # Step 1: Generate API hashes
-        apis = ['LoadLibraryA', 'GetProcAddress']
+        apis = ["LoadLibraryA", "GetProcAddress"]
         hash_dict = generate_hash_dict(apis)
 
         self.assertEqual(len(hash_dict), 2)
@@ -160,23 +167,24 @@ class TestEndToEndScenarios(unittest.TestCase):
         asm_code += "    ret\n"
 
         # Step 4: Format output
-        result = format_output(asm_code, 'asm', arch='x86', platform='windows')
+        result = format_output(asm_code, "asm", arch="x86", platform="windows")
         self.assertEqual(result, asm_code)
 
     def test_bad_character_avoidance_workflow(self):
         """Test workflow with bad character avoidance."""
-        bad_chars = {0x00, 0x0a, 0x0d}
+        bad_chars = {0x00, 0x0A, 0x0D}
 
         # Test values that might have bad chars
         test_values = [
             0x00001234,  # Has null bytes
             0x12340000,  # Has null bytes at end
-            0x000a0d00,  # Has multiple bad chars
+            0x000A0D00,  # Has multiple bad chars
         ]
 
         for value in test_values:
             with self.subTest(value=hex(value)):
                 import struct
+
                 value_bytes = struct.pack("<I", value)
                 has_bad = any(b in bad_chars for b in value_bytes)
 
@@ -194,15 +202,15 @@ class TestEndToEndScenarios(unittest.TestCase):
         asm_code = "xor eax, eax\nret"
 
         # Generate in different formats
-        result_asm = format_output(asm_code, 'asm', arch='x86', platform='windows')
-        result_pyasm = format_output(asm_code, 'pyasm', arch='x86', platform='windows')
+        result_asm = format_output(asm_code, "asm", arch="x86", platform="windows")
+        result_pyasm = format_output(asm_code, "pyasm", arch="x86", platform="windows")
 
         # ASM should be unchanged
         self.assertEqual(result_asm, asm_code)
 
         # pyasm should contain the assembly code
-        self.assertIn('xor eax, eax', result_pyasm)
-        self.assertIn('ret', result_pyasm)
+        self.assertIn("xor eax, eax", result_pyasm)
+        self.assertIn("ret", result_pyasm)
 
 
 class TestComponentInteraction(unittest.TestCase):
@@ -214,14 +222,15 @@ class TestComponentInteraction(unittest.TestCase):
 
         bad_char_sets = [
             {0x00},
-            {0x00, 0x0a, 0x0d},
-            {0x00, 0x0a, 0x0d, 0x20},
-            {0x00, 0x09, 0x0a, 0x0d, 0x20},
+            {0x00, 0x0A, 0x0D},
+            {0x00, 0x0A, 0x0D, 0x20},
+            {0x00, 0x09, 0x0A, 0x0D, 0x20},
         ]
 
         for bad_chars in bad_char_sets:
             with self.subTest(bad_chars=bad_chars):
                 import struct
+
                 value_bytes = struct.pack("<I", test_value)
                 has_bad = any(b in bad_chars for b in value_bytes)
 
@@ -232,28 +241,28 @@ class TestComponentInteraction(unittest.TestCase):
     def test_hash_generator_output_formats(self):
         """Test that all hash generator formats work."""
         from shellgen.hash_generator import (
-            format_output_text,
-            format_output_python,
-            format_output_c,
             format_output_asm,
-            format_output_json
+            format_output_c,
+            format_output_json,
+            format_output_python,
+            format_output_text,
         )
 
-        apis = ['LoadLibraryA', 'GetProcAddress']
+        apis = ["LoadLibraryA", "GetProcAddress"]
         hash_dict = generate_hash_dict(apis)
 
         # All formatters should work
         result_text = format_output_text(hash_dict)
-        self.assertIn('LoadLibraryA', result_text)
+        self.assertIn("LoadLibraryA", result_text)
 
         result_python = format_output_python(hash_dict)
-        self.assertIn('API_HASHES', result_python)
+        self.assertIn("API_HASHES", result_python)
 
         result_c = format_output_c(hash_dict)
-        self.assertIn('ApiHash', result_c)
+        self.assertIn("ApiHash", result_c)
 
         result_asm = format_output_asm(hash_dict)
-        self.assertIn('equ', result_asm)
+        self.assertIn("equ", result_asm)
 
         result_json = format_output_json(hash_dict)
         self.assertIn('"LoadLibraryA"', result_json)
@@ -267,9 +276,9 @@ class TestErrorHandling(unittest.TestCase):
         asm_code = "mov eax, ebx"
 
         with self.assertRaises(ValueError) as context:
-            format_output(asm_code, 'invalid_format', arch='x86', platform='windows')
+            format_output(asm_code, "invalid_format", arch="x86", platform="windows")
 
-        self.assertIn('Unknown output format', str(context.exception))
+        self.assertIn("Unknown output format", str(context.exception))
 
     def test_unencodable_value_handling(self):
         """Test handling of values that can't be encoded."""
@@ -280,7 +289,7 @@ class TestErrorHandling(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             encode_dword(test_value, bad_chars)
 
-        self.assertIn('Cannot encode', str(context.exception))
+        self.assertIn("Cannot encode", str(context.exception))
 
 
 if __name__ == "__main__":

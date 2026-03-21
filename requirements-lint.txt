@@ -1,0 +1,19 @@
+# Linting and code quality tools
+# Install with: pip install -r requirements-lint.txt
+
+# Code style checking
+flake8>=7.0.0
+
+# Automatic code formatting
+black>=24.0.0
+
+# Import sorting
+isort>=5.13.0
+
+# Type checking (optional but recommended)
+mypy>=1.8.0
+
+# Flake8 plugins for enhanced checking
+flake8-bugbear>=24.0.0      # Find likely bugs and design problems
+flake8-comprehensions>=3.14.0  # Check for unnecessary list/dict comprehensions
+flake8-simplify>=0.21.0     # Suggest code simplifications

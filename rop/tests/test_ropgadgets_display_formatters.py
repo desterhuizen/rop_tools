@@ -5,30 +5,31 @@ Tests display formatting functions for ROP gadgets.
 Note: These tests focus on function behavior rather than
 visual output, since testing terminal colors is complex.
 """
-import unittest
-import tempfile
+
 import os
-from io import StringIO
 import sys
-from pathlib import Path
+import tempfile
+import unittest
 from contextlib import redirect_stdout
+from io import StringIO
+from pathlib import Path
 
 # Add repo root to path for lib imports
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
+from lib.color_printer import printer
 from rop.core.gadget import Gadget
 from rop.core.parser import ROPGadgetParser
-from rop.display.formatters import print_gadget_colored, print_gadgets, print_statistics
-from lib.color_printer import printer
-
+from rop.display.formatters import print_gadget_colored, print_gadgets, \
+    print_statistics
 
 # Sample gadget for testing
 SAMPLE_GADGET = Gadget(
     address="0x12345678",
     instructions=["pop eax", "ret"],
     raw_line="0x12345678: pop eax ; ret ; (1 found)",
-    count=1
+    count=1,
 )
 
 
@@ -107,7 +108,8 @@ class TestPrintGadgetColored(unittest.TestCase):
 
         try:
             base_address = 0x10000000
-            print_gadget_colored(SAMPLE_GADGET, parser, base_address=base_address)
+            print_gadget_colored(SAMPLE_GADGET, parser,
+                                 base_address=base_address)
             # Should contain offset
             assert True  # Function executed successfully
         finally:
@@ -166,7 +168,9 @@ class TestPrintStatistics(unittest.TestCase):
 0x10001240: pop ebx ; ret ; (1 found)
 0x10001250: mov eax, ebx ; ret ; (1 found)
 """
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+        ) as f:
             f.write(sample_data)
             temp_path = f.name
 
@@ -187,7 +191,9 @@ FileFormat: PE, Arch: x86
 
 0x10001234: pop eax ; ret ; (1 found)
 """
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+        ) as f:
             f.write(sample_data)
             temp_path = f.name
 
@@ -241,7 +247,7 @@ class TestOffsetCalculation(unittest.TestCase):
             address="0x12345678",
             instructions=["pop eax", "ret"],
             raw_line="0x12345678: pop eax ; ret ; (1 found)",
-            count=1
+            count=1,
         )
         parser = ROPGadgetParser()
         parser.gadgets = [gadget]
@@ -266,7 +272,7 @@ class TestOffsetCalculation(unittest.TestCase):
             address="0x12345678",
             instructions=["pop eax", "ret"],
             raw_line="0x12345678: pop eax ; ret ; (1 found)",
-            count=1
+            count=1,
         )
         parser = ROPGadgetParser()
         parser.gadgets = [gadget]
@@ -279,10 +285,11 @@ class TestOffsetCalculation(unittest.TestCase):
 
         try:
             print_gadget_colored(
-                gadget, parser,
+                gadget,
+                parser,
                 show_category=True,
                 show_count=True,
-                base_address=base_address
+                base_address=base_address,
             )
             # Should contain all elements
             assert True  # Category or count displayed
@@ -300,7 +307,7 @@ class TestEdgeCases(unittest.TestCase):
             address="0x12345678",
             instructions=["pop eax", "ret"],
             raw_line="malformed",
-            count=1
+            count=1,
         )
         parser = ROPGadgetParser()
         parser.gadgets = [gadget]
@@ -325,7 +332,7 @@ class TestEdgeCases(unittest.TestCase):
             address="0x12345678",
             instructions=[],
             raw_line="0x12345678:  ; (1 found)",
-            count=1
+            count=1,
         )
         parser = ROPGadgetParser()
         parser.gadgets = [gadget]

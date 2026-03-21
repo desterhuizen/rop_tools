@@ -2,6 +2,7 @@
 
 [![Tests](https://github.com/desterhuizen/rop_tools/actions/workflows/tests.yml/badge.svg)](https://github.com/desterhuizen/rop_tools/actions/workflows/tests.yml)
 [![Coverage](https://github.com/desterhuizen/rop_tools/actions/workflows/coverage.yml/badge.svg)](https://github.com/desterhuizen/rop_tools/actions/workflows/coverage.yml)
+[![Lint](https://github.com/desterhuizen/rop_tools/actions/workflows/lint.yml/badge.svg)](https://github.com/desterhuizen/rop_tools/actions/workflows/lint.yml)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
 A comprehensive collection of Python-based security testing tools for exploit development, shellcode generation, and binary analysis. This suite is designed for defensive security research, vulnerability analysis, and security education.
@@ -354,6 +355,31 @@ Contributions are welcome! When adding features:
 - Write testable, modular code
 - Document all public APIs
 - Add examples for new features
+
+### Code Quality
+
+This project uses automated linting to maintain code quality:
+
+```bash
+# Install linting tools
+pip install -r requirements-lint.txt
+
+# Run all linters
+flake8 lib/ rop/ shellgen/ code_snippets/
+black --check lib/ rop/ shellgen/ code_snippets/
+isort --check-only lib/ rop/ shellgen/ code_snippets/
+mypy lib/ rop/ shellgen/ code_snippets/
+
+# Auto-format code
+black lib/ rop/ shellgen/ code_snippets/
+isort lib/ rop/ shellgen/ code_snippets/
+```
+
+**Linting Tools:**
+- **flake8** - PEP 8 style checking and error detection
+- **black** - Automatic code formatting (88 char line length)
+- **isort** - Import sorting and organization
+- **mypy** - Optional static type checking
 
 ---
 

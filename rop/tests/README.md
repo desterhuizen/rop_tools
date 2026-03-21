@@ -1,6 +1,7 @@
 # ROP Tools Test Suite
 
-This directory contains comprehensive unit and integration tests for the ROP tools suite.
+This directory contains comprehensive unit and integration tests for the ROP
+tools suite.
 
 ## Structure
 
@@ -38,6 +39,7 @@ tests/
 ### Prerequisites
 
 Install test dependencies:
+
 ```bash
 pip install -r requirements-test.txt
 ```
@@ -77,80 +79,82 @@ python -m pytest tests/ --cov=worksheet --cov-report=html
 ### ROP Worksheet Tests
 
 - **Core modules** (data.py, resolver.py): 100% coverage
-  - Worksheet structure creation
-  - Value resolution (hex, registers, stack, named values, arithmetic)
-  - Target parsing (registers, stack offsets, dereferenced registers, named values)
+    - Worksheet structure creation
+    - Value resolution (hex, registers, stack, named values, arithmetic)
+    - Target parsing (registers, stack offsets, dereferenced registers, named
+      values)
 
 - **Operations modules** (asm_ops.py, stack_ops.py, quick_ops.py): 100% coverage
-  - ASM operations: mov, add, xor, xchg, inc, dec, neg
-  - Stack operations: push, pop, direct stack manipulation
-  - Quick operations: set, clear
-  - Logging functionality
+    - ASM operations: mov, add, xor, xchg, inc, dec, neg
+    - Stack operations: push, pop, direct stack manipulation
+    - Quick operations: set, clear
+    - Logging functionality
 
 - **Gadgets modules** (processor.py, library.py): 100% coverage
-  - Gadget library management (add, delete, clear)
-  - Gadget auto-execution
-  - Instruction parsing and validation
+    - Gadget library management (add, delete, clear)
+    - Gadget auto-execution
+    - Instruction parsing and validation
 
 - **Chain module** (manager.py): 100% coverage
-  - Chain building (add by address, gadget ID, or literal)
-  - Chain deletion by index
-  - Chain clearing
+    - Chain building (add by address, gadget ID, or literal)
+    - Chain deletion by index
+    - Chain clearing
 
 - **I/O module** (windbg.py): 100% coverage
-  - WinDbg register import
-  - WinDbg stack dump import
-  - Offset calculation
+    - WinDbg register import
+    - WinDbg stack dump import
+    - Offset calculation
 
 - **UI module** (display.py): 100% coverage
-  - Worksheet view building
-  - Rich object rendering
-  - Named value matching display
+    - Worksheet view building
+    - Rich object rendering
+    - Named value matching display
 
 ### get_rop_gadgets Tests
 
 - **Core modules**: `test_ropgadgets_core_*.py`
-  - Gadget parsing and categorization
-  - Register analysis (affected vs modified)
-  - Pattern matching and filtering
-  - Bad character filtering
+    - Gadget parsing and categorization
+    - Register analysis (affected vs modified)
+    - Pattern matching and filtering
+    - Bad character filtering
 
 - **Integration tests**: `test_ropgadgets_integration.py` (25 tests)
-  - CLI argument parsing
-  - Instruction filtering (first/last/any position)
-  - Category filtering
-  - Register filtering
-  - Bad instruction filtering (9 new tests):
-    - Default filtering of call, jmp, int, leave, conditional jumps
-    - `--keep-bad-instructions` flag behavior
-    - Case-insensitive matching
-    - Filter count output validation
-  - Grouping (by instruction, category, register)
-  - Sorting and limiting
-  - Offset calculation
-  - Regex highlighting
-  - Error handling
+    - CLI argument parsing
+    - Instruction filtering (first/last/any position)
+    - Category filtering
+    - Register filtering
+    - Bad instruction filtering (9 new tests):
+        - Default filtering of call, jmp, int, leave, conditional jumps
+        - `--keep-bad-instructions` flag behavior
+        - Case-insensitive matching
+        - Filter count output validation
+    - Grouping (by instruction, category, register)
+    - Sorting and limiting
+    - Offset calculation
+    - Regex highlighting
+    - Error handling
 
 ### PE Analysis Tests
 
 - **PE Info tests**: `test_core_pe_info.py` (20 tests)
-  - PEAnalyzer class methods (base address extraction, file analysis)
-  - IAT (Import Address Table) extraction
-  - Section parsing and characteristics
-  - Dataclass functionality (PEInfo, PESection, IATEntry)
-  - Error handling for invalid PE files
-  - **Note**: Most tests skip on non-Windows platforms (14 tests)
+    - PEAnalyzer class methods (base address extraction, file analysis)
+    - IAT (Import Address Table) extraction
+    - Section parsing and characteristics
+    - Dataclass functionality (PEInfo, PESection, IATEntry)
+    - Error handling for invalid PE files
+    - **Note**: Most tests skip on non-Windows platforms (14 tests)
 
-- **get_base_address integration**: `test_get_base_address_integration.py` (14 tests)
-  - CLI argument parsing
-  - Verbose mode (`-v` flag)
-  - Quiet mode (`-q` flag)
-  - IAT display (`--iat` flag)
-  - DLL filtering (`--dll` flag)
-  - Color output control (`--no-color`)
-  - Error handling (missing files, invalid PE files)
-  - Address format display (hex and decimal)
-  - **Note**: Most tests skip on non-Windows platforms (12 tests)
+- **get_base_address integration**: `test_get_base_address_integration.py` (14
+  tests)
+    - CLI argument parsing
+    - Verbose mode (`-v` flag)
+    - Quiet mode (`-q` flag)
+    - IAT display (`--iat` flag)
+    - DLL filtering (`--dll` flag)
+    - Color output control (`--no-color`)
+    - Error handling (missing files, invalid PE files)
+    - Address format display (hex and decimal)
+    - **Note**: Most tests skip on non-Windows platforms (12 tests)
 
 ## Test Statistics
 
@@ -200,10 +204,10 @@ When adding new functionality, follow these guidelines:
    ```
 
 4. **Test edge cases**:
-   - Empty inputs
-   - Invalid inputs
-   - Boundary conditions
-   - Error conditions
+    - Empty inputs
+    - Invalid inputs
+    - Boundary conditions
+    - Error conditions
 
 5. **Use fixtures** for common setup (if needed):
    ```python
@@ -240,4 +244,5 @@ None currently. All 140 tests passing.
 
 ## Contact
 
-For issues or questions about tests, please refer to the main project documentation.
+For issues or questions about tests, please refer to the main project
+documentation.

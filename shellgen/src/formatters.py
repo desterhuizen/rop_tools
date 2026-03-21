@@ -10,30 +10,32 @@ Handles formatting of shellgen output in various formats:
 """
 
 import sys
+
 from lib.color_printer import printer
+
 from .assembler import assemble_to_binary
 
 
 def _convert_asm_to_python_tuple(asm_code):
     """
-      Convert assembly code to Python tuple format with comments extracted.
+    Convert assembly code to Python tuple format with comments extracted.
 
-      Transforms:
-          mov eax, ebx    ; this is a comment
-      Into:
-          f"mov eax, ebx           ;"  # this is a comment
+    Transforms:
+        mov eax, ebx    ; this is a comment
+    Into:
+        f"mov eax, ebx           ;"  # this is a comment
 
-      The assembly instructions include semicolons with padding.
-      Comments are extracted as Python comments.
+    The assembly instructions include semicolons with padding.
+    Comments are extracted as Python comments.
 
-      Args:
-          asm_code: Assembly source code with inline comments
+    Args:
+        asm_code: Assembly source code with inline comments
 
-      Returns:
-          str: Python tuple of assembly strings with Python comments
-      """
+    Returns:
+        str: Python tuple of assembly strings with Python comments
+    """
     lines = []
-    for line in asm_code.split('\n'):
+    for line in asm_code.split("\n"):
         stripped = line.strip()
 
         # Skip empty lines
@@ -41,17 +43,17 @@ def _convert_asm_to_python_tuple(asm_code):
             continue
 
         # Handle pure comment lines (lines that start with ;)
-        if stripped.startswith(';'):
+        if stripped.startswith(";"):
             comment = stripped[1:].strip()
-            lines.append(f'# {comment}')
+            lines.append(f"# {comment}")
             continue
 
         # Handle lines with inline comments (instruction ; comment)
-        if ';' in line:
+        if ";" in line:
             # Split at the first semicolon
-            parts = line.split(';', 1)
+            parts = line.split(";", 1)
             code_part = parts[0].rstrip()
-            comment_part = parts[1].strip() if len(parts) > 1 else ''
+            comment_part = parts[1].strip() if len(parts) > 1 else ""
 
             if code_part:
                 # Pad the instruction to align the semicolon
@@ -63,13 +65,13 @@ def _convert_asm_to_python_tuple(asm_code):
                     lines.append(f'    f"{padded_code}"')
             elif comment_part:
                 # Only comment (shouldn't happen but handle it)
-                lines.append(f'# {comment_part}')
+                lines.append(f"# {comment_part}")
         else:
             # No comment, just code - pad and add semicolon
             padded_code = f"{line.rstrip():<48};"
             lines.append(f'    f"{padded_code}"')
 
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
 def format_asm(asm_code):
@@ -85,7 +87,7 @@ def format_asm(asm_code):
     return asm_code
 
 
-def format_python_bytes(shellcode_bytes, arch='x86', platform='windows'):
+def format_python_bytes(shellcode_bytes, arch="x86", platform="windows"):
     """
     Format shellgen as Python bytes variable.
 
@@ -97,30 +99,32 @@ def format_python_bytes(shellcode_bytes, arch='x86', platform='windows'):
     Returns:
         str: Python code with shellgen variable
     """
-    hex_bytes = ''.join(f'\\x{b:02x}' for b in shellcode_bytes)
+    hex_bytes = "".join(f"\\x{b:02x}" for b in shellcode_bytes)
 
     # Only add colors if outputting to TTY
     if sys.stdout.isatty():
         # Build colored output
         output = []
         output.append(printer.colorize(f"# Shellcode Generator Output", "bold green"))
-        output.append(printer.colorize(f"# Length: {len(shellcode_bytes)} bytes", "dim white"))
+        output.append(
+            printer.colorize(f"# Length: {len(shellcode_bytes)} bytes", "dim white")
+        )
         output.append(printer.colorize(f"# Architecture: {arch}", "dim white"))
         output.append(printer.colorize(f"# Platform: {platform}", "dim white"))
         output.append("")
         output.append(printer.colorize("shellgen", "cyan") + f' = b"{hex_bytes}"')
-        return '\n'.join(output) + '\n'
+        return "\n".join(output) + "\n"
     else:
         # Plain output for files/pipes
-        return f'''# Length: {len(shellcode_bytes)} bytes
+        return f"""# Length: {len(shellcode_bytes)} bytes
 # Architecture: {arch}
 # Platform: {platform}
 
 shellgen = b"{hex_bytes}"
-'''
+"""
 
 
-def format_c_array(shellcode_bytes, arch='x86', platform='windows'):
+def format_c_array(shellcode_bytes, arch="x86", platform="windows"):
     """
     Format shellgen as C char array.
 
@@ -136,44 +140,49 @@ def format_c_array(shellcode_bytes, arch='x86', platform='windows'):
     if sys.stdout.isatty():
         # Build colored output
         lines = []
-        lines.append(printer.colorize(f'// Shellcode Generator Output', 'bold green'))
-        lines.append(printer.colorize(f'// Length: {len(shellcode_bytes)} bytes', 'dim white'))
-        lines.append(printer.colorize(f'// Architecture: {arch}', 'dim white'))
-        lines.append(printer.colorize(f'// Platform: {platform}', 'dim white'))
-        lines.append('')
-        lines.append(printer.colorize('unsigned char shellgen[]', 'cyan') + ' = {')
+        lines.append(printer.colorize(f"// Shellcode Generator Output", "bold green"))
+        lines.append(
+            printer.colorize(f"// Length: {len(shellcode_bytes)} bytes", "dim white")
+        )
+        lines.append(printer.colorize(f"// Architecture: {arch}", "dim white"))
+        lines.append(printer.colorize(f"// Platform: {platform}", "dim white"))
+        lines.append("")
+        lines.append(printer.colorize("unsigned char shellgen[]", "cyan") + " = {")
 
         # Format as hex bytes, 16 per line
         for i in range(0, len(shellcode_bytes), 16):
-            chunk = shellcode_bytes[i:i+16]
-            hex_str = ', '.join(f'0x{b:02x}' for b in chunk)
+            chunk = shellcode_bytes[i : i + 16]
+            hex_str = ", ".join(f"0x{b:02x}" for b in chunk)
             lines.append(f'    {hex_str}{"," if i + 16 < len(shellcode_bytes) else ""}')
 
-        lines.append('};')
-        lines.append(printer.colorize('unsigned int shellcode_len', 'cyan') + f' = {len(shellcode_bytes)};')
-        return '\n'.join(lines) + '\n'
+        lines.append("};")
+        lines.append(
+            printer.colorize("unsigned int shellcode_len", "cyan")
+            + f" = {len(shellcode_bytes)};"
+        )
+        return "\n".join(lines) + "\n"
     else:
         # Plain output for files/pipes
         lines = [
-            f'// Length: {len(shellcode_bytes)} bytes',
-            f'// Architecture: {arch}',
-            f'// Platform: {platform}',
-            '',
-            'unsigned char shellgen[] = {'
+            f"// Length: {len(shellcode_bytes)} bytes",
+            f"// Architecture: {arch}",
+            f"// Platform: {platform}",
+            "",
+            "unsigned char shellgen[] = {",
         ]
 
         # Format as hex bytes, 16 per line
         for i in range(0, len(shellcode_bytes), 16):
-            chunk = shellcode_bytes[i:i+16]
-            hex_str = ', '.join(f'0x{b:02x}' for b in chunk)
+            chunk = shellcode_bytes[i : i + 16]
+            hex_str = ", ".join(f"0x{b:02x}" for b in chunk)
             lines.append(f'    {hex_str}{"," if i + 16 < len(shellcode_bytes) else ""}')
 
-        lines.append('};')
-        lines.append(f'unsigned int shellcode_len = {len(shellcode_bytes)};')
-        return '\n'.join(lines) + '\n'
+        lines.append("};")
+        lines.append(f"unsigned int shellcode_len = {len(shellcode_bytes)};")
+        return "\n".join(lines) + "\n"
 
 
-def format_pyasm(asm_code, arch='x86', platform='windows'):
+def format_pyasm(asm_code, arch="x86", platform="windows"):
     """
     Format as Python script with assembly code string for Keystone.
 
@@ -187,14 +196,14 @@ def format_pyasm(asm_code, arch='x86', platform='windows'):
     """
     # Get architecture constants for Keystone
     arch_const_map = {
-        'x86': ('KS_ARCH_X86', 'KS_MODE_32'),
-        'x64': ('KS_ARCH_X86', 'KS_MODE_64'),
-        'arm': ('KS_ARCH_ARM', 'KS_MODE_ARM'),
-        'arm64': ('KS_ARCH_ARM64', 'KS_MODE_LITTLE_ENDIAN'),
-        'armthumb': ('KS_ARCH_ARM', 'KS_MODE_THUMB'),
+        "x86": ("KS_ARCH_X86", "KS_MODE_32"),
+        "x64": ("KS_ARCH_X86", "KS_MODE_64"),
+        "arm": ("KS_ARCH_ARM", "KS_MODE_ARM"),
+        "arm64": ("KS_ARCH_ARM64", "KS_MODE_LITTLE_ENDIAN"),
+        "armthumb": ("KS_ARCH_ARM", "KS_MODE_THUMB"),
     }
 
-    arch_const, mode_const = arch_const_map.get(arch, ('KS_ARCH_X86', 'KS_MODE_32'))
+    arch_const, mode_const = arch_const_map.get(arch, ("KS_ARCH_X86", "KS_MODE_32"))
 
     # Convert assembly with inline comments to Python tuple format
     asm_tuple = _convert_asm_to_python_tuple(asm_code)
@@ -291,7 +300,7 @@ else:
     return pyasm_template
 
 
-def format_output(asm_code, output_format, arch='x86', platform='windows'):
+def format_output(asm_code, output_format, arch="x86", platform="windows"):
     """
     Format the shellgen in the requested output format.
 
@@ -340,39 +349,61 @@ def print_usage_instructions(output_file, output_format, payload_name, verify_en
     if not output_file:
         return
 
-    if output_format == 'asm':
+    if output_format == "asm":
         printer.print_text("\nTo assemble:\n", "bold cyan")
-        printer.print_text(f"  nasm -f bin -o shellgen.bin {output_file}\n", "dim white")
+        printer.print_text(
+            f"  nasm -f bin -o shellgen.bin {output_file}\n", "dim white"
+        )
         printer.print_text(f"  xxd -i shellgen.bin\n", "dim white")
         printer.print_text("\nTo extract bytes for Python:\n", "bold cyan")
-        printer.print_text(f"  python3 -c \"data=open('shellgen.bin','rb').read(); print(''.join(f'\\\\x{{b:02x}}' for b in data))\"\n", "dim white")
+        printer.print_text(
+            f"  python3 -c \"data=open('shellgen.bin','rb').read(); print(''.join(f'\\\\x{{b:02x}}' for b in data))\"\n",
+            "dim white",
+        )
         if not verify_enabled:
             printer.print_text("\nTo verify for bad characters:\n", "bold cyan")
-            printer.print_text(f"  python3 shellgen.py --payload {payload_name} [options] --verify\n", "dim white")
+            printer.print_text(
+                f"  python3 shellgen.py --payload {payload_name} [options] --verify\n",
+                "dim white",
+            )
 
-    elif output_format == 'pyasm':
+    elif output_format == "pyasm":
         printer.print_text("\n✓ Python assembly script generated!\n", "bold green")
         printer.print_text("\nTo assemble and view shellgen:\n", "bold cyan")
         printer.print_text(f"  python3 {output_file}\n", "dim white")
         printer.print_text("\nThe script contains:\n", "bold cyan")
-        printer.print_text("  - Assembly code as Python tuple with comments\n", "dim white")
-        printer.print_text("  - assemble_shellcode() function to generate bytecode\n", "dim white")
-        printer.print_text("  - print_shellcode_formats() to display in multiple formats\n", "dim white")
-        printer.print_text("\nYou can import and use in your own script:\n", "bold cyan")
-        printer.print_text(f"  from {output_file.replace('.py', '')} import asm, assemble_shellcode\n", "dim white")
+        printer.print_text(
+            "  - Assembly code as Python tuple with comments\n", "dim white"
+        )
+        printer.print_text(
+            "  - assemble_shellcode() function to generate bytecode\n", "dim white"
+        )
+        printer.print_text(
+            "  - print_shellcode_formats() to display in multiple formats\n",
+            "dim white",
+        )
+        printer.print_text(
+            "\nYou can import and use in your own script:\n", "bold cyan"
+        )
+        printer.print_text(
+            f"  from {output_file.replace('.py', '')} import asm, assemble_shellcode\n",
+            "dim white",
+        )
         printer.print_text(f"  shellgen = assemble_shellcode()\n", "dim white")
 
-    elif output_format == 'python':
+    elif output_format == "python":
         printer.print_text("\nUsage in Python:\n", "bold cyan")
-        printer.print_text(f"  from {output_file.replace('.py', '')} import shellgen\n", "dim white")
+        printer.print_text(
+            f"  from {output_file.replace('.py', '')} import shellgen\n", "dim white"
+        )
         printer.print_text("  # shellgen is ready to use as bytes\n", "dim white")
 
-    elif output_format == 'c':
+    elif output_format == "c":
         printer.print_text("\nUsage in C:\n", "bold cyan")
-        printer.print_text(f"  #include \"{output_file}\"\n", "dim white")
+        printer.print_text(f'  #include "{output_file}"\n', "dim white")
         printer.print_text("  // Use shellgen[] array and shellcode_len\n", "dim white")
 
-    elif output_format == 'raw':
+    elif output_format == "raw":
         printer.print_text("\nRaw binary file created. Use with:\n", "bold cyan")
         printer.print_text(f"  xxd {output_file}\n", "dim white")
         printer.print_text(f"  hexdump -C {output_file}\n", "dim white")

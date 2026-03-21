@@ -4,20 +4,21 @@ Tests for hash_generator.py
 Tests ROR13 hash calculation and various output formatters.
 """
 
-import unittest
-from unittest.mock import patch, mock_open
-import sys
 import io
+import sys
+import unittest
+from unittest.mock import mock_open, patch
+
 from shellgen.hash_generator import (
+    format_output_asm,
+    format_output_c,
+    format_output_json,
+    format_output_python,
+    format_output_text,
+    generate_hash_dict,
+    read_functions_from_file,
     ror13_hash,
     ror13_hash_case_insensitive,
-    generate_hash_dict,
-    format_output_text,
-    format_output_python,
-    format_output_c,
-    format_output_asm,
-    format_output_json,
-    read_functions_from_file,
 )
 
 
@@ -27,15 +28,16 @@ class TestRor13Hash(unittest.TestCase):
     def test_known_api_hashes(self):
         """Test against known Windows API hashes."""
         known_hashes = {
-            'LoadLibraryA': 0xec0e4e8e,
-            'GetProcAddress': 0x7c0dfcaa,
+            "LoadLibraryA": 0xEC0E4E8E,
+            "GetProcAddress": 0x7C0DFCAA,
         }
 
         for func_name, expected_hash in known_hashes.items():
             with self.subTest(func=func_name):
                 actual_hash = ror13_hash(func_name)
-                self.assertEqual(actual_hash, expected_hash,
-                               f"Hash mismatch for {func_name}")
+                self.assertEqual(
+                    actual_hash, expected_hash, f"Hash mismatch for {func_name}"
+                )
 
     def test_empty_string(self):
         """Test hash of empty string returns 0."""
@@ -145,8 +147,8 @@ class TestGenerateHashDict(unittest.TestCase):
         self.assertIn("GetProcAddress", result)
 
         # Check hash values
-        self.assertEqual(result["LoadLibraryA"], 0xec0e4e8e)
-        self.assertEqual(result["GetProcAddress"], 0x7c0dfcaa)
+        self.assertEqual(result["LoadLibraryA"], 0xEC0E4E8E)
+        self.assertEqual(result["GetProcAddress"], 0x7C0DFCAA)
 
     def test_case_sensitive_mode(self):
         """Test case-sensitive hash generation."""
@@ -192,7 +194,7 @@ class TestFormatOutputText(unittest.TestCase):
 
     def test_basic_text_format(self):
         """Test basic text formatting."""
-        hash_dict = {"LoadLibraryA": 0xec0e4e8e, "GetProcAddress": 0x7c0dfcaa}
+        hash_dict = {"LoadLibraryA": 0xEC0E4E8E, "GetProcAddress": 0x7C0DFCAA}
         result = format_output_text(hash_dict)
 
         self.assertIn("LoadLibraryA", result)
@@ -233,7 +235,7 @@ class TestFormatOutputPython(unittest.TestCase):
 
     def test_python_dict_format(self):
         """Test Python dictionary formatting."""
-        hash_dict = {"LoadLibraryA": 0xec0e4e8e}
+        hash_dict = {"LoadLibraryA": 0xEC0E4E8E}
         result = format_output_python(hash_dict)
 
         self.assertIn("API_HASHES = {", result)
@@ -255,7 +257,7 @@ class TestFormatOutputPython(unittest.TestCase):
 
         # Should be valid Python - try to compile it
         try:
-            compile(result, '<string>', 'exec')
+            compile(result, "<string>", "exec")
         except SyntaxError:
             self.fail("Generated Python code has invalid syntax")
 
@@ -273,7 +275,7 @@ class TestFormatOutputC(unittest.TestCase):
 
     def test_c_struct_format(self):
         """Test C struct array formatting."""
-        hash_dict = {"LoadLibraryA": 0xec0e4e8e}
+        hash_dict = {"LoadLibraryA": 0xEC0E4E8E}
         result = format_output_c(hash_dict)
 
         self.assertIn("typedef struct", result)
@@ -311,7 +313,7 @@ class TestFormatOutputAsm(unittest.TestCase):
 
     def test_asm_equ_format(self):
         """Test assembly EQU directive formatting."""
-        hash_dict = {"LoadLibraryA": 0xec0e4e8e}
+        hash_dict = {"LoadLibraryA": 0xEC0E4E8E}
         result = format_output_asm(hash_dict)
 
         self.assertIn("LOADLIBRARYA_HASH", result)
@@ -320,7 +322,7 @@ class TestFormatOutputAsm(unittest.TestCase):
 
     def test_constant_naming(self):
         """Test that constant names are properly formatted."""
-        hash_dict = {"GetProcAddress": 0x7c0dfcaa}
+        hash_dict = {"GetProcAddress": 0x7C0DFCAA}
         result = format_output_asm(hash_dict)
 
         # Should be uppercase with _HASH suffix
@@ -348,7 +350,7 @@ class TestFormatOutputJson(unittest.TestCase):
 
     def test_json_format(self):
         """Test JSON formatting."""
-        hash_dict = {"LoadLibraryA": 0xec0e4e8e}
+        hash_dict = {"LoadLibraryA": 0xEC0E4E8E}
         result = format_output_json(hash_dict)
 
         self.assertIn('"LoadLibraryA"', result)
@@ -376,64 +378,75 @@ class TestFormatOutputJson(unittest.TestCase):
 
         # Values should be hex strings, not integers
         self.assertIn('"0x12345678"', result)
-        self.assertNotIn('305419896', result)  # Decimal representation
+        self.assertNotIn("305419896", result)  # Decimal representation
 
 
 class TestReadFunctionsFromFile(unittest.TestCase):
     """Test cases for read_functions_from_file function."""
 
-    @patch('builtins.open', mock_open(read_data='LoadLibraryA\nGetProcAddress\nExitProcess\n'))
+    @patch(
+        "builtins.open",
+        mock_open(read_data="LoadLibraryA\nGetProcAddress\nExitProcess\n"),
+    )
     def test_read_simple_file(self):
         """Test reading function names from file."""
-        result = read_functions_from_file('test.txt')
+        result = read_functions_from_file("test.txt")
 
         self.assertEqual(len(result), 3)
-        self.assertIn('LoadLibraryA', result)
-        self.assertIn('GetProcAddress', result)
-        self.assertIn('ExitProcess', result)
+        self.assertIn("LoadLibraryA", result)
+        self.assertIn("GetProcAddress", result)
+        self.assertIn("ExitProcess", result)
 
-    @patch('builtins.open', mock_open(read_data='LoadLibraryA\n\nGetProcAddress\n\nExitProcess\n'))
+    @patch(
+        "builtins.open",
+        mock_open(read_data="LoadLibraryA\n\nGetProcAddress\n\nExitProcess\n"),
+    )
     def test_skip_empty_lines(self):
         """Test that empty lines are skipped."""
-        result = read_functions_from_file('test.txt')
+        result = read_functions_from_file("test.txt")
 
         self.assertEqual(len(result), 3)
-        self.assertNotIn('', result)
+        self.assertNotIn("", result)
 
-    @patch('builtins.open', mock_open(read_data='LoadLibraryA\n# Comment line\nGetProcAddress\n'))
+    @patch(
+        "builtins.open",
+        mock_open(read_data="LoadLibraryA\n# Comment line\nGetProcAddress\n"),
+    )
     def test_skip_comments(self):
         """Test that comment lines are skipped."""
-        result = read_functions_from_file('test.txt')
+        result = read_functions_from_file("test.txt")
 
         self.assertEqual(len(result), 2)
-        self.assertIn('LoadLibraryA', result)
-        self.assertIn('GetProcAddress', result)
+        self.assertIn("LoadLibraryA", result)
+        self.assertIn("GetProcAddress", result)
         # Comment should not be included
-        self.assertNotIn('# Comment line', result)
+        self.assertNotIn("# Comment line", result)
 
-    @patch('builtins.open', mock_open(read_data='  LoadLibraryA  \n  GetProcAddress  \n'))
+    @patch(
+        "builtins.open", mock_open(read_data="  LoadLibraryA  \n  GetProcAddress  \n")
+    )
     def test_strip_whitespace(self):
         """Test that whitespace is stripped."""
-        result = read_functions_from_file('test.txt')
+        result = read_functions_from_file("test.txt")
 
-        self.assertEqual(result[0], 'LoadLibraryA')
-        self.assertEqual(result[1], 'GetProcAddress')
+        self.assertEqual(result[0], "LoadLibraryA")
+        self.assertEqual(result[1], "GetProcAddress")
         # Should not have leading/trailing spaces
-        self.assertFalse(result[0].startswith(' '))
-        self.assertFalse(result[0].endswith(' '))
+        self.assertFalse(result[0].startswith(" "))
+        self.assertFalse(result[0].endswith(" "))
 
-    @patch('builtins.open', side_effect=FileNotFoundError())
+    @patch("builtins.open", side_effect=FileNotFoundError())
     def test_file_not_found(self, mock_file):
         """Test handling of missing file."""
         with self.assertRaises(SystemExit) as context:
-            read_functions_from_file('nonexistent.txt')
+            read_functions_from_file("nonexistent.txt")
 
         self.assertEqual(context.exception.code, 1)
 
-    @patch('builtins.open', mock_open(read_data=''))
+    @patch("builtins.open", mock_open(read_data=""))
     def test_empty_file(self):
         """Test reading empty file."""
-        result = read_functions_from_file('empty.txt')
+        result = read_functions_from_file("empty.txt")
         self.assertEqual(result, [])
 
 

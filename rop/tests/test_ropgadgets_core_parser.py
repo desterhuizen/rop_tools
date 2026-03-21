@@ -4,12 +4,13 @@ Unit tests for rop/core/parser.py
 Tests the ROPGadgetParser class for parsing rp++ output files,
 including encoding detection, file parsing, filtering, and grouping.
 """
-import unittest
-import tempfile
-import os
-from rop.core.parser import ROPGadgetParser
-from rop.core.gadget import Gadget
 
+import os
+import tempfile
+import unittest
+
+from rop.core.gadget import Gadget
+from rop.core.parser import ROPGadgetParser
 
 # Sample gadget data for testing
 SAMPLE_GADGETS = """Trying to open 'test.dll'..
@@ -39,26 +40,31 @@ class TestEncodingDetection(unittest.TestCase):
 
     def test_detect_utf8(self):
         """Test UTF-8 detection"""
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+        ) as f:
             f.write(SAMPLE_GADGETS)
             temp_path = f.name
 
         try:
             encoding = ROPGadgetParser.detect_encoding(temp_path)
-            assert encoding in ['utf-8', 'utf-16-le', 'utf-16-be']  # Detection may vary
+            assert encoding in ["utf-8", "utf-16-le",
+                                "utf-16-be"]  # Detection may vary
         finally:
             os.unlink(temp_path)
 
     def test_detect_utf16le(self):
         """Test UTF-16 LE detection"""
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-16-le', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-16-le", delete=False, suffix=".txt"
+        ) as f:
             f.write(SAMPLE_GADGETS)
             temp_path = f.name
 
         try:
             encoding = ROPGadgetParser.detect_encoding(temp_path)
             # Should detect UTF-16 LE
-            assert encoding in ['utf-16-le', 'utf-16-be']
+            assert encoding in ["utf-16-le", "utf-16-be"]
         finally:
             os.unlink(temp_path)
 
@@ -68,7 +74,9 @@ class TestFileParsingBasics(unittest.TestCase):
 
     def test_parse_file_utf8(self):
         """Test parsing UTF-8 file"""
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+        ) as f:
             f.write(SAMPLE_GADGETS)
             temp_path = f.name
 
@@ -77,16 +85,18 @@ class TestFileParsingBasics(unittest.TestCase):
             gadgets = parser.parse_file()
 
             assert len(gadgets) == 6
-            assert parser.metadata.get('dll') == 'test.dll'
-            assert parser.metadata.get('format') == 'PE'
-            assert parser.metadata.get('arch') == 'x86'
-            assert parser.metadata.get('total_gadgets') == '6'
+            assert parser.metadata.get("dll") == "test.dll"
+            assert parser.metadata.get("format") == "PE"
+            assert parser.metadata.get("arch") == "x86"
+            assert parser.metadata.get("total_gadgets") == "6"
         finally:
             os.unlink(temp_path)
 
     def test_parse_gadget_structure(self):
         """Test that gadgets are parsed correctly"""
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+        ) as f:
             f.write(SAMPLE_GADGETS)
             temp_path = f.name
 
@@ -114,7 +124,9 @@ class TestFilteringByInstruction(unittest.TestCase):
 
     def setUp(self):
         """Create parser with sample gadgets"""
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+        ) as f:
             f.write(SAMPLE_GADGETS)
             temp_path = f.name
 
@@ -148,7 +160,9 @@ class TestFilteringByPattern(unittest.TestCase):
 
     def setUp(self):
         """Create parser with sample gadgets"""
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+        ) as f:
             f.write(SAMPLE_GADGETS)
             temp_path = f.name
 
@@ -172,7 +186,9 @@ class TestBadCharacterFiltering(unittest.TestCase):
 
     def setUp(self):
         """Create parser with gadgets containing bad chars"""
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+        ) as f:
             f.write(SAMPLE_GADGETS_WITH_BAD_CHARS)
             temp_path = f.name
 
@@ -182,14 +198,14 @@ class TestBadCharacterFiltering(unittest.TestCase):
 
     def test_filter_bad_chars_null(self):
         """Test filtering null bytes"""
-        filtered = self.parser.filter_bad_chars(['00'])
+        filtered = self.parser.filter_bad_chars(["00"])
         # Should exclude 0x00001234
         addresses = [g.address for g in filtered]
         assert "0x00001234" not in addresses
 
     def test_filter_bad_chars_multiple(self):
         """Test filtering multiple bad characters"""
-        filtered = self.parser.filter_bad_chars(['00', '0a', '0d'])
+        filtered = self.parser.filter_bad_chars(["00", "0a", "0d"])
         # Should exclude gadgets with 00, 0a, or 0d
         addresses = [g.address for g in filtered]
         assert "0x00001234" not in addresses
@@ -203,7 +219,9 @@ class TestGroupingFunctions(unittest.TestCase):
 
     def setUp(self):
         """Create parser with sample gadgets"""
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+        ) as f:
             f.write(SAMPLE_GADGETS)
             temp_path = f.name
 
@@ -251,7 +269,9 @@ class TestRegisterFiltering(unittest.TestCase):
 
     def setUp(self):
         """Create parser with sample gadgets"""
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+        ) as f:
             f.write(SAMPLE_GADGETS)
             temp_path = f.name
 
@@ -275,7 +295,9 @@ class TestStatistics(unittest.TestCase):
 
     def setUp(self):
         """Create parser with sample gadgets"""
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
+        with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+        ) as f:
             f.write(SAMPLE_GADGETS)
             temp_path = f.name
 
@@ -287,7 +309,7 @@ class TestStatistics(unittest.TestCase):
         """Test statistics generation"""
         stats = self.parser.get_statistics()
 
-        assert stats['total_gadgets'] == 6
-        assert stats['unique_addresses'] == 6
-        assert 'last_instruction_counts' in stats
-        assert 'category_counts' in stats
+        assert stats["total_gadgets"] == 6
+        assert stats["unique_addresses"] == 6
+        assert "last_instruction_counts" in stats
+        assert "category_counts" in stats

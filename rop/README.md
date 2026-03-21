@@ -1,11 +1,16 @@
 # ROP Tools Suite
 
-A comprehensive collection of Python tools for ROP (Return-Oriented Programming) analysis and exploit development. This suite includes gadget parsing, code cave discovery, and PE analysis utilities for defensive security research.
+A comprehensive collection of Python tools for ROP (Return-Oriented Programming)
+analysis and exploit development. This suite includes gadget parsing, code cave
+discovery, and PE analysis utilities for defensive security research.
 
 ## Quick Reference (TL;DR)
 
 ### 🔍 **get_rop_gadgets.py** - ROP Gadget Parser & Analyzer
-Parse and filter ROP gadgets from rp++ output with advanced categorization, register analysis, and grouping.
+
+Parse and filter ROP gadgets from rp++ output with advanced categorization,
+register analysis, and grouping.
+
 ```bash
 # Find pop gadgets without bad chars
 ./get_rop_gadgets.py -f gadgets.txt -i pop -b "\x00\x0a" -m 3
@@ -18,7 +23,9 @@ Parse and filter ROP gadgets from rp++ output with advanced categorization, regi
 ```
 
 ### 📍 **get_base_address.py** - PE Base Address Extractor
+
 Extract ImageBase and detailed PE information from DLL/EXE files.
+
 ```bash
 # Get ImageBase only
 ./get_base_address.py kernel32.dll
@@ -31,7 +38,10 @@ Extract ImageBase and detailed PE information from DLL/EXE files.
 ```
 
 ### 📝 **rop_worksheet.py** - Interactive ROP Chain Worksheet
-Track registers, stack values, and build ROP chains interactively with WinDbg integration.
+
+Track registers, stack values, and build ROP chains interactively with WinDbg
+integration.
+
 ```bash
 # Start worksheet
 ./rop_worksheet.py
@@ -50,28 +60,41 @@ stack +0x00 shellgen
 
 # ROP Gadget Parser and Analyzer (`get_rop_gadgets.py`)
 
-A powerful Python tool for parsing, filtering, and analyzing ROP (Return-Oriented Programming) gadgets from rp++ output. This tool provides advanced categorization, register-based grouping, and filtering capabilities to make ROP chain construction more efficient.
+A powerful Python tool for parsing, filtering, and analyzing ROP (
+Return-Oriented Programming) gadgets from rp++ output. This tool provides
+advanced categorization, register-based grouping, and filtering capabilities to
+make ROP chain construction more efficient.
 
 ## Features
 
 - **Gadget Parsing**: Parse rp++ output files and extract gadget information
-- **Category-based Classification**: Automatically categorize gadgets by functionality
-- **Bad Instruction Filtering**: Automatically filter out useless gadgets (call, jmp, int, etc.) by default
-- **Register Analysis**: Track which registers are affected, modified, or dereferenced by gadgets
+- **Category-based Classification**: Automatically categorize gadgets by
+  functionality
+- **Bad Instruction Filtering**: Automatically filter out useless gadgets (call,
+  jmp, int, etc.) by default
+- **Register Analysis**: Track which registers are affected, modified, or
+  dereferenced by gadgets
 - **Multi-level Grouping**: Group gadgets by instruction, category, or registers
 - **Drill-down Views**: Hierarchical grouping (e.g., category → register)
-- **Flexible Filtering**: Filter by instruction, category, register, bad characters, and more
-- **Exclusion Filtering**: Exclude unwanted gadgets using regex patterns (e.g., exclude specific registers or operations)
-- **Regex Search with Highlighting**: Search with patterns and highlight matches in bright red
-- **Smart Sorting**: Sort by instruction count (simplest first) or by memory address
-- **Instruction Count Display**: View the number of operations in each gadget at a glance
-- **Dereferenced Register Filtering**: Find gadgets with memory operations like `[eax]`, `[rsp+8]`
+- **Flexible Filtering**: Filter by instruction, category, register, bad
+  characters, and more
+- **Exclusion Filtering**: Exclude unwanted gadgets using regex patterns (e.g.,
+  exclude specific registers or operations)
+- **Regex Search with Highlighting**: Search with patterns and highlight matches
+  in bright red
+- **Smart Sorting**: Sort by instruction count (simplest first) or by memory
+  address
+- **Instruction Count Display**: View the number of operations in each gadget at
+  a glance
+- **Dereferenced Register Filtering**: Find gadgets with memory operations like
+  `[eax]`, `[rsp+8]`
 - **Colorized Output**: Easy-to-read colored terminal output
 - **Statistics**: View comprehensive statistics about your gadget collection
 
 ## Project Structure
 
-The tool is organized into a modular architecture for maintainability and extensibility:
+The tool is organized into a modular architecture for maintainability and
+extensibility:
 
 ```
 pentest-scripts/
@@ -93,22 +116,34 @@ pentest-scripts/
 ```
 
 **Architecture Benefits:**
+
 - **Separation of Concerns**: Core parsing logic is separate from display logic
 - **Easy Testing**: Core modules can be unit tested independently
-- **Reusability**: Other tools can import core modules (e.g., `from core import ROPGadgetParser`)
+- **Reusability**: Other tools can import core modules (e.g.,
+  `from core import ROPGadgetParser`)
 - **Better Maintainability**: Each file has a single, focused responsibility
-- **Shared Library**: ColorPrinter lives in `lib/` for use across all pentest tools
-- **Library Independence**: ColorPrinter abstraction allows easy library swaps (currently uses Rich)
+- **Shared Library**: ColorPrinter lives in `lib/` for use across all pentest
+  tools
+- **Library Independence**: ColorPrinter abstraction allows easy library swaps (
+  currently uses Rich)
 
 **Module Descriptions:**
-- `core.gadget`: Gadget dataclass with methods for register analysis and instruction inspection
-- `core.parser`: ROPGadgetParser class handles file parsing with automatic UTF-8/UTF-16 detection
-- `core.categories`: Gadget categorization logic (18 categories from stack operations to syscalls)
-- `lib.color_printer`: Terminal color abstraction that works with or without the Rich library (shared across all tools)
-- `display.formatters`: High-level display functions for gadgets, groups, and statistics
+
+- `core.gadget`: Gadget dataclass with methods for register analysis and
+  instruction inspection
+- `core.parser`: ROPGadgetParser class handles file parsing with automatic
+  UTF-8/UTF-16 detection
+- `core.categories`: Gadget categorization logic (18 categories from stack
+  operations to syscalls)
+- `lib.color_printer`: Terminal color abstraction that works with or without the
+  Rich library (shared across all tools)
+- `display.formatters`: High-level display functions for gadgets, groups, and
+  statistics
 
 **Shared Library Dependency:**
-This tool uses the shared `lib/color_printer` module located at the repository root. The tool automatically adds the repo root to Python's path, so it works correctly when run directly or via symlink.
+This tool uses the shared `lib/color_printer` module located at the repository
+root. The tool automatically adds the repo root to Python's path, so it works
+correctly when run directly or via symlink.
 
 ## Installation
 
@@ -348,6 +383,7 @@ The tool automatically categorizes gadgets into the following types:
 ```
 
 **Why filter bad instructions?**
+
 - `call`/`jmp`: Break ROP chains by transferring control unpredictably
 - `int`: Triggers interrupts that crash or behave unexpectedly
 - `leave`: Modifies both EBP and ESP, making stack state unpredictable
@@ -372,7 +408,10 @@ The tool automatically categorizes gadgets into the following types:
 The tool provides two types of register analysis:
 
 ### Affected Registers
-Includes **all** registers mentioned in the gadget (both source and destination):
+
+Includes **all** registers mentioned in the gadget (both source and
+destination):
+
 ```bash
 # Example: pop eax ; mov ebx, eax ; ret
 # Affected registers: eax, ebx
@@ -380,7 +419,9 @@ Includes **all** registers mentioned in the gadget (both source and destination)
 ```
 
 ### Modified Registers
+
 Includes **only** registers that are modified (destination operands):
+
 ```bash
 # Example: pop eax ; mov ebx, eax ; ret
 # Modified registers: eax, ebx
@@ -397,30 +438,35 @@ Includes **only** registers that are modified (destination operands):
 ## Output Formats
 
 ### Standard Output
+
 ```
 0x00401000: pop eax ; ret ; (1 found)
 0x00401005: pop ebx ; pop ecx ; ret ; (1 found)
 ```
 
 ### With Instruction Count
+
 ```
 [ 2] 0x00401000: pop eax ; ret ; (1 found)
 [ 3] 0x00401005: pop ebx ; pop ecx ; ret ; (1 found)
 ```
 
 ### With Categories
+
 ```
 [stack_pop] 0x00401000: pop eax ; ret ; (1 found)
 [stack_pop] 0x00401005: pop ebx ; pop ecx ; ret ; (1 found)
 ```
 
 ### With Both Count and Category
+
 ```
 [ 2] [stack_pop] 0x00401000: pop eax ; ret ; (1 found)
 [ 3] [stack_pop] 0x00401005: pop ebx ; pop ecx ; ret ; (1 found)
 ```
 
 ### With Regex Highlighting (--highlight)
+
 ```
 # Matches are shown in bright red (indicated by ^^^^ below)
 0x00401234: add esp, 0x10 ; pop ebx ; ret ; (1 found)
@@ -429,6 +475,7 @@ Includes **only** registers that are modified (destination operands):
 ```
 
 ### Grouped by Category
+
 ```
 === Grouped by category ===
 
@@ -439,6 +486,7 @@ Includes **only** registers that are modified (destination operands):
 ```
 
 ### Drill-down (Category → Register)
+
 ```
 === Grouped by category, then by modified register ===
 
@@ -462,6 +510,7 @@ Includes **only** registers that are modified (destination operands):
 ```
 
 Displays:
+
 - Total gadgets found
 - Unique addresses
 - File metadata (DLL name, architecture, format)
@@ -484,6 +533,7 @@ rp-osx -f target.dylib -r 5 > gadgets.txt
 ```
 
 Parameters:
+
 - `-f`: Target file
 - `-r`: Maximum gadget depth (number of instructions)
 
@@ -531,13 +581,15 @@ Parameters:
 
 ## Tips and Tricks
 
-1. **Start broad, then narrow**: Begin with category grouping, then drill down by register
+1. **Start broad, then narrow**: Begin with category grouping, then drill down
+   by register
    ```bash
    ./get_rop_gadgets.py -f gadgets.txt -g category
    ./get_rop_gadgets.py -f gadgets.txt -c stack_pop -g modified-register
    ```
 
-2. **Use limits for large datasets**: When dealing with many gadgets, use `-l` to limit output
+2. **Use limits for large datasets**: When dealing with many gadgets, use `-l`
+   to limit output
    ```bash
    ./get_rop_gadgets.py -f gadgets.txt -g category-register -l 5
    ```
@@ -560,27 +612,32 @@ Parameters:
 ## Performance Considerations
 
 - Large gadget files (>10,000 gadgets) may take a few seconds to parse
-- The `category-register` grouping mode performs nested analysis and may be slower
+- The `category-register` grouping mode performs nested analysis and may be
+  slower
 - Use specific filters to reduce the working set before grouping
 - Consider using `-l` to limit output for exploration
 
 ## Troubleshooting
 
 ### No gadgets found
+
 - Verify the input file is valid rp++ output
 - Check that the file path is correct
 - Ensure the file contains the expected format
 
 ### Colors not displaying
+
 - Install rich: `pip install rich`
 - Or use `--no-color` flag
 
 ### Too many results
+
 - Use `-l` to limit output
 - Add more specific filters
 - Use categories to narrow down
 
 ### Register not being detected
+
 - Verify register name spelling (lowercase)
 - Check if the register appears in the supported list
 - Some complex memory operands may not be detected
@@ -597,23 +654,29 @@ BASE=$(./get_base_address.py msvcrt.dll | grep ImageBase | awk '{print $3}')
 ```
 
 **Output Format with Offset:**
+
 ```
 0x10001234 (+0x1234): pop eax ; ret ; (1 found)
 0x10001240 (+0x1240): pop ebx ; pop ecx ; ret ; (1 found)
 ```
 
-The offset is displayed in magenta color and shows the distance from the base address, making it easier to calculate relative addresses for ASLR-enabled systems.
+The offset is displayed in magenta color and shows the distance from the base
+address, making it easier to calculate relative addresses for ASLR-enabled
+systems.
 
 ---
 
 # PE Base Address Extractor (`get_base_address.py`)
 
-Extract ImageBase (preferred load address) and detailed PE information from PE files (DLL/EXE). Now refactored to use the same shared libraries as `get_rop_gadgets.py` for consistent, colorized output.
+Extract ImageBase (preferred load address) and detailed PE information from PE
+files (DLL/EXE). Now refactored to use the same shared libraries as
+`get_rop_gadgets.py` for consistent, colorized output.
 
 ## Features
 
 - **ImageBase Extraction**: Get the preferred load address from PE files
-- **Detailed PE Information**: View entry point, machine type, subsystem, and sections
+- **Detailed PE Information**: View entry point, machine type, subsystem, and
+  sections
 - **Section Analysis**: Display section addresses, sizes, and protection flags
 - **Colored Output**: Uses the same ColorPrinter library as other ROP tools
 - **Scripting Support**: Quiet mode for use in scripts and automation
@@ -649,12 +712,12 @@ rop/
 
 ### Command-Line Options
 
-| Option | Description |
-|--------|-------------|
-| `file` | PE file to analyze (DLL or EXE) |
+| Option          | Description                                     |
+|-----------------|-------------------------------------------------|
+| `file`          | PE file to analyze (DLL or EXE)                 |
 | `-v, --verbose` | Show detailed PE information including sections |
-| `-q, --quiet` | Only print ImageBase address (for scripting) |
-| `--no-color` | Disable colored output |
+| `-q, --quiet`   | Only print ImageBase address (for scripting)    |
+| `--no-color`    | Disable colored output                          |
 
 ## Examples
 
@@ -665,6 +728,7 @@ rop/
 ```
 
 **Output:**
+
 ```
 === PE File Information ===
 
@@ -680,6 +744,7 @@ Decimal: 1993932800
 ```
 
 **Output:**
+
 ```
 === PE File Information ===
 
@@ -722,11 +787,13 @@ echo $BASE
 ```
 
 The verbose mode displays:
+
 - Section names and addresses
 - Virtual and raw sizes
 - Section flags (EXECUTABLE, READABLE, WRITABLE, CODE, INITIALIZED_DATA, etc.)
 
-This helps identify executable sections for code cave discovery or ROP gadget location.
+This helps identify executable sections for code cave discovery or ROP gadget
+location.
 
 ### Example 5: Import Address Table (IAT) Display
 
@@ -736,6 +803,7 @@ This helps identify executable sections for code cave discovery or ROP gadget lo
 ```
 
 **Output:**
+
 ```
 === Import Address Table (IAT) ===
 
@@ -764,6 +832,7 @@ Total Imports: 245
 ```
 
 This is useful for:
+
 - Finding API function addresses for ROP chains
 - Identifying imported functions for exploit development
 - Calculating absolute addresses at preferred base
@@ -771,7 +840,8 @@ This is useful for:
 
 ## Module Usage (Python API)
 
-The tool is built on the `core.pe_info` module, which can be imported and used in your own scripts:
+The tool is built on the `core.pe_info` module, which can be imported and used
+in your own scripts:
 
 ```python
 from core import PEAnalyzer, PEInfo, PESection
@@ -796,16 +866,20 @@ for section in pe_info.sections:
 ## Output Formats
 
 ### Basic Output (Default)
+
 Colored output showing ImageBase in both hex and decimal formats.
 
 ### Verbose Output (-v)
+
 Includes:
+
 - Entry point (both RVA and absolute address)
 - Machine type (x86, x64, ARM, etc.)
 - Subsystem (GUI, console, native, etc.)
 - Section table with addresses, sizes, and protection flags
 
 ### Quiet Output (-q)
+
 Single line with hex address only, perfect for scripting and automation.
 
 ## Integration with Other Tools
@@ -825,21 +899,26 @@ BASE=$(./get_base_address.py msvcrt.dll -q)
 pip install pefile rich
 ```
 
-**Note:** Rich is optional but recommended for colored output. The tool will work without it but fall back to plain text.
+**Note:** Rich is optional but recommended for colored output. The tool will
+work without it but fall back to plain text.
 
 ## Technical Notes
 
-- **Preferred vs. Actual Address**: This tool returns the **preferred** base address from the PE header. At runtime, Windows ASLR may load the module at a different address. Use a debugger to find the actual runtime address.
+- **Preferred vs. Actual Address**: This tool returns the **preferred** base
+  address from the PE header. At runtime, Windows ASLR may load the module at a
+  different address. Use a debugger to find the actual runtime address.
 
 - **Machine Types Supported**: x86 (I386), x64 (AMD64), ARM, ARM64, ARM Thumb-2
 
-- **Section Flags**: The tool decodes section characteristics including EXECUTABLE, READABLE, WRITABLE, CODE, INITIALIZED_DATA, UNINITIALIZED_DATA
+- **Section Flags**: The tool decodes section characteristics including
+  EXECUTABLE, READABLE, WRITABLE, CODE, INITIALIZED_DATA, UNINITIALIZED_DATA
 
 ## Use Cases
 
 1. **ROP Chain Development**: Calculate gadget offsets relative to module base
 2. **Code Cave Discovery**: Identify executable sections and their addresses
-3. **Exploit Development**: Determine module base addresses for ASLR calculations
+3. **Exploit Development**: Determine module base addresses for ASLR
+   calculations
 4. **Binary Analysis**: Quick PE metadata extraction for security research
 5. **Automation**: Quiet mode enables scripting and batch processing
 
@@ -847,23 +926,33 @@ pip install pefile rich
 
 # ROP Chain Worksheet (`rop_worksheet.py`)
 
-An interactive terminal-based tool for tracking register states, stack values, and building ROP chains. This worksheet provides a visual, hands-on environment for planning and testing ROP exploits with real-time state tracking.
+An interactive terminal-based tool for tracking register states, stack values,
+and building ROP chains. This worksheet provides a visual, hands-on environment
+for planning and testing ROP exploits with real-time state tracking.
 
 ## Features
 
-- **Register Tracking**: Monitor all 32-bit x86 registers (EAX, EBX, ECX, EDX, ESI, EDI, EBP, ESP, EIP)
-  - EIP displayed separately with bold green highlighting for gadget addresses
-  - Named value matching shown in third column when registers match symbolic names
+- **Register Tracking**: Monitor all 32-bit x86 registers (EAX, EBX, ECX, EDX,
+  ESI, EDI, EBP, ESP, EIP)
+    - EIP displayed separately with bold green highlighting for gadget addresses
+    - Named value matching shown in third column when registers match symbolic
+      names
 - **Stack Management**: Track stack values at different ESP offsets
-  - Absolute addresses displayed alongside ESP-relative offsets
-  - Register-based stack addressing (e.g., `stack ECX, EAX` when ECX points to stack)
-  - Named value matching shown in fourth column for stack values
-- **Named Values**: Create symbolic names for addresses (e.g., "shellcode", "base_address")
-- **ASM Operations**: Execute assembly-like operations (mov, add, xor, xchg, inc, dec, neg, push, pop)
-- **ROP Chain Building**: Build and visualize your ROP chain with addresses, gadgets, and effects
-- **Value Resolution**: Automatic resolution of register names, stack offsets, and named values
+    - Absolute addresses displayed alongside ESP-relative offsets
+    - Register-based stack addressing (e.g., `stack ECX, EAX` when ECX points to
+      stack)
+    - Named value matching shown in fourth column for stack values
+- **Named Values**: Create symbolic names for addresses (e.g., "shellcode", "
+  base_address")
+- **ASM Operations**: Execute assembly-like operations (mov, add, xor, xchg,
+  inc, dec, neg, push, pop)
+- **ROP Chain Building**: Build and visualize your ROP chain with addresses,
+  gadgets, and effects
+- **Value Resolution**: Automatic resolution of register names, stack offsets,
+  and named values
 - **Arithmetic Support**: Perform arithmetic on values (e.g., `shellcode+0x100`)
-- **WinDbg Integration**: Import register and stack state directly from WinDbg output
+- **WinDbg Integration**: Import register and stack state directly from WinDbg
+  output
 - **Save/Load**: Persist your worksheets to JSON files for later use
 - **Command History**: Navigate previous commands with up/down arrows
 - **Tab Completion**: Auto-complete commands, registers, and values
@@ -940,7 +1029,9 @@ importstack
 # ✓ Imported 12 stack value(s)
 ```
 
-**Note**: For `importstack`, ESP must be set first (either via `importregs` or manually with `set ESP <value>`). The tool calculates stack offsets relative to ESP.
+**Note**: For `importstack`, ESP must be set first (either via `importregs` or
+manually with `set ESP <value>`). The tool calculates stack offsets relative to
+ESP.
 
 #### Chain Management
 
@@ -1128,24 +1219,36 @@ Worksheets are saved as JSON files with the following structure:
 ## Use Cases
 
 ### 1. ROP Chain Planning
-Visualize and plan your ROP chain before writing exploit code. Track register states at each gadget to ensure correct values.
+
+Visualize and plan your ROP chain before writing exploit code. Track register
+states at each gadget to ensure correct values.
 
 ### 2. Exploit Development
-Build and test ROP chains interactively. Verify register and stack states at each step.
+
+Build and test ROP chains interactively. Verify register and stack states at
+each step.
 
 ### 3. Educational Tool
-Learn ROP techniques by experimenting with gadgets and seeing real-time state changes.
+
+Learn ROP techniques by experimenting with gadgets and seeing real-time state
+changes.
 
 ### 4. Documentation
-Save worksheets as documentation for your exploits. Share ROP chains with clear annotations.
+
+Save worksheets as documentation for your exploits. Share ROP chains with clear
+annotations.
 
 ## Tips
 
-1. **Use Named Values**: Create names for important addresses to make chains more readable
-2. **Track ESP Carefully**: Pay attention to ESP changes, especially with push/pop operations
-3. **Add Effects**: Document what each gadget does in the "effect" field for clarity
+1. **Use Named Values**: Create names for important addresses to make chains
+   more readable
+2. **Track ESP Carefully**: Pay attention to ESP changes, especially with
+   push/pop operations
+3. **Add Effects**: Document what each gadget does in the "effect" field for
+   clarity
 4. **Save Frequently**: Save your work regularly to avoid losing progress
-5. **Use Tab Completion**: Speed up your workflow by using TAB to complete commands and values
+5. **Use Tab Completion**: Speed up your workflow by using TAB to complete
+   commands and values
 
 ## Integration with Other Tools
 

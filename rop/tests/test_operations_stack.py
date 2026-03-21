@@ -1,9 +1,11 @@
 """
 Unit tests for worksheet.operations.stack_ops module.
 """
+
 import unittest
+
 from rop.worksheet.core.data import blank_worksheet
-from rop.worksheet.operations.stack_ops import cmd_push, cmd_pop, cmd_stack
+from rop.worksheet.operations.stack_ops import cmd_pop, cmd_push, cmd_stack
 
 
 class TestCmdPush(unittest.TestCase):

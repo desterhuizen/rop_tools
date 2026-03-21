@@ -12,4 +12,4 @@ __version__ = "1.0.0"
 
 from .color_printer import ColorPrinter, printer
 
-__all__ = ['ColorPrinter', 'printer']
+__all__ = ["ColorPrinter", "printer"]

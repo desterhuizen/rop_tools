@@ -1,0 +1,39 @@
+[flake8]
+# Flake8 configuration for ROP Tools Suite
+# Documentation: https://flake8.pycqa.org/en/latest/user/configuration.html
+
+# Maximum line length (matches black default)
+max-line-length = 88
+
+# Exclude directories from linting
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    env,
+    build,
+    dist,
+    *.egg-info,
+    htmlcov,
+    .pytest_cache,
+    .mypy_cache
+
+# Ignore specific error codes
+# E203: Whitespace before ':' (conflicts with black)
+# E501: Line too long (handled by black)
+# W503: Line break before binary operator (conflicts with black)
+# E731: Do not assign lambda (sometimes necessary for clarity)
+ignore = E203,E501,W503,E731
+
+# Maximum complexity for functions (cyclomatic complexity)
+max-complexity = 10
+
+# Show source code for each error
+show-source = True
+
+# Count errors
+count = True
+
+# Print total number of errors
+statistics = True

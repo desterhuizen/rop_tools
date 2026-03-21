@@ -5,14 +5,16 @@ Provides classes and functions for extracting information from PE files,
 including base addresses, section information, and other PE metadata.
 """
 
-import pefile
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional
+
+import pefile
 
 
 @dataclass
 class PESection:
     """Represents a PE file section"""
+
     name: str
     virtual_address: int
     virtual_size: int
@@ -40,6 +42,7 @@ class PESection:
 @dataclass
 class IATEntry:
     """Represents an Import Address Table entry"""
+
     dll: str
     function: str
     address: int  # RVA (Relative Virtual Address)
@@ -53,6 +56,7 @@ class IATEntry:
 @dataclass
 class PEInfo:
     """Represents PE file information"""
+
     filepath: str
     image_base: int
     entry_point: int
@@ -70,11 +74,11 @@ class PEAnalyzer:
 
     # Machine type constants
     MACHINE_TYPES = {
-        0x14c: "x86 (I386)",
+        0x14C: "x86 (I386)",
         0x8664: "x64 (AMD64)",
-        0x1c0: "ARM",
-        0xaa64: "ARM64",
-        0x1c4: "ARM Thumb-2",
+        0x1C0: "ARM",
+        0xAA64: "ARM64",
+        0x1C4: "ARM Thumb-2",
     }
 
     # Subsystem constants
@@ -110,23 +114,27 @@ class PEAnalyzer:
 
         # Get machine type
         machine = pe.FILE_HEADER.Machine
-        machine_type = PEAnalyzer.MACHINE_TYPES.get(machine, f"Unknown (0x{machine:x})")
+        machine_type = PEAnalyzer.MACHINE_TYPES.get(machine,
+                                                    f"Unknown (0x{machine:x})")
 
         # Get subsystem
         subsystem = pe.OPTIONAL_HEADER.Subsystem
-        subsystem_name = PEAnalyzer.SUBSYSTEMS.get(subsystem, f"Unknown ({subsystem})")
+        subsystem_name = PEAnalyzer.SUBSYSTEMS.get(subsystem,
+                                                   f"Unknown ({subsystem})")
 
         # Extract sections
         sections = []
         for section in pe.sections:
-            name = section.Name.decode('utf-8', errors='ignore').rstrip('\x00')
-            sections.append(PESection(
-                name=name,
-                virtual_address=section.VirtualAddress,
-                virtual_size=section.Misc_VirtualSize,
-                raw_size=section.SizeOfRawData,
-                characteristics=section.Characteristics
-            ))
+            name = section.Name.decode("utf-8", errors="ignore").rstrip("\x00")
+            sections.append(
+                PESection(
+                    name=name,
+                    virtual_address=section.VirtualAddress,
+                    virtual_size=section.Misc_VirtualSize,
+                    raw_size=section.SizeOfRawData,
+                    characteristics=section.Characteristics,
+                )
+            )
 
         pe_info = PEInfo(
             filepath=filepath,
@@ -134,7 +142,7 @@ class PEAnalyzer:
             entry_point=pe.OPTIONAL_HEADER.AddressOfEntryPoint,
             machine_type=machine_type,
             subsystem=subsystem_name,
-            sections=sections
+            sections=sections,
         )
 
         pe.close()
@@ -179,32 +187,34 @@ class PEAnalyzer:
         iat_entries = []
 
         # Check if the PE has an import directory
-        if not hasattr(pe, 'DIRECTORY_ENTRY_IMPORT'):
+        if not hasattr(pe, "DIRECTORY_ENTRY_IMPORT"):
             pe.close()
             return iat_entries
 
         # Iterate through all imported DLLs
         for entry in pe.DIRECTORY_ENTRY_IMPORT:
-            dll_name = entry.dll.decode('utf-8', errors='ignore')
+            dll_name = entry.dll.decode("utf-8", errors="ignore")
 
             # Iterate through all imported functions from this DLL
             for imp in entry.imports:
                 # Get function name (if imported by name) or ordinal
                 if imp.name:
-                    func_name = imp.name.decode('utf-8', errors='ignore')
-                    ordinal = imp.ordinal if hasattr(imp, 'ordinal') else None
+                    func_name = imp.name.decode("utf-8", errors="ignore")
+                    ordinal = imp.ordinal if hasattr(imp, "ordinal") else None
                 else:
                     # Import by ordinal only
                     func_name = f"Ordinal_{imp.ordinal}"
                     ordinal = imp.ordinal
 
                 # Add IAT entry
-                iat_entries.append(IATEntry(
-                    dll=dll_name,
-                    function=func_name,
-                    address=imp.address,
-                    ordinal=ordinal
-                ))
+                iat_entries.append(
+                    IATEntry(
+                        dll=dll_name,
+                        function=func_name,
+                        address=imp.address,
+                        ordinal=ordinal,
+                    )
+                )
 
         pe.close()
         return iat_entries

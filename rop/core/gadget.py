@@ -7,12 +7,13 @@ methods for analyzing instructions, registers, and bad characters.
 
 import re
 from dataclasses import dataclass
-from typing import List, Set, Optional
+from typing import List, Optional, Set
 
 
 @dataclass
 class Gadget:
     """Represents a single ROP gadget"""
+
     address: str
     instructions: List[str]
     raw_line: str
@@ -39,7 +40,7 @@ class Gadget:
         addr_hex = self.address[2:]
         # Check each byte pair
         for i in range(0, len(addr_hex), 2):
-            byte = addr_hex[i:i+2]
+            byte = addr_hex[i: i + 2]
             if byte in bad_chars:
                 return True
         return False
@@ -49,10 +50,11 @@ class Gadget:
         registers = set()
         # Common x86/x64 registers
         reg_patterns = [
-            r'\b(eax|ebx|ecx|edx|esi|edi|esp|ebp)\b',  # 32-bit
-            r'\b(rax|rbx|rcx|rdx|rsi|rdi|rsp|rbp|r8|r9|r10|r11|r12|r13|r14|r15)\b',  # 64-bit
-            r'\b(ax|bx|cx|dx|si|di|sp|bp)\b',  # 16-bit
-            r'\b(al|ah|bl|bh|cl|ch|dl|dh)\b',  # 8-bit
+            r"\b(eax|ebx|ecx|edx|esi|edi|esp|ebp)\b",  # 32-bit
+            r"\b(rax|rbx|rcx|rdx|rsi|rdi|rsp|rbp|r8|r9|r10|r11|r12|r13|r14|r15)\b",
+            # 64-bit
+            r"\b(ax|bx|cx|dx|si|di|sp|bp)\b",  # 16-bit
+            r"\b(al|ah|bl|bh|cl|ch|dl|dh)\b",  # 8-bit
         ]
 
         for inst in self.instructions:
@@ -66,28 +68,52 @@ class Gadget:
     def get_modified_registers(self) -> Set[str]:
         """Extract registers that are modified (destination operands)"""
         modified = set()
-        reg_pattern = r'\b(eax|ebx|ecx|edx|esi|edi|esp|ebp|rax|rbx|rcx|rdx|rsi|rdi|rsp|rbp|r8|r9|r10|r11|r12|r13|r14|r15|ax|bx|cx|dx|si|di|sp|bp|al|ah|bl|bh|cl|ch|dl|dh)\b'
+        reg_pattern = r"\b(eax|ebx|ecx|edx|esi|edi|esp|ebp|rax|rbx|rcx|rdx|rsi|rdi|rsp|rbp|r8|r9|r10|r11|r12|r13|r14|r15|ax|bx|cx|dx|si|di|sp|bp|al|ah|bl|bh|cl|ch|dl|dh)\b"
 
         for inst in self.instructions:
             inst_lower = inst.lower().strip()
 
             # For most instructions, first operand is destination
-            if inst_lower.startswith(('mov', 'lea', 'add', 'sub', 'xor', 'and', 'or', 'inc', 'dec', 'neg', 'not', 'shl', 'shr', 'sal', 'sar', 'rol', 'ror', 'mul', 'imul', 'div', 'idiv')):
+            if inst_lower.startswith(
+                    (
+                            "mov",
+                            "lea",
+                            "add",
+                            "sub",
+                            "xor",
+                            "and",
+                            "or",
+                            "inc",
+                            "dec",
+                            "neg",
+                            "not",
+                            "shl",
+                            "shr",
+                            "sal",
+                            "sar",
+                            "rol",
+                            "ror",
+                            "mul",
+                            "imul",
+                            "div",
+                            "idiv",
+                    )
+            ):
                 parts = inst_lower.split(None, 1)
                 if len(parts) > 1:
                     operands = parts[1]
                     # Get first operand (destination)
-                    dest = operands.split(',')[0].strip()
+                    dest = operands.split(",")[0].strip()
                     matches = re.findall(reg_pattern, dest)
                     modified.update(matches)
 
             # Pop modifies the register
-            elif inst_lower.startswith('pop'):
+            elif inst_lower.startswith("pop"):
                 matches = re.findall(reg_pattern, inst_lower)
                 modified.update(matches)
 
             # XCHG modifies both operands
-            elif inst_lower.startswith('xchg'):
+            elif inst_lower.startswith("xchg"):
                 matches = re.findall(reg_pattern, inst_lower)
                 modified.update(matches)
 
@@ -97,7 +123,7 @@ class Gadget:
         """Extract registers that are dereferenced (used in brackets like [eax], [rsp+8], etc)"""
         dereferenced = set()
         # Pattern to match register dereferences: [reg], [reg+offset], [reg-offset], [reg*scale], etc
-        deref_pattern = r'\[([^\]]*?)\b(eax|ebx|ecx|edx|esi|edi|esp|ebp|rax|rbx|rcx|rdx|rsi|rdi|rsp|rbp|r8|r9|r10|r11|r12|r13|r14|r15|ax|bx|cx|dx|si|di|sp|bp)\b[^\]]*?\]'
+        deref_pattern = r"\[([^\]]*?)\b(eax|ebx|ecx|edx|esi|edi|esp|ebp|rax|rbx|rcx|rdx|rsi|rdi|rsp|rbp|r8|r9|r10|r11|r12|r13|r14|r15|ax|bx|cx|dx|si|di|sp|bp)\b[^\]]*?\]"
 
         for inst in self.instructions:
             inst_lower = inst.lower()

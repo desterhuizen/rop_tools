@@ -4,13 +4,16 @@ Unit tests for worksheet.ui.display module.
 Note: These tests verify that the display functions execute without errors
 and return valid Rich objects. Full visual testing would require manual inspection.
 """
+
 import unittest
+
 from rop.worksheet.core.data import blank_worksheet
 from rop.worksheet.ui.display import build_worksheet_view
 
 # Try to import Rich, skip tests if not available
 try:
     from rich.console import Group
+
     RICH_AVAILABLE = True
 except ImportError:
     RICH_AVAILABLE = False
@@ -91,7 +94,8 @@ class TestBuildWorksheetView(unittest.TestCase):
         """Test building view with execution log."""
         ws = blank_worksheet()
         ws["execution_log"] = [
-            {"type": "manual", "source": "User", "operation": "mov EAX, 0x12345678"},
+            {"type": "manual", "source": "User",
+             "operation": "mov EAX, 0x12345678"},
             {"type": "auto", "source": "0x10001234", "operation": "pop eax"},
         ]
 
@@ -121,7 +125,8 @@ class TestBuildWorksheetView(unittest.TestCase):
         ws["chain"] = [{"type": "address", "value": "0x10001234"}]
         ws["notes"] = "Test notes"
         ws["execution_log"] = [
-            {"type": "manual", "source": "User", "operation": "mov EAX, 0xdeadbeef"}
+            {"type": "manual", "source": "User",
+             "operation": "mov EAX, 0xdeadbeef"}
         ]
 
         result = build_worksheet_view(ws)

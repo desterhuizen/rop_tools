@@ -36,6 +36,9 @@ rop_tools/
 ├── INSTALL.md                  # Installation guide (symlinks to ~/.local/bin/)
 ├── requirements.txt            # All dependencies
 ├── requirements-test.txt       # Test dependencies
+├── requirements-lint.txt       # Linting tools
+├── .flake8                     # Flake8 configuration
+├── pyproject.toml              # Black, isort, mypy configuration
 │
 ├── lib/                        # Shared libraries (ALL tools use this)
 │   ├── color_printer.py        # Terminal color abstraction (Rich-based)
@@ -79,7 +82,8 @@ rop_tools/
 └── .github/                    # GitHub Actions
     └── workflows/
         ├── tests.yml           # Test suite (Python 3.8-3.12)
-        └── coverage.yml        # Coverage reporting
+        ├── coverage.yml        # Coverage reporting
+        └── lint.yml            # Code quality checks
 ```
 
 ---
@@ -213,10 +217,31 @@ coverage run -m pytest
 coverage report
 ```
 
+### Code Linting
+```bash
+# Install linting tools
+pip install -r requirements-lint.txt
+
+# Run all linters
+flake8 lib/ rop/ shellgen/ code_snippets/
+black --check lib/ rop/ shellgen/ code_snippets/
+isort --check-only lib/ rop/ shellgen/ code_snippets/
+mypy lib/ rop/ shellgen/ code_snippets/
+
+# Auto-format code (fixes most issues automatically)
+black lib/ rop/ shellgen/ code_snippets/
+isort lib/ rop/ shellgen/ code_snippets/
+```
+
+**Configuration Files:**
+- `.flake8` - flake8 configuration (max line length 88, ignore black conflicts)
+- `pyproject.toml` - black and isort configuration (88 char lines, Python 3.8+ target)
+
 ### GitHub Actions
 - **tests.yml**: Runs on Python 3.8, 3.9, 3.10, 3.11, 3.12
 - **coverage.yml**: Coverage reporting
-- Both run on push/PR to main branch
+- **lint.yml**: Code quality checks (flake8, black, isort, mypy)
+- All workflows run on push/PR to main and develop branches
 
 ---
 
@@ -237,6 +262,18 @@ pip install -r requirements-test.txt
 ```
 - `pytest` - Testing framework
 - `coverage` - Code coverage
+
+### Linting Dependencies
+```bash
+pip install -r requirements-lint.txt
+```
+- `flake8` - PEP 8 style checking and error detection
+- `black` - Automatic code formatting (88 char line length)
+- `isort` - Import sorting and organization
+- `mypy` - Optional static type checking
+- `flake8-bugbear` - Enhanced flake8 plugin for bug detection
+- `flake8-comprehensions` - Check unnecessary comprehensions
+- `flake8-simplify` - Suggest code simplifications
 
 ---
 
@@ -281,6 +318,12 @@ pip install -r requirements-test.txt
 ## Changelog (Project-Wide)
 
 ### March 2026
+- **Added linting infrastructure**: flake8, black, isort, mypy with full configuration
+  - Created `requirements-lint.txt` with 7 linting tools
+  - Added `.flake8` configuration (88 char line length, sensible ignores)
+  - Added `pyproject.toml` for black/isort/mypy (Python 3.8+ target)
+  - Created `.github/workflows/lint.yml` CI workflow
+  - Updated README.md and CLAUDE.md with linting documentation
 - **Created INSTALL.md**: Symlink installation guide for all 5 tools
 - **Removed wrapper scripts**: Deleted shellgen.sh, hashgen.sh (use direct Python execution)
 - **Updated GitHub Actions**: All workflows now use Node.js 24-compatible actions (v6)
