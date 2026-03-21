@@ -1,0 +1,63 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  test:
+    name: Test on Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run lib tests
+      run: |
+        echo "=========================================="
+        echo "Running lib tests"
+        echo "=========================================="
+        python -m unittest discover -s lib/tests -p "test_*.py" -v
+
+    - name: Run rop tests
+      run: |
+        echo "=========================================="
+        echo "Running rop tests"
+        echo "=========================================="
+        python -m unittest discover -s rop/tests -p "test_*.py" -v
+
+    - name: Run shellgen tests
+      run: |
+        echo "=========================================="
+        echo "Running shellgen tests"
+        echo "=========================================="
+        python -m unittest discover -s shellgen/tests -p "test_*.py" -v
+
+    - name: Test Summary
+      if: always()
+      run: |
+        echo "=========================================="
+        echo "Test Suite Completed"
+        echo "=========================================="
+        echo "OS: ${{ matrix.os }}"
+        echo "Python: ${{ matrix.python-version }}"
