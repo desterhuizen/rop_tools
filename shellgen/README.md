@@ -659,12 +659,12 @@ Options:
 
 ## Supported Architectures
 
-| Architecture | Platform | Assembler Required | Status |
-|-------------|----------|-------------------|--------|
-| x86 (32-bit) | Windows | Keystone | ✅ Full Support |
-| x64 (64-bit) | Windows | Keystone | ✅ Full Support |
-| ARM32 | Linux | **Keystone Only** | ✅ Full Support |
-| ARM64 | Linux | **Keystone Only** | ✅ Full Support |
+| Architecture | Platform | Assembler Required | Status         |
+|--------------|----------|--------------------|----------------|
+| x86 (32-bit) | Windows  | Keystone           | ✅ Full Support |
+| x64 (64-bit) | Windows  | Keystone           | ✅ Full Support |
+| ARM32        | Linux    | **Keystone Only**  | ✅ Full Support |
+| ARM64        | Linux    | **Keystone Only**  | ✅ Full Support |
 
 **Important:** All architectures now require Keystone Engine.
 
@@ -813,14 +813,14 @@ python3 shellgen.py --payload winexec_cmd --cmd "calc.exe" --arch x86
 
 ### Payload Name Changes
 
-| Old Payload       | New Payload      | Platform  |
-|-------------------|------------------|-----------|
-| `winexec_cmd`     | `winexec`        | `windows` |
-| `winexec_smb`     | *(removed)*      | -         |
-| `reverse_shell`   | `reverse_shell`  | `windows` or `linux` |
-| `execve`          | `execve`         | `linux`   |
-| *(new)*           | `messagebox`     | `windows` |
-| *(new)*           | `download_exec`  | `windows` |
+| Old Payload     | New Payload     | Platform             |
+|-----------------|-----------------|----------------------|
+| `winexec_cmd`   | `winexec`       | `windows`            |
+| `winexec_smb`   | *(removed)*     | -                    |
+| `reverse_shell` | `reverse_shell` | `windows` or `linux` |
+| `execve`        | `execve`        | `linux`              |
+| *(new)*         | `messagebox`    | `windows`            |
+| *(new)*         | `download_exec` | `windows`            |
 
 See [MODULAR_STRUCTURE.md](MODULAR_STRUCTURE.md) for complete migration details.
 

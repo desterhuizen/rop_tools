@@ -135,54 +135,54 @@ pip install rich
 
 ### Common Options
 
-| Option | Description |
-|--------|-------------|
-| `-f, --file` | Path to rp++ output file (required) |
-| `-i, --instruction` | Filter by instruction name |
-| `-p, --position` | Position of instruction to match (any/first/last) |
-| `-c, --category` | Filter by gadget category |
-| `-g, --group` | Group gadgets (first/last/category/register/modified-register/category-register) |
-| `-r, --regex` | Filter by regex pattern in instruction chain |
-| `-e, --exclude` | Exclude gadgets matching this regex pattern |
-| `-b, --bad-chars` | Filter out bad characters |
-| `-m, --max-instructions` | Maximum number of instructions in gadget |
-| `--register` | Filter by specific register |
-| `--modified-only` | With --register, only show gadgets that modify the register |
-| `--deref` | Filter gadgets with dereferenced registers (e.g., [eax], [rsp+8]) |
-| `-l, --limit` | Limit number of results displayed per group |
-| `-s, --stats` | Show statistics about gadgets |
-| `--show-category` | Display category for each gadget |
-| `--show-count` | Display instruction count for each gadget |
-| `--highlight` | Highlight regex matches in output (requires -r/--regex) |
-| `--sort` | Sort gadgets by count (default) or address |
-| `--offset` | Calculate offset from base address (e.g., 0x10000000) |
-| `--keep-bad-instructions` | Keep gadgets with bad instructions (call, jmp, int, etc.) |
-| `--no-color` | Disable colored output |
+| Option                    | Description                                                                      |
+|---------------------------|----------------------------------------------------------------------------------|
+| `-f, --file`              | Path to rp++ output file (required)                                              |
+| `-i, --instruction`       | Filter by instruction name                                                       |
+| `-p, --position`          | Position of instruction to match (any/first/last)                                |
+| `-c, --category`          | Filter by gadget category                                                        |
+| `-g, --group`             | Group gadgets (first/last/category/register/modified-register/category-register) |
+| `-r, --regex`             | Filter by regex pattern in instruction chain                                     |
+| `-e, --exclude`           | Exclude gadgets matching this regex pattern                                      |
+| `-b, --bad-chars`         | Filter out bad characters                                                        |
+| `-m, --max-instructions`  | Maximum number of instructions in gadget                                         |
+| `--register`              | Filter by specific register                                                      |
+| `--modified-only`         | With --register, only show gadgets that modify the register                      |
+| `--deref`                 | Filter gadgets with dereferenced registers (e.g., [eax], [rsp+8])                |
+| `-l, --limit`             | Limit number of results displayed per group                                      |
+| `-s, --stats`             | Show statistics about gadgets                                                    |
+| `--show-category`         | Display category for each gadget                                                 |
+| `--show-count`            | Display instruction count for each gadget                                        |
+| `--highlight`             | Highlight regex matches in output (requires -r/--regex)                          |
+| `--sort`                  | Sort gadgets by count (default) or address                                       |
+| `--offset`                | Calculate offset from base address (e.g., 0x10000000)                            |
+| `--keep-bad-instructions` | Keep gadgets with bad instructions (call, jmp, int, etc.)                        |
+| `--no-color`              | Disable colored output                                                           |
 
 ## Gadget Categories
 
 The tool automatically categorizes gadgets into the following types:
 
-| Category | Description |
-|----------|-------------|
-| `stack_pivot` | ESP/RSP manipulation for stack pivoting |
-| `stack_pop` | Pop instructions |
-| `stack_push` | Push instructions |
-| `load_register` | LEA and load operations |
-| `move_register` | MOV operations between registers |
-| `xchg_register` | Register exchange operations |
-| `memory_read` | Memory read operations |
-| `memory_write` | Memory write operations |
-| `arithmetic` | ADD, SUB, INC, DEC, MUL, DIV, etc. |
-| `logic` | AND, OR, XOR, NOT, shifts, rotations |
-| `call` | CALL instructions |
-| `jmp` | Jump instructions |
-| `ret` | Return instructions |
-| `conditional` | Conditional jumps |
-| `syscall` | System calls |
-| `interrupt` | Interrupt instructions |
-| `string_ops` | String operations (MOVS, LODS, STOS, etc.) |
-| `other` | Uncategorized gadgets |
+| Category        | Description                                |
+|-----------------|--------------------------------------------|
+| `stack_pivot`   | ESP/RSP manipulation for stack pivoting    |
+| `stack_pop`     | Pop instructions                           |
+| `stack_push`    | Push instructions                          |
+| `load_register` | LEA and load operations                    |
+| `move_register` | MOV operations between registers           |
+| `xchg_register` | Register exchange operations               |
+| `memory_read`   | Memory read operations                     |
+| `memory_write`  | Memory write operations                    |
+| `arithmetic`    | ADD, SUB, INC, DEC, MUL, DIV, etc.         |
+| `logic`         | AND, OR, XOR, NOT, shifts, rotations       |
+| `call`          | CALL instructions                          |
+| `jmp`           | Jump instructions                          |
+| `ret`           | Return instructions                        |
+| `conditional`   | Conditional jumps                          |
+| `syscall`       | System calls                               |
+| `interrupt`     | Interrupt instructions                     |
+| `string_ops`    | String operations (MOVS, LODS, STOS, etc.) |
+| `other`         | Uncategorized gadgets                      |
 
 ## Examples
 

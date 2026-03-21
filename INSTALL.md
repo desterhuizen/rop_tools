@@ -123,13 +123,13 @@ rop_worksheet --help
 
 After installation, the following commands will be available system-wide:
 
-| Command | Description | Source |
-|---------|-------------|--------|
-| `shellgen` | Multi-architecture shellcode generator | `shellgen/shellgen_cli.py` |
-| `hash_generator` | ROR13 hash generator for API names | `shellgen/hash_generator.py` |
-| `get_rop_gadgets` | Parse and filter ROP gadgets | `rop/get_rop_gadgets.py` |
-| `get_base_address` | Extract PE base address and info | `rop/get_base_address.py` |
-| `rop_worksheet` | Interactive ROP chain building | `rop/rop_worksheet.py` |
+| Command            | Description                            | Source                       |
+|--------------------|----------------------------------------|------------------------------|
+| `shellgen`         | Multi-architecture shellcode generator | `shellgen/shellgen_cli.py`   |
+| `hash_generator`   | ROR13 hash generator for API names     | `shellgen/hash_generator.py` |
+| `get_rop_gadgets`  | Parse and filter ROP gadgets           | `rop/get_rop_gadgets.py`     |
+| `get_base_address` | Extract PE base address and info       | `rop/get_base_address.py`    |
+| `rop_worksheet`    | Interactive ROP chain building         | `rop/rop_worksheet.py`       |
 
 ## Usage Examples
 
