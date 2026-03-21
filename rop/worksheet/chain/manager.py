@@ -75,7 +75,7 @@ def cmd_chain_del(ws: Dict[str, Any], index: str) -> Tuple[bool, Optional[str]]:
             return True, None
         else:
             return False, "Invalid index"
-    except:
+    except Exception:
         return False, "Invalid index"
 
 

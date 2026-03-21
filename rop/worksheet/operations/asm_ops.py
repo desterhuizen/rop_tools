@@ -93,7 +93,7 @@ def cmd_move(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
 
             # Write to stack at this offset
             ws["stack"][offset_str] = value
-        except:
+        except Exception:
             return False, f"Cannot dereference {dst_key}"
     elif dst_type == "named":
         ws["named"][dst_key] = value
@@ -141,7 +141,7 @@ def cmd_add(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
             log_execution(ws, "manual", "User", f"add {dst}, {src}")
 
         return True, None
-    except:
+    except Exception:
         return False, "Invalid operands for add"
 
 
@@ -179,7 +179,7 @@ def cmd_xor(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
             log_execution(ws, "manual", "User", f"xor {dst}, {src}")
 
         return True, None
-    except:
+    except Exception:
         return False, "Invalid operands for xor"
 
 
@@ -260,7 +260,7 @@ def cmd_inc(ws: Dict[str, Any], dst: str) -> Tuple[bool, Optional[str]]:
             log_execution(ws, "manual", "User", f"inc {dst}")
 
         return True, None
-    except:
+    except Exception:
         return False, "Invalid operand for inc"
 
 
@@ -295,7 +295,7 @@ def cmd_dec(ws: Dict[str, Any], dst: str) -> Tuple[bool, Optional[str]]:
             log_execution(ws, "manual", "User", f"dec {dst}")
 
         return True, None
-    except:
+    except Exception:
         return False, "Invalid operand for dec"
 
 
@@ -331,5 +331,5 @@ def cmd_neg(ws: Dict[str, Any], dst: str) -> Tuple[bool, Optional[str]]:
             log_execution(ws, "manual", "User", f"neg {dst}")
 
         return True, None
-    except:
+    except Exception:
         return False, "Invalid operand for neg"

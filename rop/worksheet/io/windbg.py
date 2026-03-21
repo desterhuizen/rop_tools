@@ -5,7 +5,7 @@ This module handles importing register and stack values from WinDbg output forma
 """
 
 import re
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Tuple
 
 
 def cmd_import_regs(ws: Dict[str, Any], text: str) -> Tuple[bool, str]:

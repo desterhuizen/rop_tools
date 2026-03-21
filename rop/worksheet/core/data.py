@@ -5,7 +5,7 @@ This module defines the core data structure for the ROP worksheet,
 which tracks registers, stack, named values, gadgets, and ROP chains.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 
 def blank_worksheet() -> Dict[str, Any]:
@@ -25,11 +25,10 @@ def blank_worksheet() -> Dict[str, Any]:
         - log_manual: Log manual operations (bool)
     """
     return {
-        "registers": {
-            r: "0x00000000"
-            for r in
-            ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"]
-        },
+        "registers": dict.fromkeys(
+            ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"],
+            "0x00000000"
+        ),
         "stack": {},  # offset -> value (e.g., "+0x00": "0xdeadbeef")
         "named": {},  # name -> value (e.g., "shellgen": "0x00501000")
         "gadgets": {},  # address -> instruction string (gadget library)

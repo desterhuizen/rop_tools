@@ -36,14 +36,14 @@ def resolve_value(expr: str, ws: Dict[str, Any]) -> Optional[str]:
     if expr.startswith("0x"):
         try:
             return expr
-        except:
+        except Exception:
             return None
 
     # Stack reference [ESP+offset]
     m = re.match(r"\[?ESP([+-]0x[0-9a-fA-F]+)\]?", expr, re.IGNORECASE)
     if m:
         offset = m.group(1)
-        return ws["stack"].get(offset, None)
+        return ws["stack"].get(offset)
 
     # Dereferenced register: [EAX], [EBX], etc. (when it points to a stack address)
     m = re.match(r"\[([A-Z]{3}|EIP)\]", expr, re.IGNORECASE)
@@ -68,8 +68,8 @@ def resolve_value(expr: str, ws: Dict[str, Any]) -> Optional[str]:
                             offset_str = f"+0x{offset:02x}"
 
                         # Get the value at that stack offset
-                        return ws["stack"].get(offset_str, None)
-                except:
+                        return ws["stack"].get(offset_str)
+                except Exception:
                     pass
         return None
 
@@ -92,7 +92,7 @@ def resolve_value(expr: str, ws: Dict[str, Any]) -> Optional[str]:
                 offset_val = int(offset_str, 16)
                 result = base_val + offset_val if op == "+" else base_val - offset_val
                 return f"0x{result:08x}"
-            except:
+            except Exception:
                 pass
 
     return None

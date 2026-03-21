@@ -6,10 +6,8 @@ Tests both Rich-enabled and fallback modes.
 """
 
 import io
-import re
-import sys
 import unittest
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import patch
 
 
 class TestColorPrinterWithRich(unittest.TestCase):
@@ -122,9 +120,6 @@ class TestColorPrinterWithRich(unittest.TestCase):
 
         # Should return text without crashing
         if printer.enabled:
-            from rich.text import Text
-
-            # Should return Text object even with invalid pattern
             self.assertIsNotNone(result)
 
     @patch("sys.stdout", new_callable=io.StringIO)
@@ -220,9 +215,6 @@ class TestColorPrinterFallback(unittest.TestCase):
             },
         )
         self.rich_patcher.start()
-
-        # Reload module to trigger ImportError for Rich
-        import importlib
 
         import lib.color_printer
 
@@ -427,14 +419,6 @@ class TestColorPrinterEdgeCases(unittest.TestCase):
             self.assertIn("42", output)  # 'B'
             self.assertIn("43", output)  # 'C'
 
-            # Should contain ASCII representation (may have middle dots for non-printable)
-            # 'A', 'B', 'C' should appear
-            lines = output.split("\n")
-            # Look for line with ASCII chars
-            ascii_line = [line for line in lines if
-                          "A" in line and not "41" in line]
-            # At least the printable chars should be visible
-
     def test_print_table_with_empty_rows(self):
         """Test print_table with empty rows."""
         printer = self.ColorPrinter()
@@ -494,7 +478,6 @@ class TestColorPrinterEdgeCases(unittest.TestCase):
     def test_disable_then_enable_workflow(self):
         """Test disabling colors and then re-enabling."""
         printer = self.ColorPrinter()
-        original_enabled = printer.enabled
 
         printer.disable()
         self.assertFalse(printer.enabled)

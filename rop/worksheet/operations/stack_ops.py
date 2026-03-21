@@ -102,9 +102,9 @@ def cmd_pop(ws: Dict[str, Any], dst: str) -> Tuple[bool, Optional[str]]:
         return False, "ESP not set"
 
     # Pop gets value at ESP+0x00 (top of stack)
-    stack_val = ws["stack"].get("+0x00", None)
+    stack_val = ws["stack"].get("+0x00")
     if stack_val is None:
-        return False, f"No value at [ESP] (offset +0x00) to pop"
+        return False, "No value at [ESP] (offset +0x00) to pop"
 
     # Move stack value to destination
     dst_type, dst_key = parse_target(dst)
