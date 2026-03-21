@@ -6,7 +6,7 @@ Tests help text constants and help panel generation.
 
 import unittest
 from rich.panel import Panel
-from worksheet.ui.help import HELP, build_help_panel
+from rop.worksheet.ui.help import HELP, build_help_panel
 
 
 class TestHelp(unittest.TestCase):
@@ -89,7 +89,7 @@ class TestHelp(unittest.TestCase):
         self.assertIn("[bold", HELP)
         self.assertIn("[yellow]", HELP)
         self.assertIn("[/yellow]", HELP)
-        self.assertIn("[cyan]", HELP)
+        self.assertIn("[bold cyan]", HELP)
 
     def test_build_help_panel_returns_panel(self):
         """Test that build_help_panel returns a Rich Panel object."""

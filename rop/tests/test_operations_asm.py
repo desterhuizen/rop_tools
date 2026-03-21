@@ -1,14 +1,14 @@
 """
 Unit tests for worksheet.operations.asm_ops module.
 """
-import pytest
-from worksheet.core.data import blank_worksheet
-from worksheet.operations.asm_ops import (
+import unittest
+from rop.worksheet.core.data import blank_worksheet
+from rop.worksheet.operations.asm_ops import (
     cmd_move, cmd_add, cmd_xor, cmd_xchg, cmd_inc, cmd_dec, cmd_neg
 )
 
 
-class TestCmdMove:
+class TestCmdMove(unittest.TestCase):
     """Test the cmd_move operation."""
 
     def test_move_to_register(self):
@@ -65,7 +65,7 @@ class TestCmdMove:
         assert ws["stack"]["+0x10"] == "0xdeadbeef"
 
 
-class TestCmdAdd:
+class TestCmdAdd(unittest.TestCase):
     """Test the cmd_add operation."""
 
     def test_add_to_register(self):
@@ -118,7 +118,7 @@ class TestCmdAdd:
         assert "Cannot resolve operands" in msg
 
 
-class TestCmdXor:
+class TestCmdXor(unittest.TestCase):
     """Test the cmd_xor operation."""
 
     def test_xor_register_with_value(self):
@@ -153,7 +153,7 @@ class TestCmdXor:
         assert ws["registers"]["EAX"] == "0xffffffff"
 
 
-class TestCmdXchg:
+class TestCmdXchg(unittest.TestCase):
     """Test the cmd_xchg operation."""
 
     def test_xchg_registers(self):
@@ -193,7 +193,7 @@ class TestCmdXchg:
         assert ws["named"]["val2"] == "0x11111111"
 
 
-class TestCmdInc:
+class TestCmdInc(unittest.TestCase):
     """Test the cmd_inc operation."""
 
     def test_inc_register(self):
@@ -217,7 +217,7 @@ class TestCmdInc:
         assert ws["registers"]["EAX"] == "0x00000000"
 
 
-class TestCmdDec:
+class TestCmdDec(unittest.TestCase):
     """Test the cmd_dec operation."""
 
     def test_dec_register(self):
@@ -241,7 +241,7 @@ class TestCmdDec:
         assert ws["registers"]["EAX"] == "0xffffffff"
 
 
-class TestCmdNeg:
+class TestCmdNeg(unittest.TestCase):
     """Test the cmd_neg operation."""
 
     def test_neg_positive_value(self):
@@ -275,7 +275,7 @@ class TestCmdNeg:
         assert ws["registers"]["EAX"] == "0x00000000"
 
 
-class TestLogging:
+class TestLogging(unittest.TestCase):
     """Test that operations are logged correctly."""
 
     def test_move_creates_log_entry(self):

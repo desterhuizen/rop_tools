@@ -14,7 +14,7 @@ except ImportError:
     Text = None
 
 from lib.color_printer import printer
-from core import Gadget, ROPGadgetParser, get_category_style
+from rop.core import Gadget, ROPGadgetParser, get_category_style
 
 
 def print_gadget_colored(gadget: Gadget, parser: ROPGadgetParser, show_category: bool = False, show_count: bool = False, highlight_pattern: Optional[str] = None, base_address: Optional[int] = None):

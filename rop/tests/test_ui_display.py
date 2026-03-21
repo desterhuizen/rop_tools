@@ -4,9 +4,9 @@ Unit tests for worksheet.ui.display module.
 Note: These tests verify that the display functions execute without errors
 and return valid Rich objects. Full visual testing would require manual inspection.
 """
-import pytest
-from worksheet.core.data import blank_worksheet
-from worksheet.ui.display import build_worksheet_view
+import unittest
+from rop.worksheet.core.data import blank_worksheet
+from rop.worksheet.ui.display import build_worksheet_view
 
 # Try to import Rich, skip tests if not available
 try:
@@ -16,8 +16,8 @@ except ImportError:
     RICH_AVAILABLE = False
 
 
-@pytest.mark.skipif(not RICH_AVAILABLE, reason="Rich library not installed")
-class TestBuildWorksheetView:
+@unittest.skipIf(not RICH_AVAILABLE, reason="Rich library not installed")
+class TestBuildWorksheetView(unittest.TestCase):
     """Test the build_worksheet_view function."""
 
     def test_build_view_with_blank_worksheet(self):

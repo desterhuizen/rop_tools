@@ -1,12 +1,12 @@
 """
 Unit tests for worksheet.operations.stack_ops module.
 """
-import pytest
-from worksheet.core.data import blank_worksheet
-from worksheet.operations.stack_ops import cmd_push, cmd_pop, cmd_stack
+import unittest
+from rop.worksheet.core.data import blank_worksheet
+from rop.worksheet.operations.stack_ops import cmd_push, cmd_pop, cmd_stack
 
 
-class TestCmdPush:
+class TestCmdPush(unittest.TestCase):
     """Test the cmd_push operation."""
 
     def test_push_value(self):
@@ -62,7 +62,7 @@ class TestCmdPush:
         assert ws["stack"]["+0x08"] == "0xaaaaaaaa"  # First pushed
 
 
-class TestCmdPop:
+class TestCmdPop(unittest.TestCase):
     """Test the cmd_pop operation."""
 
     def test_pop_to_register(self):
@@ -122,7 +122,7 @@ class TestCmdPop:
         assert ws["registers"]["EAX"] == "0xdeadbeef"
 
 
-class TestCmdStack:
+class TestCmdStack(unittest.TestCase):
     """Test the cmd_stack operation."""
 
     def test_set_stack_value(self):

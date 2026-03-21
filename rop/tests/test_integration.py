@@ -4,19 +4,19 @@ Integration tests for the ROP worksheet.
 These tests verify that all components work correctly together,
 ensuring backward compatibility after refactoring.
 """
-import pytest
-from worksheet.core.data import blank_worksheet
-from worksheet.core.resolver import resolve_value, parse_target
-from worksheet.operations.asm_ops import cmd_move, cmd_add, cmd_xor
-from worksheet.operations.stack_ops import cmd_push, cmd_pop
-from worksheet.operations.quick_ops import cmd_set, cmd_clear
-from worksheet.gadgets.library import cmd_gadget_add
-from worksheet.gadgets.processor import process_gadget
-from worksheet.chain.manager import cmd_chain_add
-from worksheet.io.windbg import cmd_import_regs
+import unittest
+from rop.worksheet.core.data import blank_worksheet
+from rop.worksheet.core.resolver import resolve_value, parse_target
+from rop.worksheet.operations.asm_ops import cmd_move, cmd_add, cmd_xor
+from rop.worksheet.operations.stack_ops import cmd_push, cmd_pop
+from rop.worksheet.operations.quick_ops import cmd_set, cmd_clear
+from rop.worksheet.gadgets.library import cmd_gadget_add
+from rop.worksheet.gadgets.processor import process_gadget
+from rop.worksheet.chain.manager import cmd_chain_add
+from rop.worksheet.io.windbg import cmd_import_regs
 
 
-@pytest.mark.integration
+
 def test_core_integration():
     """Test core data structures."""
     print("Testing core data structures...")
@@ -30,7 +30,7 @@ def test_core_integration():
     print("✓ Core data structures OK")
 
 
-@pytest.mark.integration
+
 def test_resolver_integration():
     """Test value resolution."""
     print("\nTesting value resolution...")
@@ -55,7 +55,7 @@ def test_resolver_integration():
     print("✓ Value resolution OK")
 
 
-@pytest.mark.integration
+
 def test_operations_integration():
     """Test ASM operations."""
     print("\nTesting ASM operations...")
@@ -79,7 +79,7 @@ def test_operations_integration():
     print("✓ ASM operations OK")
 
 
-@pytest.mark.integration
+
 def test_stack_ops_integration():
     """Test stack operations."""
     print("\nTesting stack operations...")
@@ -101,7 +101,7 @@ def test_stack_ops_integration():
     print("✓ Stack operations OK")
 
 
-@pytest.mark.integration
+
 def test_gadgets_integration():
     """Test gadget processing."""
     print("\nTesting gadget processing...")
@@ -124,7 +124,7 @@ def test_gadgets_integration():
     print("✓ Gadget processing OK")
 
 
-@pytest.mark.integration
+
 def test_chain_integration():
     """Test ROP chain management."""
     print("\nTesting ROP chain management...")
@@ -148,7 +148,7 @@ def test_chain_integration():
     print("✓ ROP chain management OK")
 
 
-@pytest.mark.integration
+
 def test_windbg_import_integration():
     """Test WinDbg import."""
     print("\nTesting WinDbg import...")
@@ -165,7 +165,7 @@ def test_windbg_import_integration():
     print("✓ WinDbg import OK")
 
 
-@pytest.mark.integration
+
 def test_quick_ops_integration():
     """Test quick operations."""
     print("\nTesting quick operations...")

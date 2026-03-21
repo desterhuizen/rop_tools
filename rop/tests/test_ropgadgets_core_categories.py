@@ -3,12 +3,12 @@ Unit tests for rop/core/categories.py
 
 Tests gadget categorization logic and category styling.
 """
-import pytest
-from core.gadget import Gadget
-from core.categories import GadgetCategory, categorize_gadget, get_category_style
+import unittest
+from rop.core.gadget import Gadget
+from rop.core.categories import GadgetCategory, categorize_gadget, get_category_style
 
 
-class TestStackCategories:
+class TestStackCategories(unittest.TestCase):
     """Test stack-related gadget categorization"""
 
     def test_categorize_stack_pop(self):
@@ -72,7 +72,7 @@ class TestStackCategories:
         assert categorize_gadget(g) == GadgetCategory.STACK_PIVOT
 
 
-class TestRegisterCategories:
+class TestRegisterCategories(unittest.TestCase):
     """Test register-related gadget categorization"""
 
     def test_categorize_move_register(self):
@@ -106,7 +106,7 @@ class TestRegisterCategories:
         assert categorize_gadget(g) == GadgetCategory.LOAD_REGISTER
 
 
-class TestMemoryCategories:
+class TestMemoryCategories(unittest.TestCase):
     """Test memory operation categorization"""
 
     def test_categorize_memory_read(self):
@@ -150,7 +150,7 @@ class TestMemoryCategories:
         assert categorize_gadget(g) == GadgetCategory.MEMORY_WRITE
 
 
-class TestArithmeticLogicCategories:
+class TestArithmeticLogicCategories(unittest.TestCase):
     """Test arithmetic and logic categorization"""
 
     def test_categorize_arithmetic_add(self):
@@ -224,7 +224,7 @@ class TestArithmeticLogicCategories:
         assert categorize_gadget(g) == GadgetCategory.LOGIC
 
 
-class TestControlFlowCategories:
+class TestControlFlowCategories(unittest.TestCase):
     """Test control flow categorization"""
 
     def test_categorize_call(self):
@@ -278,7 +278,7 @@ class TestControlFlowCategories:
         assert categorize_gadget(g) == GadgetCategory.CONDITIONAL
 
 
-class TestSystemCategories:
+class TestSystemCategories(unittest.TestCase):
     """Test system and interrupt categorization"""
 
     def test_categorize_syscall(self):
@@ -325,7 +325,7 @@ class TestSystemCategories:
         assert categorize_gadget(g) == GadgetCategory.INTERRUPT
 
 
-class TestStringCategories:
+class TestStringCategories(unittest.TestCase):
     """Test string operation categorization"""
 
     def test_categorize_string_movs(self):
@@ -361,7 +361,7 @@ class TestStringCategories:
         assert categorize_gadget(g) == GadgetCategory.STRING_OPS
 
 
-class TestOtherCategory:
+class TestOtherCategory(unittest.TestCase):
     """Test other/unknown categorization"""
 
     def test_categorize_other_nop(self):
@@ -385,7 +385,7 @@ class TestOtherCategory:
         assert categorize_gadget(g) == GadgetCategory.OTHER
 
 
-class TestCategoryStyles:
+class TestCategoryStyles(unittest.TestCase):
     """Test category styling"""
 
     def test_get_category_style_stack_pivot(self):

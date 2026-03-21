@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch, mock_open
 import sys
 import io
-from hash_generator import (
+from shellgen.hash_generator import (
     ror13_hash,
     ror13_hash_case_insensitive,
     generate_hash_dict,

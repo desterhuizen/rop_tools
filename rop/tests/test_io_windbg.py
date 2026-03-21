@@ -1,12 +1,12 @@
 """
 Unit tests for worksheet.io.windbg module.
 """
-import pytest
-from worksheet.core.data import blank_worksheet
-from worksheet.io.windbg import cmd_import_regs, cmd_import_stack
+import unittest
+from rop.worksheet.core.data import blank_worksheet
+from rop.worksheet.io.windbg import cmd_import_regs, cmd_import_stack
 
 
-class TestCmdImportRegs:
+class TestCmdImportRegs(unittest.TestCase):
     """Test the cmd_import_regs function."""
 
     def test_import_single_line(self):
@@ -86,7 +86,7 @@ class TestCmdImportRegs:
         assert ws["registers"]["EBX"] == "0x12345678"
 
 
-class TestCmdImportStack:
+class TestCmdImportStack(unittest.TestCase):
     """Test the cmd_import_stack function."""
 
     def test_import_stack_single_line(self):

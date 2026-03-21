@@ -8,9 +8,9 @@ payload building, encoding, and output formatting.
 import unittest
 from unittest.mock import patch, MagicMock
 import sys
-from src.encoders import ror13_hash, encode_dword, string_to_push_dwords
-from src.formatters import format_output
-from hash_generator import generate_hash_dict
+from shellgen.src.encoders import ror13_hash, encode_dword, string_to_push_dwords
+from shellgen.src.formatters import format_output
+from shellgen.hash_generator import generate_hash_dict
 
 
 class TestEncoderIntegration(unittest.TestCase):
@@ -231,7 +231,7 @@ class TestComponentInteraction(unittest.TestCase):
 
     def test_hash_generator_output_formats(self):
         """Test that all hash generator formats work."""
-        from hash_generator import (
+        from shellgen.hash_generator import (
             format_output_text,
             format_output_python,
             format_output_c,

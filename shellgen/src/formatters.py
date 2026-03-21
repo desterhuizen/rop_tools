@@ -156,6 +156,8 @@ def format_c_array(shellcode_bytes, arch='x86', platform='windows'):
         # Plain output for files/pipes
         lines = [
             f'// Length: {len(shellcode_bytes)} bytes',
+            f'// Architecture: {arch}',
+            f'// Platform: {platform}',
             '',
             'unsigned char shellgen[] = {'
         ]

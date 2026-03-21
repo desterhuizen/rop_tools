@@ -4,7 +4,7 @@ Integration tests for get_base_address.py
 Tests the complete get_base_address CLI tool including argument parsing,
 PE file processing, and output formatting.
 """
-import pytest
+import unittest
 import tempfile
 import os
 import subprocess
@@ -21,10 +21,10 @@ HAS_PE_FILE = platform.system() == "Windows"
 TEST_PE_FILE = sys.executable if HAS_PE_FILE else None
 
 
-class TestBasicUsage:
+class TestBasicUsage(unittest.TestCase):
     """Test basic get_base_address.py functionality"""
 
-    @pytest.mark.skipif(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
+    @unittest.skipIf(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
     def test_basic_base_address_display(self):
         """Test basic base address extraction"""
         result = subprocess.run(
@@ -37,7 +37,7 @@ class TestBasicUsage:
         assert "ImageBase" in result.stdout
         assert "0x" in result.stdout
 
-    @pytest.mark.skipif(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
+    @unittest.skipIf(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
     def test_quiet_mode(self):
         """Test -q flag outputs only the address"""
         result = subprocess.run(
@@ -53,7 +53,7 @@ class TestBasicUsage:
         assert "ImageBase" not in result.stdout
         assert "File" not in result.stdout
 
-    @pytest.mark.skipif(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
+    @unittest.skipIf(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
     def test_no_color_flag(self):
         """Test --no-color disables color output"""
         result = subprocess.run(
@@ -67,10 +67,10 @@ class TestBasicUsage:
         assert "\x1b[" not in result.stdout
 
 
-class TestVerboseMode:
+class TestVerboseMode(unittest.TestCase):
     """Test verbose mode output"""
 
-    @pytest.mark.skipif(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
+    @unittest.skipIf(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
     def test_verbose_mode(self):
         """Test -v flag shows entry point, machine type, sections"""
         result = subprocess.run(
@@ -88,10 +88,10 @@ class TestVerboseMode:
         assert "Section" in result.stdout or ".text" in result.stdout
 
 
-class TestIATDisplay:
+class TestIATDisplay(unittest.TestCase):
     """Test Import Address Table display"""
 
-    @pytest.mark.skipif(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
+    @unittest.skipIf(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
     def test_iat_display(self):
         """Test --iat flag displays import table"""
         result = subprocess.run(
@@ -106,7 +106,7 @@ class TestIATDisplay:
         # Should show DLL names
         assert ".dll" in result.stdout.lower()
 
-    @pytest.mark.skipif(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
+    @unittest.skipIf(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
     def test_iat_dll_filter(self):
         """Test --iat --dll filters by DLL name"""
         # Try to filter by kernel32
@@ -121,7 +121,7 @@ class TestIATDisplay:
         # Should show kernel32 imports or message about no imports
         assert "kernel32" in result.stdout.lower() or "No imports" in result.stdout
 
-    @pytest.mark.skipif(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
+    @unittest.skipIf(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
     def test_iat_dll_filter_case_insensitive(self):
         """Test DLL filter is case-insensitive"""
         # Try uppercase and lowercase versions
@@ -146,7 +146,7 @@ class TestIATDisplay:
         # (either both find imports or both don't)
 
 
-class TestErrorHandling:
+class TestErrorHandling(unittest.TestCase):
     """Test error handling"""
 
     def test_missing_file(self):
@@ -182,10 +182,10 @@ class TestErrorHandling:
             os.unlink(temp_path)
 
 
-class TestOutputFormats:
+class TestOutputFormats(unittest.TestCase):
     """Test different output formats and combinations"""
 
-    @pytest.mark.skipif(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
+    @unittest.skipIf(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
     def test_combined_verbose_iat(self):
         """Test combining verbose mode with IAT display"""
         result = subprocess.run(
@@ -200,7 +200,7 @@ class TestOutputFormats:
         assert "ImageBase" in result.stdout
         assert "Import" in result.stdout or "IAT" in result.stdout
 
-    @pytest.mark.skipif(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
+    @unittest.skipIf(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
     def test_quiet_mode_ignores_other_flags(self):
         """Test that quiet mode overrides verbose and IAT flags"""
         result = subprocess.run(
@@ -218,8 +218,8 @@ class TestOutputFormats:
         assert "Import" not in result.stdout
 
 
-@pytest.mark.skipif(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
-class TestAddressFormats:
+@unittest.skipIf(not HAS_PE_FILE, reason="No PE file available (not on Windows)")
+class TestAddressFormats(unittest.TestCase):
     """Test address display formats"""
 
     def test_hex_address_format(self):

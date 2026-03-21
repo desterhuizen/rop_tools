@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 import os
 import tempfile
-from worksheet.repl.completer import WorksheetCompleter
+from rop.worksheet.repl.completer import WorksheetCompleter
 
 
 class TestWorksheetCompleter(unittest.TestCase):

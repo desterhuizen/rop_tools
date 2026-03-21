@@ -4,11 +4,11 @@ Unit tests for rop/core/parser.py
 Tests the ROPGadgetParser class for parsing rp++ output files,
 including encoding detection, file parsing, filtering, and grouping.
 """
-import pytest
+import unittest
 import tempfile
 import os
-from core.parser import ROPGadgetParser
-from core.gadget import Gadget
+from rop.core.parser import ROPGadgetParser
+from rop.core.gadget import Gadget
 
 
 # Sample gadget data for testing
@@ -34,7 +34,7 @@ SAMPLE_GADGETS_WITH_BAD_CHARS = """FileFormat: PE, Arch: x86
 """
 
 
-class TestEncodingDetection:
+class TestEncodingDetection(unittest.TestCase):
     """Test file encoding detection"""
 
     def test_detect_utf8(self):
@@ -63,7 +63,7 @@ class TestEncodingDetection:
             os.unlink(temp_path)
 
 
-class TestFileParsingBasics:
+class TestFileParsingBasics(unittest.TestCase):
     """Test basic file parsing functionality"""
 
     def test_parse_file_utf8(self):
@@ -109,93 +109,87 @@ class TestFileParsingBasics:
             os.unlink(temp_path)
 
 
-class TestFilteringByInstruction:
+class TestFilteringByInstruction(unittest.TestCase):
     """Test filtering gadgets by instruction"""
 
-    @pytest.fixture
-    def parser(self):
+    def setUp(self):
         """Create parser with sample gadgets"""
         with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
             f.write(SAMPLE_GADGETS)
             temp_path = f.name
 
-        parser = ROPGadgetParser(temp_path)
-        parser.parse_file()
+        self.parser = ROPGadgetParser(temp_path)
+        self.parser.parse_file()
         os.unlink(temp_path)
-        return parser
 
-    def test_filter_by_instruction_any(self, parser):
+    def test_filter_by_instruction_any(self):
         """Test filtering by instruction (any position)"""
-        filtered = parser.filter_by_instruction("pop", "any")
+        filtered = self.parser.filter_by_instruction("pop", "any")
         assert len(filtered) == 2  # Two gadgets contain 'pop'
 
-    def test_filter_by_instruction_first(self, parser):
+    def test_filter_by_instruction_first(self):
         """Test filtering by first instruction"""
-        filtered = parser.filter_by_instruction("pop", "first")
+        filtered = self.parser.filter_by_instruction("pop", "first")
         assert len(filtered) == 2  # Two gadgets start with 'pop'
 
-    def test_filter_by_instruction_last(self, parser):
+    def test_filter_by_instruction_last(self):
         """Test filtering by last instruction"""
-        filtered = parser.filter_by_instruction("ret", "last")
+        filtered = self.parser.filter_by_instruction("ret", "last")
         assert len(filtered) == 5  # Five gadgets end with 'ret'
 
-    def test_filter_by_instruction_case_insensitive(self, parser):
+    def test_filter_by_instruction_case_insensitive(self):
         """Test case-insensitive filtering"""
-        filtered = parser.filter_by_instruction("POP", "any")
+        filtered = self.parser.filter_by_instruction("POP", "any")
         assert len(filtered) == 2
 
 
-class TestFilteringByPattern:
+class TestFilteringByPattern(unittest.TestCase):
     """Test filtering by regex pattern"""
 
-    @pytest.fixture
-    def parser(self):
+    def setUp(self):
         """Create parser with sample gadgets"""
         with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
             f.write(SAMPLE_GADGETS)
             temp_path = f.name
 
-        parser = ROPGadgetParser(temp_path)
-        parser.parse_file()
+        self.parser = ROPGadgetParser(temp_path)
+        self.parser.parse_file()
         os.unlink(temp_path)
-        return parser
 
-    def test_filter_by_pattern_simple(self, parser):
+    def test_filter_by_pattern_simple(self):
         """Test simple regex pattern"""
-        filtered = parser.filter_by_pattern(r"pop.*ret")
+        filtered = self.parser.filter_by_pattern(r"pop.*ret")
         assert len(filtered) >= 1
 
-    def test_filter_by_pattern_complex(self, parser):
+    def test_filter_by_pattern_complex(self):
         """Test complex regex pattern"""
-        filtered = parser.filter_by_pattern(r"pop.*pop.*ret")
+        filtered = self.parser.filter_by_pattern(r"pop.*pop.*ret")
         assert len(filtered) == 1  # Only one gadget with two pops
 
 
-class TestBadCharacterFiltering:
+class TestBadCharacterFiltering(unittest.TestCase):
     """Test filtering by bad characters"""
 
-    @pytest.fixture
-    def parser(self):
+    def setUp(self):
         """Create parser with gadgets containing bad chars"""
         with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
             f.write(SAMPLE_GADGETS_WITH_BAD_CHARS)
             temp_path = f.name
 
-        parser = ROPGadgetParser(temp_path)
-        parser.parse_file()
+        self.parser = ROPGadgetParser(temp_path)
+        self.parser.parse_file()
         os.unlink(temp_path)
-        return parser
 
-    def test_filter_bad_chars_null(self, parser):
+    def test_filter_bad_chars_null(self):
         """Test filtering null bytes"""
-        filtered = parser.filter_bad_chars(['00'])
+        filtered = self.parser.filter_bad_chars(['00'])
         # Should exclude 0x00001234
         addresses = [g.address for g in filtered]
         assert "0x00001234" not in addresses
 
-    def test_filter_bad_chars_multiple(self, parser):
+    def test_filter_bad_chars_multiple(self):
         """Test filtering multiple bad characters"""
-        filtered = parser.filter_bad_chars(['00', '0a', '0d'])
+        filtered = self.parser.filter_bad_chars(['00', '0a', '0d'])
         # Should exclude gadgets with 00, 0a, or 0d
         addresses = [g.address for g in filtered]
         assert "0x00001234" not in addresses
@@ -204,100 +198,94 @@ class TestBadCharacterFiltering:
         assert "0x12345678" in addresses  # This one should remain
 
 
-class TestGroupingFunctions:
+class TestGroupingFunctions(unittest.TestCase):
     """Test grouping gadgets"""
 
-    @pytest.fixture
-    def parser(self):
+    def setUp(self):
         """Create parser with sample gadgets"""
         with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
             f.write(SAMPLE_GADGETS)
             temp_path = f.name
 
-        parser = ROPGadgetParser(temp_path)
-        parser.parse_file()
+        self.parser = ROPGadgetParser(temp_path)
+        self.parser.parse_file()
         os.unlink(temp_path)
-        return parser
 
-    def test_group_by_last_instruction(self, parser):
+    def test_group_by_last_instruction(self):
         """Test grouping by last instruction"""
-        groups = parser.group_by_last_instruction()
+        groups = self.parser.group_by_last_instruction()
         assert "ret" in groups
         assert len(groups["ret"]) == 5
 
-    def test_group_by_first_instruction(self, parser):
+    def test_group_by_first_instruction(self):
         """Test grouping by first instruction"""
-        groups = parser.group_by_first_instruction()
+        groups = self.parser.group_by_first_instruction()
         assert "pop" in groups
         assert "mov" in groups
         assert "add" in groups
 
-    def test_group_by_category(self, parser):
+    def test_group_by_category(self):
         """Test grouping by category"""
-        groups = parser.group_by_category()
+        groups = self.parser.group_by_category()
         assert len(groups) > 0
         # Should have at least stack_pop and other categories
         assert "stack_pop" in groups or len(groups) > 0
 
-    def test_group_by_affected_register(self, parser):
+    def test_group_by_affected_register(self):
         """Test grouping by affected registers"""
-        groups = parser.group_by_affected_register()
+        groups = self.parser.group_by_affected_register()
         assert "eax" in groups
         assert len(groups["eax"]) > 0
 
-    def test_group_by_modified_register(self, parser):
+    def test_group_by_modified_register(self):
         """Test grouping by modified registers"""
-        groups = parser.group_by_modified_register()
+        groups = self.parser.group_by_modified_register()
         assert "eax" in groups
         # pop eax modifies eax
         eax_gadgets = groups["eax"]
         assert len(eax_gadgets) > 0
 
 
-class TestRegisterFiltering:
+class TestRegisterFiltering(unittest.TestCase):
     """Test filtering by register"""
 
-    @pytest.fixture
-    def parser(self):
+    def setUp(self):
         """Create parser with sample gadgets"""
         with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
             f.write(SAMPLE_GADGETS)
             temp_path = f.name
 
-        parser = ROPGadgetParser(temp_path)
-        parser.parse_file()
+        self.parser = ROPGadgetParser(temp_path)
+        self.parser.parse_file()
         os.unlink(temp_path)
-        return parser
 
-    def test_filter_by_register_affected(self, parser):
+    def test_filter_by_register_affected(self):
         """Test filtering by affected register"""
-        filtered = parser.filter_by_register("eax", modified_only=False)
+        filtered = self.parser.filter_by_register("eax", modified_only=False)
         assert len(filtered) > 0
 
-    def test_filter_by_register_modified(self, parser):
+    def test_filter_by_register_modified(self):
         """Test filtering by modified register"""
-        filtered = parser.filter_by_register("eax", modified_only=True)
+        filtered = self.parser.filter_by_register("eax", modified_only=True)
         assert len(filtered) > 0
 
 
-class TestStatistics:
+class TestStatistics(unittest.TestCase):
     """Test statistics generation"""
 
-    @pytest.fixture
-    def parser(self):
+    def setUp(self):
         """Create parser with sample gadgets"""
         with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.txt') as f:
             f.write(SAMPLE_GADGETS)
             temp_path = f.name
 
-        parser = ROPGadgetParser(temp_path)
-        parser.parse_file()
+        self.parser = ROPGadgetParser(temp_path)
+        self.parser.parse_file()
         os.unlink(temp_path)
-        return parser
 
-    def test_get_statistics(self, parser):
+    def test_get_statistics(self):
         """Test statistics generation"""
-        stats = parser.get_statistics()
+        stats = self.parser.get_statistics()
 
         assert stats['total_gadgets'] == 6
         assert stats['unique_addresses'] == 6

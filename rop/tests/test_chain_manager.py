@@ -1,12 +1,12 @@
 """
 Unit tests for worksheet.chain.manager module.
 """
-import pytest
-from worksheet.core.data import blank_worksheet
-from worksheet.chain.manager import cmd_chain_add, cmd_chain_del, cmd_chain_clear
+import unittest
+from rop.worksheet.core.data import blank_worksheet
+from rop.worksheet.chain.manager import cmd_chain_add, cmd_chain_del, cmd_chain_clear
 
 
-class TestCmdChainAdd:
+class TestCmdChainAdd(unittest.TestCase):
     """Test the cmd_chain_add operation."""
 
     def test_add_hex_address(self):
@@ -88,7 +88,7 @@ class TestCmdChainAdd:
         assert ws["chain"][2]["type"] == "literal"
 
 
-class TestCmdChainDel:
+class TestCmdChainDel(unittest.TestCase):
     """Test the cmd_chain_del operation."""
 
     def test_delete_valid_index(self):
@@ -151,7 +151,7 @@ class TestCmdChainDel:
         assert success is False
 
 
-class TestCmdChainClear:
+class TestCmdChainClear(unittest.TestCase):
     """Test the cmd_chain_clear operation."""
 
     def test_clear_empty_chain(self):

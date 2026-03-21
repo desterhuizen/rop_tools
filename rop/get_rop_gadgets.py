@@ -43,10 +43,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 # Import display functions
-from display import printer, print_gadgets, print_statistics
+from rop.display import printer, print_gadgets, print_statistics
 
 # Import core classes and functions
-from core import get_category_style, ROPGadgetParser
+from rop.core import get_category_style, ROPGadgetParser
 
 
 # List of instructions that make gadgets useless for ROP chains

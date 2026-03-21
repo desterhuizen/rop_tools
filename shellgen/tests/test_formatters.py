@@ -7,7 +7,7 @@ Tests output formatting in various formats: ASM, Python, C, raw, and pyasm.
 import unittest
 from unittest.mock import patch, MagicMock
 import sys
-from src.formatters import (
+from shellgen.src.formatters import (
     format_asm,
     format_python_bytes,
     format_c_array,
@@ -89,7 +89,8 @@ class TestFormatAsm(unittest.TestCase):
 class TestFormatPythonBytes(unittest.TestCase):
     """Test cases for format_python_bytes function."""
 
-    def test_basic_formatting(self):
+    @patch('sys.stdout.isatty', return_value=False)
+    def test_basic_formatting(self, mock_isatty):
         """Test basic Python bytes formatting."""
         shellcode_bytes = b'\x90\x90\x90\xc3'
         result = format_python_bytes(shellcode_bytes, arch='x86', platform='windows')
@@ -98,7 +99,8 @@ class TestFormatPythonBytes(unittest.TestCase):
         self.assertIn('shellgen', result)
         self.assertIn('\\x90\\x90\\x90\\xc3', result)
 
-    def test_includes_metadata(self):
+    @patch('sys.stdout.isatty', return_value=False)
+    def test_includes_metadata(self, mock_isatty):
         """Test that metadata is included in output."""
         shellcode_bytes = b'\x90\xc3'
         result = format_python_bytes(shellcode_bytes, arch='x86', platform='windows')
@@ -108,7 +110,8 @@ class TestFormatPythonBytes(unittest.TestCase):
         self.assertIn('Architecture: x86', result)
         self.assertIn('Platform: windows', result)
 
-    def test_different_architectures(self):
+    @patch('sys.stdout.isatty', return_value=False)
+    def test_different_architectures(self, mock_isatty):
         """Test formatting for different architectures."""
         shellcode_bytes = b'\x90\xc3'
 
@@ -117,7 +120,8 @@ class TestFormatPythonBytes(unittest.TestCase):
                 result = format_python_bytes(shellcode_bytes, arch=arch, platform='linux')
                 self.assertIn(f'Architecture: {arch}', result)
 
-    def test_empty_shellcode(self):
+    @patch('sys.stdout.isatty', return_value=False)
+    def test_empty_shellcode(self, mock_isatty):
         """Test formatting empty shellcode."""
         shellcode_bytes = b''
         result = format_python_bytes(shellcode_bytes, arch='x86', platform='windows')
@@ -125,7 +129,8 @@ class TestFormatPythonBytes(unittest.TestCase):
         self.assertIn('shellgen', result)
         self.assertIn('Length: 0 bytes', result)
 
-    def test_hex_encoding(self):
+    @patch('sys.stdout.isatty', return_value=False)
+    def test_hex_encoding(self, mock_isatty):
         """Test that bytes are correctly hex-encoded."""
         shellcode_bytes = b'\x00\xff\x12\x34'
         result = format_python_bytes(shellcode_bytes, arch='x86', platform='windows')
@@ -139,7 +144,8 @@ class TestFormatPythonBytes(unittest.TestCase):
 class TestFormatCArray(unittest.TestCase):
     """Test cases for format_c_array function."""
 
-    def test_basic_formatting(self):
+    @patch('sys.stdout.isatty', return_value=False)
+    def test_basic_formatting(self, mock_isatty):
         """Test basic C array formatting."""
         shellcode_bytes = b'\x90\x90\x90\xc3'
         result = format_c_array(shellcode_bytes, arch='x86', platform='windows')
@@ -148,7 +154,8 @@ class TestFormatCArray(unittest.TestCase):
         self.assertIn('unsigned char shellgen[]', result)
         self.assertIn('0x90, 0x90, 0x90, 0xc3', result)
 
-    def test_includes_length_variable(self):
+    @patch('sys.stdout.isatty', return_value=False)
+    def test_includes_length_variable(self, mock_isatty):
         """Test that length variable is included."""
         shellcode_bytes = b'\x90\xc3'
         result = format_c_array(shellcode_bytes, arch='x86', platform='windows')
@@ -156,7 +163,8 @@ class TestFormatCArray(unittest.TestCase):
         self.assertIn('unsigned int shellcode_len', result)
         self.assertIn('= 2', result)
 
-    def test_16_bytes_per_line(self):
+    @patch('sys.stdout.isatty', return_value=False)
+    def test_16_bytes_per_line(self, mock_isatty):
         """Test that output has 16 bytes per line."""
         # Create shellcode with more than 16 bytes
         shellcode_bytes = bytes(range(32))
@@ -169,7 +177,8 @@ class TestFormatCArray(unittest.TestCase):
         # Should have multiple lines
         self.assertGreater(len(data_lines), 1)
 
-    def test_includes_metadata_comments(self):
+    @patch('sys.stdout.isatty', return_value=False)
+    def test_includes_metadata_comments(self, mock_isatty):
         """Test that C comments with metadata are included."""
         shellcode_bytes = b'\x90\xc3'
         result = format_c_array(shellcode_bytes, arch='x64', platform='linux')
@@ -178,7 +187,8 @@ class TestFormatCArray(unittest.TestCase):
         self.assertIn('//', result)
         self.assertIn('x64', result.lower())
 
-    def test_proper_c_syntax(self):
+    @patch('sys.stdout.isatty', return_value=False)
+    def test_proper_c_syntax(self, mock_isatty):
         """Test that output has proper C syntax."""
         shellcode_bytes = b'\x90\xc3'
         result = format_c_array(shellcode_bytes, arch='x86', platform='windows')
@@ -278,7 +288,7 @@ class TestFormatOutput(unittest.TestCase):
         self.assertIsInstance(result, str)
         self.assertIn('#!/usr/bin/env python3', result)
 
-    @patch('src.formatters.assemble_to_binary')
+    @patch('shellgen.src.formatters.assemble_to_binary')
     def test_raw_format(self, mock_assemble):
         """Test output in raw binary format."""
         asm_code = "mov eax, ebx\nret"
@@ -290,7 +300,7 @@ class TestFormatOutput(unittest.TestCase):
         self.assertEqual(result, mock_shellcode)
         mock_assemble.assert_called_once_with(asm_code, 'x86')
 
-    @patch('src.formatters.assemble_to_binary')
+    @patch('shellgen.src.formatters.assemble_to_binary')
     def test_python_format(self, mock_assemble):
         """Test output in Python format."""
         asm_code = "mov eax, ebx\nret"
@@ -303,7 +313,7 @@ class TestFormatOutput(unittest.TestCase):
         self.assertIn('shellgen', result)
         mock_assemble.assert_called_once()
 
-    @patch('src.formatters.assemble_to_binary')
+    @patch('shellgen.src.formatters.assemble_to_binary')
     def test_c_format(self, mock_assemble):
         """Test output in C format."""
         asm_code = "mov eax, ebx\nret"
@@ -371,7 +381,8 @@ class TestFormattersEdgeCases(unittest.TestCase):
         self.assertIn("_start:", result)
         self.assertIn("mov eax, ebx", result)
 
-    def test_very_long_shellcode(self):
+    @patch('sys.stdout.isatty', return_value=False)
+    def test_very_long_shellcode(self, mock_isatty):
         """Test formatting very long shellcode."""
         # 1000 bytes of shellcode
         shellcode_bytes = bytes(range(256)) * 4
@@ -382,7 +393,8 @@ class TestFormattersEdgeCases(unittest.TestCase):
         result_c = format_c_array(shellcode_bytes, arch='x86', platform='windows')
         self.assertIn('unsigned int shellcode_len = 1024', result_c)
 
-    def test_shellcode_with_all_byte_values(self):
+    @patch('sys.stdout.isatty', return_value=False)
+    def test_shellcode_with_all_byte_values(self, mock_isatty):
         """Test shellcode containing all possible byte values."""
         shellcode_bytes = bytes(range(256))
 

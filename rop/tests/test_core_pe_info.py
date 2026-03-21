@@ -4,11 +4,11 @@ Unit tests for rop/core/pe_info.py
 Tests the PEAnalyzer class for extracting PE file information,
 including base addresses, sections, and Import Address Table (IAT) entries.
 """
-import pytest
+import unittest
 import sys
 import shutil
 from pathlib import Path
-from core.pe_info import PEAnalyzer, PEInfo, PESection, IATEntry
+from rop.core.pe_info import PEAnalyzer, PEInfo, PESection, IATEntry
 import pefile
 
 
@@ -31,8 +31,8 @@ TEST_PE_FILE = find_test_pe()
 HAS_PE_FILE = TEST_PE_FILE is not None
 
 
-@pytest.mark.skipif(not HAS_PE_FILE, reason="No PE file available for testing")
-class TestPEAnalyzerBasics:
+@unittest.skipIf(not HAS_PE_FILE, reason="No PE file available for testing")
+class TestPEAnalyzerBasics(unittest.TestCase):
     """Test basic PE analysis functionality"""
 
     def test_get_base_address(self):
@@ -109,8 +109,8 @@ class TestPEAnalyzerBasics:
         assert abs_entry == pe_info.image_base + pe_info.entry_point
 
 
-@pytest.mark.skipif(not HAS_PE_FILE, reason="No PE file available for testing")
-class TestIATExtraction:
+@unittest.skipIf(not HAS_PE_FILE, reason="No PE file available for testing")
+class TestIATExtraction(unittest.TestCase):
     """Test Import Address Table extraction"""
 
     def test_get_iat_entries(self):
@@ -183,8 +183,8 @@ class TestIATExtraction:
             assert abs_addr > pe_info.image_base
 
 
-@pytest.mark.skipif(not HAS_PE_FILE, reason="No PE file available for testing")
-class TestSectionCharacteristics:
+@unittest.skipIf(not HAS_PE_FILE, reason="No PE file available for testing")
+class TestSectionCharacteristics(unittest.TestCase):
     """Test section characteristics and flags"""
 
     def test_get_characteristics_flags(self):
@@ -253,7 +253,7 @@ class TestSectionCharacteristics:
                 assert len(section.name) > 0
 
 
-class TestDataClasses:
+class TestDataClasses(unittest.TestCase):
     """Test dataclass functionality"""
 
     def test_pe_section_dataclass(self):

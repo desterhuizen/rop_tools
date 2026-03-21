@@ -16,7 +16,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from lib.color_printer import printer
-from core import PEAnalyzer, PEInfo, IATEntry
+from rop.core import PEAnalyzer, PEInfo, IATEntry
 from typing import List
 
 

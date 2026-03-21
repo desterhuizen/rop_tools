@@ -1,12 +1,12 @@
 """
 Unit tests for worksheet.operations.quick_ops module.
 """
-import pytest
-from worksheet.core.data import blank_worksheet
-from worksheet.operations.quick_ops import cmd_set, cmd_clear
+import unittest
+from rop.worksheet.core.data import blank_worksheet
+from rop.worksheet.operations.quick_ops import cmd_set, cmd_clear
 
 
-class TestCmdSet:
+class TestCmdSet(unittest.TestCase):
     """Test the cmd_set operation."""
 
     def test_set_register(self):
@@ -57,7 +57,7 @@ class TestCmdSet:
         assert ws["registers"]["EAX"] == "0x10000000"
 
 
-class TestCmdClear:
+class TestCmdClear(unittest.TestCase):
     """Test the cmd_clear operation."""
 
     def test_clear_register(self):

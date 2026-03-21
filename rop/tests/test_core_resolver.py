@@ -1,12 +1,12 @@
 """
 Unit tests for worksheet.core.resolver module.
 """
-import pytest
-from worksheet.core.data import blank_worksheet
-from worksheet.core.resolver import resolve_value, parse_target
+import unittest
+from rop.worksheet.core.data import blank_worksheet
+from rop.worksheet.core.resolver import resolve_value, parse_target
 
 
-class TestResolveValue:
+class TestResolveValue(unittest.TestCase):
     """Test the resolve_value function."""
 
     def test_resolve_direct_hex(self):
@@ -91,7 +91,7 @@ class TestResolveValue:
         assert resolve_value("ESP+0x100", ws) is None
 
 
-class TestParseTarget:
+class TestParseTarget(unittest.TestCase):
     """Test the parse_target function."""
 
     def test_parse_register(self):

@@ -1,12 +1,12 @@
 """
 Unit tests for worksheet.gadgets.processor module.
 """
-import pytest
-from worksheet.core.data import blank_worksheet
-from worksheet.gadgets.processor import find_gadget_by_address, process_gadget, log_execution
+import unittest
+from rop.worksheet.core.data import blank_worksheet
+from rop.worksheet.gadgets.processor import find_gadget_by_address, process_gadget, log_execution
 
 
-class TestFindGadgetByAddress:
+class TestFindGadgetByAddress(unittest.TestCase):
     """Test the find_gadget_by_address function."""
 
     def test_find_existing_gadget(self):
@@ -36,7 +36,7 @@ class TestFindGadgetByAddress:
         assert result is None
 
 
-class TestProcessGadget:
+class TestProcessGadget(unittest.TestCase):
     """Test the process_gadget function."""
 
     def test_process_simple_pop(self):
@@ -167,7 +167,7 @@ class TestProcessGadget:
             assert log["type"] == "auto"
 
 
-class TestLogExecution:
+class TestLogExecution(unittest.TestCase):
     """Test the log_execution function."""
 
     def test_log_manual_operation(self):

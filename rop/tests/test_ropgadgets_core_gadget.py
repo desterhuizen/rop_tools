@@ -5,11 +5,11 @@ Tests the Gadget dataclass and its methods for analyzing
 ROP gadgets including instruction parsing, register analysis,
 and bad character detection.
 """
-import pytest
-from core.gadget import Gadget
+import unittest
+from rop.core.gadget import Gadget
 
 
-class TestGadgetBasics:
+class TestGadgetBasics(unittest.TestCase):
     """Test basic Gadget functionality"""
 
     def test_gadget_creation(self):
@@ -67,7 +67,7 @@ class TestGadgetBasics:
         assert g.get_instruction_chain() == ""
 
 
-class TestBadCharacterDetection:
+class TestBadCharacterDetection(unittest.TestCase):
     """Test bad character detection in gadget addresses"""
 
     def test_contains_no_bad_chars(self):
@@ -115,7 +115,7 @@ class TestBadCharacterDetection:
         assert g.contains_bad_chars(bad_chars)
 
 
-class TestRegisterAnalysis:
+class TestRegisterAnalysis(unittest.TestCase):
     """Test register extraction and analysis"""
 
     def test_get_affected_registers_32bit(self):
@@ -195,7 +195,7 @@ class TestRegisterAnalysis:
         assert "ebx" in modified
 
 
-class TestDereferencedRegisters:
+class TestDereferencedRegisters(unittest.TestCase):
     """Test dereferenced register detection"""
 
     def test_get_dereferenced_simple(self):

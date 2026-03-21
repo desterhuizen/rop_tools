@@ -1,12 +1,12 @@
 """
 Unit tests for worksheet.gadgets.library module.
 """
-import pytest
-from worksheet.core.data import blank_worksheet
-from worksheet.gadgets.library import cmd_gadget_add, cmd_gadget_del, cmd_gadget_clear
+import unittest
+from rop.worksheet.core.data import blank_worksheet
+from rop.worksheet.gadgets.library import cmd_gadget_add, cmd_gadget_del, cmd_gadget_clear
 
 
-class TestCmdGadgetAdd:
+class TestCmdGadgetAdd(unittest.TestCase):
     """Test the cmd_gadget_add operation."""
 
     def test_add_gadget(self):
@@ -59,7 +59,7 @@ class TestCmdGadgetAdd:
         assert ws["gadgets"]["0x10001234"] == "pop ebx ; ret"
 
 
-class TestCmdGadgetDel:
+class TestCmdGadgetDel(unittest.TestCase):
     """Test the cmd_gadget_del operation."""
 
     def test_delete_existing_gadget(self):
@@ -92,7 +92,7 @@ class TestCmdGadgetDel:
         assert "0x1000abcd" not in ws["gadgets"]
 
 
-class TestCmdGadgetClear:
+class TestCmdGadgetClear(unittest.TestCase):
     """Test the cmd_gadget_clear operation."""
 
     def test_clear_empty_library(self):
