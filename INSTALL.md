@@ -2,7 +2,59 @@
 
 This guide will help you install the ROP Tools Suite and make all tools available system-wide via symbolic links.
 
-## Quick Installation
+## Choose Your Installation Method
+
+### Method 1: Virtual Environment Installation (Recommended)
+Uses an isolated Python virtual environment with dedicated dependencies. The tools in `~/.local/bin/` will use the venv Python interpreter.
+
+### Method 2: Direct Installation
+Uses your system Python interpreter directly. Simpler but dependencies are installed globally.
+
+---
+
+## Method 1: Virtual Environment Installation (Recommended)
+
+This method creates a virtual environment and wrapper scripts that use the venv Python interpreter.
+
+### Step 1: Setup Virtual Environment
+
+```bash
+# Navigate to the repository
+cd /path/to/rop_tools
+
+# Run the setup script
+./setup_venv.sh
+```
+
+This will:
+- Create a virtual environment in `venv/`
+- Install all dependencies from `requirements.txt`
+- Upgrade pip to the latest version
+
+### Step 2: Install Tools System-Wide
+
+```bash
+# Run the installation script
+./install_with_venv.sh
+```
+
+This will:
+- Create wrapper scripts in `bin/` that use the venv Python
+- Create symbolic links in `~/.local/bin/` pointing to the wrappers
+- Make all tools available system-wide
+
+### Verify Installation
+
+```bash
+which shellgen
+# Should show: /Users/yourusername/.local/bin/shellgen
+
+shellgen --help
+```
+
+---
+
+## Method 2: Direct Installation
 
 Run the following commands to install all tools to `~/.local/bin/`:
 
@@ -73,7 +125,7 @@ which rop_worksheet
 
 All commands should show: `~/.local/bin/<command_name>`
 
-## Install Dependencies
+### Install Dependencies
 
 Before using the tools, install the required Python dependencies:
 
@@ -81,22 +133,7 @@ Before using the tools, install the required Python dependencies:
 pip install -r requirements.txt
 ```
 
-### Optional: Use Virtual Environment
-
-For isolated dependency management:
-
-```bash
-# Create virtual environment
-python3 -m venv venv
-
-# Activate it
-source venv/bin/activate  # Linux/macOS
-# or
-venv\Scripts\activate     # Windows
-
-# Install dependencies
-pip install -r requirements.txt
-```
+---
 
 ## Test the Installation
 
@@ -161,7 +198,7 @@ rop_worksheet
 
 ## Uninstallation
 
-To remove the symbolic links:
+### Remove Symbolic Links
 
 ```bash
 rm ~/.local/bin/shellgen
@@ -169,6 +206,14 @@ rm ~/.local/bin/hash_generator
 rm ~/.local/bin/get_rop_gadgets
 rm ~/.local/bin/get_base_address
 rm ~/.local/bin/rop_worksheet
+```
+
+### Remove Virtual Environment (if using Method 1)
+
+```bash
+cd /path/to/rop_tools
+rm -rf venv/
+rm -rf bin/
 ```
 
 ## Troubleshooting
@@ -203,7 +248,13 @@ chmod +x rop/rop_worksheet.py
 
 ### Import errors
 
-Install dependencies:
+**For Method 1 (venv):** Dependencies should already be installed. If not:
+```bash
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+**For Method 2 (direct):** Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
@@ -212,6 +263,20 @@ For specific tool dependencies:
 - **shellgen**: `keystone-engine`, `capstone`
 - **get_base_address**: `pefile`
 - **All tools**: `rich` (optional, for colored output)
+
+### Wrong Python interpreter (venv users)
+
+If tools are using system Python instead of venv Python:
+
+1. Check which Python is being used:
+   ```bash
+   head -n 1 ~/.local/bin/shellgen
+   ```
+
+2. Reinstall using Method 1:
+   ```bash
+   ./install_with_venv.sh
+   ```
 
 ## Alternative Installation Methods
 
