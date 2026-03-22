@@ -135,7 +135,7 @@ def _tcp_branches(decoy_specs: List[Tuple[str, DecoyType]]) -> str:
 def _http_branches(decoy_specs: List[Tuple[str, DecoyType]]) -> str:
     """Generate HTTP dispatcher branches for decoys."""
     branches = []
-    for i, (name, _) in enumerate(decoy_specs):
+    for _i, (name, _) in enumerate(decoy_specs):
         func_name = f"handle_{name.lower()}"
         path = f"/{name.lower()}"
         branches.append(f"""\

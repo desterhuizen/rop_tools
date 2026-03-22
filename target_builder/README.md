@@ -229,8 +229,22 @@ Output:
 ## Compiling Generated Servers
 
 Generated servers include compile instructions in the header comment. You need:
-- **Visual Studio** with C++ Desktop Development workload
+- **Visual Studio** with C++ Desktop Development workload (or Build Tools alone)
 - **Visual Studio Native Tools Command Prompt** (x86 or x64 matching `--arch`)
+
+### Visual Studio Build Tools Setup
+
+Build Tools is the lightest option (no IDE needed):
+
+1. Run Visual Studio Installer (search Start Menu)
+2. Click Modify on "Build Tools 2026"
+3. Check "Desktop development with C++"
+4. Under "Individual components" make sure these are checked:
+   - MSVC v144 — VS 2026 C++ x64/x86 build tools
+   - Windows SDK (latest version)
+5. Click Install/Modify
+
+### Compiling
 
 ```bat
 REM From the Visual Studio x86 Native Tools Command Prompt:

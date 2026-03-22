@@ -268,17 +268,18 @@ class ServerConfig:
             raise ValueError("--buffer-size must be at least 16")
 
         # Egghunter vuln buffer must be smaller than main buffer
-        if self.vuln_type == VulnType.EGGHUNTER:
-            if self.vuln_buffer_size >= self.buffer_size:
-                raise ValueError(
-                    "--vuln-buffer-size must be smaller than --buffer-size "
-                    "for egghunter"
-                )
+        if (
+            self.vuln_type == VulnType.EGGHUNTER
+            and self.vuln_buffer_size >= self.buffer_size
+        ):
+            raise ValueError(
+                "--vuln-buffer-size must be smaller than --buffer-size "
+                "for egghunter"
+            )
 
         # Egg tag must be exactly 4 bytes
-        if self.vuln_type == VulnType.EGGHUNTER:
-            if len(self.egg_tag) != 4:
-                raise ValueError("--egg tag must be exactly 4 characters")
+        if self.vuln_type == VulnType.EGGHUNTER and len(self.egg_tag) != 4:
+            raise ValueError("--egg tag must be exactly 4 characters")
 
         # Port range
         if not (1 <= self.port <= 65535):

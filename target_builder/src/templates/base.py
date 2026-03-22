@@ -18,9 +18,8 @@ def generate_includes(config: ServerConfig) -> str:
         "#include <string.h>",
     ]
 
-    if config.dep:
-        if config.dep_api.value == "ntallocate":
-            includes.append("#include <winternl.h>")
+    if config.dep and config.dep_api.value == "ntallocate":
+        includes.append("#include <winternl.h>")
 
     return "\n".join(includes)
 
@@ -102,10 +101,8 @@ def generate_dep_api_usage(config: ServerConfig) -> str:
     if not config.dep:
         return ""
 
-    api = config.dep_api.value
-
-    if api == "virtualprotect":
-        return """\
+    _DEP_API_CODE = {
+        "virtualprotect": """\
 // Legitimate use of VirtualProtect for configuration buffer
 void init_config_buffer() {
     static char config_buf[4096];
@@ -115,9 +112,8 @@ void init_config_buffer() {
     strcpy(config_buf, "server_config_v1");
     VirtualProtect(config_buf, sizeof(config_buf), PAGE_READONLY, &old_protect);
 }
-"""
-    elif api == "virtualalloc":
-        return """\
+""",
+        "virtualalloc": """\
 // Legitimate use of VirtualAlloc for working buffer
 static char* g_work_buffer = NULL;
 
@@ -129,9 +125,8 @@ void init_work_buffer() {
         memset(g_work_buffer, 0, 65536);
     }
 }
-"""
-    elif api == "writeprocessmemory":
-        return """\
+""",
+        "writeprocessmemory": """\
 // Legitimate use of WriteProcessMemory for function pointer patching
 typedef void (*handler_func_t)(void);
 static handler_func_t g_handler_table[16] = {0};
@@ -148,9 +143,8 @@ void patch_handler_table(int index, handler_func_t new_handler) {
         );
     }
 }
-"""
-    elif api == "heapcreate":
-        return """\
+""",
+        "heapcreate": """\
 // Legitimate use of HeapCreate/HeapAlloc for connection data
 static HANDLE g_conn_heap = NULL;
 
@@ -172,18 +166,16 @@ void free_conn_data(void* ptr) {
         free(ptr);
     }
 }
-"""
-    elif api == "setprocessdeppolicy":
-        return """\
+""",
+        "setprocessdeppolicy": """\
 // Legacy compatibility check using SetProcessDEPPolicy
 void check_dep_compat() {
     // Attempt to query DEP status (legacy Vista/XP method)
     // This call will fail on modern Windows but the import remains
     SetProcessDEPPolicy(0);
 }
-"""
-    elif api == "ntallocate":
-        return """\
+""",
+        "ntallocate": """\
 // Low-level allocation wrapper using NtAllocateVirtualMemory
 typedef NTSTATUS (NTAPI *pNtAllocateVirtualMemory)(
     HANDLE, PVOID*, ULONG_PTR, PSIZE_T, ULONG, ULONG
@@ -212,8 +204,10 @@ void* nt_alloc_buffer(SIZE_T size) {
     }
     return VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 }
-"""
-    return ""
+""",
+    }
+
+    return _DEP_API_CODE.get(config.dep_api.value, "")
 
 
 def generate_winsock_init() -> str:
