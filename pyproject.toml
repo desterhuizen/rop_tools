@@ -48,6 +48,17 @@ skip = [
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 known_first_party = ["lib", "shellgen", "rop"]
 
+[tool.coverage.run]
+source = ["lib", "rop", "shellgen"]
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
 [tool.mypy]
 python_version = "3.9"
 warn_return_any = true
