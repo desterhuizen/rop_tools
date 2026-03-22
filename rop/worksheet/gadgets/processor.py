@@ -41,7 +41,7 @@ def _validate_operands(operands: List[str], known_regs: List[str]) -> bool:
 
 
 def _execute_instruction(
-        ws: Dict[str, Any], opcode: str, operands: List[str]
+    ws: Dict[str, Any], opcode: str, operands: List[str]
 ) -> Tuple[bool, Optional[str]]:
     """
     Execute a single instruction.
@@ -108,8 +108,7 @@ def _parse_instruction(inst: str) -> Optional[Tuple[str, List[str]]]:
     return opcode, operands
 
 
-def log_execution(ws: Dict[str, Any], exec_type: str, source: str,
-                  operation: str):
+def log_execution(ws: Dict[str, Any], exec_type: str, source: str, operation: str):
     """
     Add an operation to the execution log.
 
@@ -144,7 +143,7 @@ def find_gadget_by_address(ws: Dict[str, Any], addr: str) -> Optional[str]:
 
 
 def process_gadget(
-        ws: Dict[str, Any], gadget_str: str, gadget_addr: Optional[str] = None
+    ws: Dict[str, Any], gadget_str: str, gadget_addr: Optional[str] = None
 ) -> List[str]:
     """
     Automatically process a gadget instruction chain.

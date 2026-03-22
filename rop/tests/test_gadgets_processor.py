@@ -103,8 +103,7 @@ class TestProcessGadget(unittest.TestCase):
         """Test that processing stops at ret."""
         ws = blank_worksheet()
 
-        executed = process_gadget(ws,
-                                  "mov eax, 0x12345678 ; ret ; mov ebx, 0xdeadbeef")
+        executed = process_gadget(ws, "mov eax, 0x12345678 ; ret ; mov ebx, 0xdeadbeef")
 
         assert len(executed) == 1
         assert ws["registers"]["EAX"] == "0x12345678"
@@ -114,8 +113,7 @@ class TestProcessGadget(unittest.TestCase):
         """Test that unsupported registers (8-bit, 16-bit) are skipped."""
         ws = blank_worksheet()
 
-        executed = process_gadget(ws,
-                                  "mov al, 0x12 ; mov eax, 0xdeadbeef ; ret")
+        executed = process_gadget(ws, "mov al, 0x12 ; mov eax, 0xdeadbeef ; ret")
 
         # Only the eax instruction should be executed
         assert len(executed) == 1

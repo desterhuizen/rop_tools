@@ -6,8 +6,7 @@ Tests gadget categorization logic and category styling.
 
 import unittest
 
-from rop.core.categories import GadgetCategory, categorize_gadget, \
-    get_category_style
+from rop.core.categories import GadgetCategory, categorize_gadget, get_category_style
 from rop.core.gadget import Gadget
 
 
@@ -233,24 +232,21 @@ class TestControlFlowCategories(unittest.TestCase):
     def test_categorize_call(self):
         """Test call category"""
         g = Gadget(
-            address="0x12345678", instructions=["call eax"], raw_line="test",
-            count=1
+            address="0x12345678", instructions=["call eax"], raw_line="test", count=1
         )
         assert categorize_gadget(g) == GadgetCategory.CALL
 
     def test_categorize_call_indirect(self):
         """Test call category with indirect call"""
         g = Gadget(
-            address="0x12345678", instructions=["call [eax]"], raw_line="test",
-            count=1
+            address="0x12345678", instructions=["call [eax]"], raw_line="test", count=1
         )
         assert categorize_gadget(g) == GadgetCategory.CALL
 
     def test_categorize_jmp(self):
         """Test jmp category"""
         g = Gadget(
-            address="0x12345678", instructions=["jmp eax"], raw_line="test",
-            count=1
+            address="0x12345678", instructions=["jmp eax"], raw_line="test", count=1
         )
         assert categorize_gadget(g) == GadgetCategory.JMP
 
@@ -289,30 +285,26 @@ class TestSystemCategories(unittest.TestCase):
         # syscall is caught by categorize_gadget, but only if it's NOT ending with "call"
         # Since "syscall" ends with "call", it gets categorized as CALL
         # Let's test it properly ends with ret so the last instruction check doesn't hit
-        assert categorize_gadget(g) in [GadgetCategory.SYSCALL,
-                                        GadgetCategory.CALL]
+        assert categorize_gadget(g) in [GadgetCategory.SYSCALL, GadgetCategory.CALL]
 
     def test_categorize_sysenter(self):
         """Test sysenter category"""
         g = Gadget(
-            address="0x12345678", instructions=["sysenter"], raw_line="test",
-            count=1
+            address="0x12345678", instructions=["sysenter"], raw_line="test", count=1
         )
         assert categorize_gadget(g) == GadgetCategory.SYSCALL
 
     def test_categorize_interrupt_80(self):
         """Test interrupt category with int 0x80"""
         g = Gadget(
-            address="0x12345678", instructions=["int 0x80"], raw_line="test",
-            count=1
+            address="0x12345678", instructions=["int 0x80"], raw_line="test", count=1
         )
         assert categorize_gadget(g) == GadgetCategory.SYSCALL
 
     def test_categorize_interrupt_other(self):
         """Test interrupt category with other interrupts"""
         g = Gadget(
-            address="0x12345678", instructions=["int 0x21"], raw_line="test",
-            count=1
+            address="0x12345678", instructions=["int 0x21"], raw_line="test", count=1
         )
         assert categorize_gadget(g) == GadgetCategory.INTERRUPT
 
@@ -323,8 +315,7 @@ class TestStringCategories(unittest.TestCase):
     def test_categorize_string_movs(self):
         """Test string_ops category with movs"""
         g = Gadget(
-            address="0x12345678", instructions=["movs", "ret"], raw_line="test",
-            count=1
+            address="0x12345678", instructions=["movs", "ret"], raw_line="test", count=1
         )
         # Note: movs contains "mov" so it gets categorized as MOVE_REGISTER
         # due to the ordering of checks in categorize_gadget
@@ -336,16 +327,14 @@ class TestStringCategories(unittest.TestCase):
     def test_categorize_string_lods(self):
         """Test string_ops category with lods"""
         g = Gadget(
-            address="0x12345678", instructions=["lods", "ret"], raw_line="test",
-            count=1
+            address="0x12345678", instructions=["lods", "ret"], raw_line="test", count=1
         )
         assert categorize_gadget(g) == GadgetCategory.STRING_OPS
 
     def test_categorize_string_stos(self):
         """Test string_ops category with stos"""
         g = Gadget(
-            address="0x12345678", instructions=["stos", "ret"], raw_line="test",
-            count=1
+            address="0x12345678", instructions=["stos", "ret"], raw_line="test", count=1
         )
         assert categorize_gadget(g) == GadgetCategory.STRING_OPS
 
@@ -356,8 +345,7 @@ class TestOtherCategory(unittest.TestCase):
     def test_categorize_other_nop(self):
         """Test other category with nop"""
         g = Gadget(
-            address="0x12345678", instructions=["nop", "ret"], raw_line="test",
-            count=1
+            address="0x12345678", instructions=["nop", "ret"], raw_line="test", count=1
         )
         assert categorize_gadget(g) == GadgetCategory.OTHER
 

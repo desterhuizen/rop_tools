@@ -40,7 +40,7 @@ class Gadget:
         addr_hex = self.address[2:]
         # Check each byte pair
         for i in range(0, len(addr_hex), 2):
-            byte = addr_hex[i: i + 2]
+            byte = addr_hex[i : i + 2]
             if byte in bad_chars:
                 return True
         return False
@@ -74,29 +74,31 @@ class Gadget:
             inst_lower = inst.lower().strip()
 
             # For most instructions, first operand is destination
-            if inst_lower.startswith((
-                "mov",
-                "lea",
-                "add",
-                "sub",
-                "xor",
-                "and",
-                "or",
-                "inc",
-                "dec",
-                "neg",
-                "not",
-                "shl",
-                "shr",
-                "sal",
-                "sar",
-                "rol",
-                "ror",
-                "mul",
-                "imul",
-                "div",
-                "idiv",
-            )):
+            if inst_lower.startswith(
+                (
+                    "mov",
+                    "lea",
+                    "add",
+                    "sub",
+                    "xor",
+                    "and",
+                    "or",
+                    "inc",
+                    "dec",
+                    "neg",
+                    "not",
+                    "shl",
+                    "shr",
+                    "sal",
+                    "sar",
+                    "rol",
+                    "ror",
+                    "mul",
+                    "imul",
+                    "div",
+                    "idiv",
+                )
+            ):
                 parts = inst_lower.split(None, 1)
                 if len(parts) > 1:
                     operands = parts[1]

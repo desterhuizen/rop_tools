@@ -567,20 +567,67 @@ resolve_symbols_kernel32:
 
         return updated_calls, reused_strings
 
+    def _group_apis_by_dll(self, calls, include_exit_apis):
+        """Group API calls by DLL, preserving order and deduplicating.
+
+        Returns:
+            OrderedDict: Maps dll_name -> list of api_names
+        """
+        dll_to_apis = OrderedDict()
+
+        for call in calls:
+            if call.get("custom_asm"):
+                continue
+
+            dll_name = call.get("dll", "kernel32.dll").lower()
+            api_name = call["api"]
+
+            if dll_name not in dll_to_apis:
+                dll_to_apis[dll_name] = []
+
+            if api_name not in dll_to_apis[dll_name]:
+                dll_to_apis[dll_name].append(api_name)
+
+        if include_exit_apis:
+            if "kernel32.dll" not in dll_to_apis:
+                dll_to_apis["kernel32.dll"] = []
+            for api in ("GetCurrentProcess", "TerminateProcess"):
+                if api not in dll_to_apis["kernel32.dll"]:
+                    dll_to_apis["kernel32.dll"].append(api)
+
+        return dll_to_apis
+
+    def _resolve_apis_for_dll(self, api_list, base_ref, current_offset):
+        """Resolve all APIs from a single DLL base.
+
+        Returns:
+            tuple: (lines, api_to_offset, new_current_offset)
+        """
+        ptr_size = 8 if self.arch == "x64" else 4
+        bp = "rbp" if self.arch == "x64" else "ebp"
+        lines = []
+        api_to_offset = {}
+
+        for api_name in api_list:
+            lines.append(
+                self.gen_resolve_function(
+                    api_name, base_ref, f"[{bp}+0x{current_offset:02x}]"
+                )
+            )
+            api_to_offset[api_name] = current_offset
+            current_offset += ptr_size
+
+        return lines, api_to_offset, current_offset
+
     def gen_pre_resolve_apis(self, calls, include_exit_apis=False):
         """
         Generate code to pre-resolve all APIs upfront and store in [ebp+offset].
-
-        Optimization:
-        1. Resolve all kernel32.dll APIs first (while EBX naturally contains kernel32 base)
-        2. Group all APIs by DLL to avoid reloading the same DLL multiple times
-        3. Load each external DLL once, then resolve all its APIs together
 
         Args:
             calls: List of API call configurations
             include_exit_apis: If True, also pre-resolve GetCurrentProcess and TerminateProcess
 
-        Returns:k
+        Returns:
             tuple: (assembly_code, api_to_offset_map)
         """
         lines = []
@@ -593,98 +640,49 @@ resolve_symbols_kernel32:
         )
 
         api_to_offset = {}
-        current_offset = 0x14  # Start after boilerplate offsets
-        loaded_dlls = {}  # Track which DLLs we've loaded and their EBP offsets
+        current_offset = 0x14
+        loaded_dlls = {}
+        ptr_size = 8 if self.arch == "x64" else 4
+        bp = "rbp" if self.arch == "x64" else "ebp"
 
-        # Group APIs by DLL (preserving the API order within each DLL)
-        dll_to_apis = OrderedDict()
+        dll_to_apis = self._group_apis_by_dll(calls, include_exit_apis)
 
-        for call in calls:
-            # Skip custom assembly blocks
-            if call.get("custom_asm"):
-                continue
-
-            dll_name = call.get("dll", "kernel32.dll").lower()
-            api_name = call["api"]
-
-            if dll_name not in dll_to_apis:
-                dll_to_apis[dll_name] = []
-
-            # Only add if not already in the list (avoid duplicate resolutions)
-            if api_name not in dll_to_apis[dll_name]:
-                dll_to_apis[dll_name].append(api_name)
-
-        # Add exit APIs to kernel32 if requested
-        if include_exit_apis:
-            if "kernel32.dll" not in dll_to_apis:
-                dll_to_apis["kernel32.dll"] = []
-            if "GetCurrentProcess" not in dll_to_apis["kernel32.dll"]:
-                dll_to_apis["kernel32.dll"].append("GetCurrentProcess")
-            if "TerminateProcess" not in dll_to_apis["kernel32.dll"]:
-                dll_to_apis["kernel32.dll"].append("TerminateProcess")
-
-        # First, resolve all kernel32 APIs (base already loaded in boilerplate)
+        # Resolve kernel32 APIs first (base already loaded in boilerplate)
         if "kernel32.dll" in dll_to_apis:
             if self.arch == "x64":
+                base_ref = "[rbp+0x20]"
                 lines.append(
                     "\n; Resolve kernel32.dll APIs (kernel32/kernelbase base at [rbp+0x20])"
                 )
-                for api_name in dll_to_apis["kernel32.dll"]:
-                    lines.append(
-                        self.gen_resolve_function(
-                            api_name, "[rbp+0x20]", f"[rbp+0x{current_offset:02x}]"
-                        )
-                    )
-                    api_to_offset[api_name] = current_offset
-                    current_offset += 8  # x64 uses 8-byte pointers
             else:
+                base_ref = "ebx"
                 lines.append(
                     "\n; Resolve kernel32.dll APIs (EBX already contains kernel32 base)"
                 )
-                for api_name in dll_to_apis["kernel32.dll"]:
-                    lines.append(
-                        self.gen_resolve_function(
-                            api_name, "ebx", f"[ebp+0x{current_offset:02x}]"
-                        )
-                    )
-                    api_to_offset[api_name] = current_offset
-                    current_offset += 4
 
-        # Then, load external DLLs and resolve all their APIs together
+            dll_lines, dll_offsets, current_offset = self._resolve_apis_for_dll(
+                dll_to_apis["kernel32.dll"], base_ref, current_offset
+            )
+            lines.extend(dll_lines)
+            api_to_offset.update(dll_offsets)
+
+        # Load external DLLs and resolve their APIs
         for dll_name, api_list in dll_to_apis.items():
             if dll_name == "kernel32.dll":
-                continue  # Already handled above
+                continue
 
-            # Load the DLL once
-            ptr_size = 8 if self.arch == "x64" else 4
-            dll_offset = (
-                0x30 + (len(loaded_dlls) * ptr_size)
-                if self.arch == "x64"
-                else 0x0C + (len(loaded_dlls) * ptr_size)
+            dll_base_offset = (0x30 if self.arch == "x64" else 0x0C) + len(
+                loaded_dlls
+            ) * ptr_size
+            lines.append(self.gen_load_dll(dll_name, f"0x{dll_base_offset:02x}"))
+            loaded_dlls[dll_name] = dll_base_offset
+
+            base_ref = f"[{bp}+0x{dll_base_offset:02x}]"
+            dll_lines, dll_offsets, current_offset = self._resolve_apis_for_dll(
+                api_list, base_ref, current_offset
             )
-            lines.append(self.gen_load_dll(dll_name, f"0x{dll_offset:02x}"))
-            loaded_dlls[dll_name] = dll_offset
-
-            # Resolve all APIs from this DLL
-            for api_name in api_list:
-                if self.arch == "x64":
-                    lines.append(
-                        self.gen_resolve_function(
-                            api_name,
-                            f"[rbp+0x{dll_offset:02x}]",
-                            f"[rbp+0x{current_offset:02x}]",
-                        )
-                    )
-                else:
-                    lines.append(
-                        self.gen_resolve_function(
-                            api_name,
-                            f"[ebp+0x{dll_offset:02x}]",
-                            f"[ebp+0x{current_offset:02x}]",
-                        )
-                    )
-                api_to_offset[api_name] = current_offset
-                current_offset += ptr_size
+            lines.extend(dll_lines)
+            api_to_offset.update(dll_offsets)
 
         return "\n".join(lines), api_to_offset
 
@@ -699,27 +697,17 @@ resolve_symbols_kernel32:
                 api_name, args, api_offset, string_cache
             )
 
-    def gen_api_call_preresolve_x86(self, api_name, args, api_offset, string_cache):
-        """
-        Generate x86 assembly for calling a pre-resolved API.
-
-        Args:
-            api_name: API function name
-            args: List of arguments
-            api_offset: Offset where API pointer is stored [ebp+offset]
-            string_cache: Dict of cached string pointers
+    def _prepare_x86_string_args(self, args, api_name):
+        """Pre-resolve plain string arguments into callee-saved registers (x86).
 
         Returns:
-            str: Assembly code
+            tuple: (lines, string_to_reg)
         """
-        lines = []
-
-        # First, identify all string arguments and push them to preserve their data
         string_registers = ["edi", "esi", "edx"]
         string_to_reg = {}
-
-        lines.append(f"\n; Prepare string arguments for {api_name}")
+        lines = [f"\n; Prepare string arguments for {api_name}"]
         reg_idx = 0
+
         for i, arg in enumerate(args):
             if (
                 isinstance(arg, str)
@@ -738,48 +726,205 @@ resolve_symbols_kernel32:
                 else:
                     string_to_reg[i] = "ecx"
 
+        return lines, string_to_reg
+
+    def _push_x86_arg(self, arg, original_idx, string_cache, string_to_reg):
+        """Push a single x86 stdcall argument onto the stack.
+
+        Returns:
+            list: Assembly lines
+        """
+        lines = []
+        if isinstance(arg, int):
+            if arg == 0:
+                lines.append("    xor eax, eax")
+                lines.append("    push eax               ; arg = 0")
+            else:
+                lines.append(
+                    self.gen_push_encoded_dword(arg, comment=f"arg = 0x{arg:x}")
+                )
+        elif isinstance(arg, str) and arg.startswith("STR_PTR:"):
+            string_val = arg[8:]
+            if string_val in string_cache:
+                cached_reg = string_cache[string_val]
+                lines.append(f"    push {cached_reg}          ; reused string pointer")
+            else:
+                lines.append(self.gen_push_string(string_val))
+                lines.append("    push ecx               ; pointer to string arg")
+        elif isinstance(arg, str) and arg.startswith("MEM:"):
+            mem_ref = arg[4:]
+            lines.append(f"    push {mem_ref}          ; arg from memory")
+        elif isinstance(arg, str) and arg.startswith("REG:"):
+            reg = arg.split(":")[1]
+            lines.append(f"    push {reg}              ; arg from register")
+        elif isinstance(arg, str):
+            if original_idx in string_to_reg:
+                reg = string_to_reg[original_idx]
+                lines.append(f"    push {reg}               ; pointer to string arg")
+            else:
+                lines.append(self.gen_push_string(arg))
+                lines.append("    push ecx               ; pointer to string arg")
+        return lines
+
+    def gen_api_call_preresolve_x86(self, api_name, args, api_offset, string_cache):
+        """
+        Generate x86 assembly for calling a pre-resolved API.
+
+        Args:
+            api_name: API function name
+            args: List of arguments
+            api_offset: Offset where API pointer is stored [ebp+offset]
+            string_cache: Dict of cached string pointers
+
+        Returns:
+            str: Assembly code
+        """
+        lines, string_to_reg = self._prepare_x86_string_args(args, api_name)
+
         # Push arguments right-to-left (stdcall)
         lines.append(f"\n; Push arguments for {api_name} (right to left)")
 
         for i, arg in enumerate(reversed(args)):
             original_idx = len(args) - 1 - i
-
-            if isinstance(arg, int):
-                if arg == 0:
-                    lines.append("    xor eax, eax")
-                    lines.append("    push eax               ; arg = 0")
-                else:
-                    lines.append(
-                        self.gen_push_encoded_dword(arg, comment=f"arg = 0x{arg:x}")
-                    )
-            elif isinstance(arg, str) and arg.startswith("STR_PTR:"):
-                string_val = arg[8:]
-                if string_val in string_cache:
-                    cached_reg = string_cache[string_val]
-                    lines.append(
-                        f"    push {cached_reg}          ; reused string pointer"
-                    )
-                else:
-                    lines.append(self.gen_push_string(string_val))
-                    lines.append("    push ecx               ; pointer to string arg")
-            elif isinstance(arg, str) and arg.startswith("MEM:"):
-                mem_ref = arg[4:]
-                lines.append(f"    push {mem_ref}          ; arg from memory")
-            elif isinstance(arg, str) and arg.startswith("REG:"):
-                reg = arg.split(":")[1]
-                lines.append(f"    push {reg}              ; arg from register")
-            elif isinstance(arg, str):
-                if original_idx in string_to_reg:
-                    reg = string_to_reg[original_idx]
-                    lines.append(
-                        f"    push {reg}               ; pointer to string arg"
-                    )
-                else:
-                    lines.append(self.gen_push_string(arg))
-                    lines.append("    push ecx               ; pointer to string arg")
+            lines.extend(
+                self._push_x86_arg(arg, original_idx, string_cache, string_to_reg)
+            )
 
         lines.append(f"    call dword ptr [ebp+0x{api_offset:02x}]  ; Call {api_name}")
         return "\n".join(lines)
+
+    def _prepare_x64_string_args(self, args, api_name):
+        """Pre-resolve plain string arguments into callee-saved registers (x64).
+
+        Returns:
+            tuple: (lines, string_to_reg) where string_to_reg maps arg index to register/memory ref
+        """
+        string_registers = ["r12", "r13", "r14", "r15"]
+        string_to_reg = {}
+        lines = [f"\n; Prepare string arguments for {api_name} - x64"]
+        reg_idx = 0
+
+        for i, arg in enumerate(args):
+            if (
+                isinstance(arg, str)
+                and not arg.startswith("STR_PTR:")
+                and not arg.startswith("REG:")
+                and not arg.startswith("MEM:")
+            ):
+                lines.append(self.gen_push_string(arg))
+                if reg_idx < len(string_registers):
+                    reg = string_registers[reg_idx]
+                    lines.append(
+                        f'    mov {reg}, rcx         ; save pointer to "{arg[:20]}..."'
+                    )
+                    string_to_reg[i] = reg
+                    reg_idx += 1
+                else:
+                    lines.append(
+                        "    push rcx               ; save string pointer on stack"
+                    )
+                    string_to_reg[i] = f"[rsp+{(reg_idx - len(string_registers)) * 8}]"
+
+        return lines, string_to_reg
+
+    def _resolve_x64_reg_arg(self, arg, i, reg, string_cache, string_to_reg):
+        """Resolve a single argument into a fastcall register (args 1-4).
+
+        Returns:
+            list: Assembly lines for loading the argument into reg
+        """
+        lines = []
+        if isinstance(arg, int):
+            if arg == 0:
+                lines.append(f"    xor {reg}, {reg}         ; arg {i + 1} = 0")
+            else:
+                lines.append(f"    mov {reg}, 0x{arg:x}    ; arg {i + 1} = 0x{arg:x}")
+        elif isinstance(arg, str) and arg.startswith("STR_PTR:"):
+            string_val = arg[8:]
+            if string_val in string_cache:
+                cached_reg = string_cache[string_val]
+                lines.append(
+                    f"    mov {reg}, {cached_reg}  ; arg {i + 1} = cached string pointer"
+                )
+            else:
+                lines.append(self.gen_push_string(string_val))
+                lines.append(
+                    f"    mov {reg}, rcx           ; arg {i + 1} = string pointer"
+                )
+        elif isinstance(arg, str) and arg.startswith("MEM:"):
+            mem_ref = arg[4:]
+            lines.append(f"    mov {reg}, {mem_ref}     ; arg {i + 1} from memory")
+        elif isinstance(arg, str) and arg.startswith("REG:"):
+            src_reg = arg.split(":")[1]
+            if src_reg != reg:
+                lines.append(
+                    f"    mov {reg}, {src_reg}     ; arg {i + 1} from register"
+                )
+        elif isinstance(arg, str):
+            if i in string_to_reg:
+                src_reg = string_to_reg[i]
+                suffix = " from stack" if src_reg.startswith("[") else ""
+                lines.append(
+                    f"    mov {reg}, {src_reg}     ; arg {i + 1} = string pointer{suffix}"
+                )
+            else:
+                lines.append(self.gen_push_string(arg))
+                lines.append(
+                    f"    mov {reg}, rcx           ; arg {i + 1} = string pointer"
+                )
+        return lines
+
+    def _push_x64_stack_arg(self, arg, i, string_cache, string_to_reg):
+        """Push a single stack argument for x64 fastcall (args 5+).
+
+        Returns:
+            list: Assembly lines for pushing the argument
+        """
+        lines = []
+        if isinstance(arg, int):
+            if arg == 0:
+                lines.append("    xor rax, rax")
+                lines.append(f"    push rax               ; arg {i + 1} = 0")
+            else:
+                lines.append(
+                    self.gen_push_encoded_dword(arg, comment=f"arg {i + 1} = 0x{arg:x}")
+                )
+        elif isinstance(arg, str) and arg.startswith("STR_PTR:"):
+            string_val = arg[8:]
+            if string_val in string_cache:
+                cached_reg = string_cache[string_val]
+                lines.append(
+                    f"    push {cached_reg}          ; arg {i + 1} = cached string"
+                )
+            else:
+                lines.append(self.gen_push_string(string_val))
+                lines.append(
+                    f"    push rcx               ; arg {i + 1} = string pointer"
+                )
+        elif isinstance(arg, str) and arg.startswith("MEM:"):
+            mem_ref = arg[4:]
+            lines.append(f"    push {mem_ref}          ; arg {i + 1} from memory")
+        elif isinstance(arg, str) and arg.startswith("REG:"):
+            src_reg = arg.split(":")[1]
+            lines.append(f"    push {src_reg}          ; arg {i + 1} from register")
+        elif isinstance(arg, str):
+            if i in string_to_reg:
+                src_reg = string_to_reg[i]
+                if src_reg.startswith("["):
+                    lines.append(f"    mov rax, {src_reg}")
+                    lines.append(
+                        f"    push rax               ; arg {i + 1} = string pointer"
+                    )
+                else:
+                    lines.append(
+                        f"    push {src_reg}         ; arg {i + 1} = string pointer"
+                    )
+            else:
+                lines.append(self.gen_push_string(arg))
+                lines.append(
+                    f"    push rcx               ; arg {i + 1} = string pointer"
+                )
+        return lines
 
     def gen_api_call_preresolve_x64(self, api_name, args, api_offset, string_cache):
         """
@@ -800,36 +945,7 @@ resolve_symbols_kernel32:
         Returns:
             str: Assembly code
         """
-        lines = []
-
-        # First, prepare all string arguments and save their pointers
-        # Use R12-R14 for string pointers (callee-saved, won't be clobbered)
-        string_registers = ["r12", "r13", "r14", "r15"]
-        string_to_reg = {}
-
-        lines.append(f"\n; Prepare string arguments for {api_name} - x64")
-        reg_idx = 0
-        for i, arg in enumerate(args):
-            if (
-                isinstance(arg, str)
-                and not arg.startswith("STR_PTR:")
-                and not arg.startswith("REG:")
-                and not arg.startswith("MEM:")
-            ):
-                lines.append(self.gen_push_string(arg))
-                if reg_idx < len(string_registers):
-                    reg = string_registers[reg_idx]
-                    lines.append(
-                        f'    mov {reg}, rcx         ; save pointer to "{arg[:20]}..."'
-                    )
-                    string_to_reg[i] = reg
-                    reg_idx += 1
-                else:
-                    # If we run out of registers, save to stack (rare case)
-                    lines.append(
-                        "    push rcx               ; save string pointer on stack"
-                    )
-                    string_to_reg[i] = f"[rsp+{(reg_idx - len(string_registers)) * 8}]"
+        lines, string_to_reg = self._prepare_x64_string_args(args, api_name)
 
         # x64 fastcall: RCX, RDX, R8, R9, then stack
         param_regs = ["rcx", "rdx", "r8", "r9"]
@@ -838,117 +954,21 @@ resolve_symbols_kernel32:
             f"\n; Setup arguments for {api_name} (x64 fastcall: RCX, RDX, R8, R9, stack)"
         )
 
-        # Process arguments in order (not reversed like x86)
-        for i, arg in enumerate(args):
-            if i < 4:
-                # First 4 arguments go into registers
-                reg = param_regs[i]
+        # First 4 arguments go into registers
+        for i, arg in enumerate(args[:4]):
+            lines.extend(
+                self._resolve_x64_reg_arg(
+                    arg, i, param_regs[i], string_cache, string_to_reg
+                )
+            )
 
-                if isinstance(arg, int):
-                    if arg == 0:
-                        lines.append(f"    xor {reg}, {reg}         ; arg {i + 1} = 0")
-                    else:
-                        lines.append(
-                            f"    mov {reg}, 0x{arg:x}    ; arg {i + 1} = 0x{arg:x}"
-                        )
-                elif isinstance(arg, str) and arg.startswith("STR_PTR:"):
-                    string_val = arg[8:]
-                    if string_val in string_cache:
-                        cached_reg = string_cache[string_val]
-                        lines.append(
-                            f"    mov {reg}, {cached_reg}  ; arg {i + 1} = cached string pointer"
-                        )
-                    else:
-                        lines.append(self.gen_push_string(string_val))
-                        lines.append(
-                            f"    mov {reg}, rcx           ; arg {i + 1} = string pointer"
-                        )
-                elif isinstance(arg, str) and arg.startswith("MEM:"):
-                    mem_ref = arg[4:]
-                    lines.append(
-                        f"    mov {reg}, {mem_ref}     ; arg {i + 1} from memory"
-                    )
-                elif isinstance(arg, str) and arg.startswith("REG:"):
-                    src_reg = arg.split(":")[1]
-                    if src_reg != reg:
-                        lines.append(
-                            f"    mov {reg}, {src_reg}     ; arg {i + 1} from register"
-                        )
-                elif isinstance(arg, str):
-                    # String argument - get pointer from saved register
-                    if i in string_to_reg:
-                        src_reg = string_to_reg[i]
-                        if src_reg.startswith("["):
-                            lines.append(
-                                f"    mov {reg}, {src_reg}     ; arg {i + 1} = string pointer from stack"
-                            )
-                        else:
-                            lines.append(
-                                f"    mov {reg}, {src_reg}     ; arg {i + 1} = string pointer"
-                            )
-                    else:
-                        lines.append(self.gen_push_string(arg))
-                        lines.append(
-                            f"    mov {reg}, rcx           ; arg {i + 1} = string pointer"
-                        )
-            else:
-                # Args 5+ go on stack (pushed in reverse order for proper stack layout)
-                # These will be handled in a second pass
-                pass
-
-        # If there are more than 4 arguments, push them onto stack in reverse order
+        # Args 5+ go on stack in reverse order
         if len(args) > 4:
             lines.append("\n; Push remaining arguments (5+) onto stack")
             for i in range(len(args) - 1, 3, -1):
-                arg = args[i]
-
-                if isinstance(arg, int):
-                    if arg == 0:
-                        lines.append("    xor rax, rax")
-                        lines.append(f"    push rax               ; arg {i + 1} = 0")
-                    else:
-                        lines.append(
-                            self.gen_push_encoded_dword(
-                                arg, comment=f"arg {i + 1} = 0x{arg:x}"
-                            )
-                        )
-                elif isinstance(arg, str) and arg.startswith("STR_PTR:"):
-                    string_val = arg[8:]
-                    if string_val in string_cache:
-                        cached_reg = string_cache[string_val]
-                        lines.append(
-                            f"    push {cached_reg}          ; arg {i + 1} = cached string"
-                        )
-                    else:
-                        lines.append(self.gen_push_string(string_val))
-                        lines.append(
-                            f"    push rcx               ; arg {i + 1} = string pointer"
-                        )
-                elif isinstance(arg, str) and arg.startswith("MEM:"):
-                    mem_ref = arg[4:]
-                    lines.append(f"    push {mem_ref}          ; arg {i + 1} from memory")
-                elif isinstance(arg, str) and arg.startswith("REG:"):
-                    src_reg = arg.split(":")[1]
-                    lines.append(
-                        f"    push {src_reg}          ; arg {i + 1} from register"
-                    )
-                elif isinstance(arg, str):
-                    if i in string_to_reg:
-                        src_reg = string_to_reg[i]
-                        if src_reg.startswith("["):
-                            lines.append(f"    mov rax, {src_reg}")
-                            lines.append(
-                                f"    push rax               ; arg {i + 1} = string pointer"
-                            )
-                        else:
-                            lines.append(
-                                f"    push {src_reg}         ; arg {i + 1} = string pointer"
-                            )
-                    else:
-                        lines.append(self.gen_push_string(arg))
-                        lines.append(
-                            f"    push rcx               ; arg {i + 1} = string pointer"
-                        )
+                lines.extend(
+                    self._push_x64_stack_arg(args[i], i, string_cache, string_to_reg)
+                )
 
         # Shadow space + call
         lines.append(f"\n; Call {api_name} with shadow space")

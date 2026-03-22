@@ -19,11 +19,11 @@ from rop.core import Gadget, ROPGadgetParser, get_category_style
 
 
 def _print_gadget_plain(
-        gadget: Gadget,
-        parser: ROPGadgetParser,
-        show_category: bool = False,
-        show_count: bool = False,
-        base_address: Optional[int] = None,
+    gadget: Gadget,
+    parser: ROPGadgetParser,
+    show_category: bool = False,
+    show_count: bool = False,
+    base_address: Optional[int] = None,
 ):
     """Print a single gadget without colors."""
     prefix = ""
@@ -44,13 +44,13 @@ def _print_gadget_plain(
 
 
 def _build_rich_output(
-        gadget: Gadget,
-        parser: ROPGadgetParser,
-        address: str,
-        rest,
-        show_category: bool = False,
-        show_count: bool = False,
-        base_address: Optional[int] = None,
+    gadget: Gadget,
+    parser: ROPGadgetParser,
+    address: str,
+    rest,
+    show_category: bool = False,
+    show_count: bool = False,
+    base_address: Optional[int] = None,
 ):
     """Build Rich Text output for a colored gadget display."""
     output = Text()
@@ -77,17 +77,16 @@ def _build_rich_output(
 
 
 def print_gadget_colored(
-        gadget: Gadget,
-        parser: ROPGadgetParser,
-        show_category: bool = False,
-        show_count: bool = False,
-        highlight_pattern: Optional[str] = None,
-        base_address: Optional[int] = None,
+    gadget: Gadget,
+    parser: ROPGadgetParser,
+    show_category: bool = False,
+    show_count: bool = False,
+    highlight_pattern: Optional[str] = None,
+    base_address: Optional[int] = None,
 ):
     """Print a single gadget with colors using ColorPrinter"""
     if not printer.enabled:
-        _print_gadget_plain(gadget, parser, show_category, show_count,
-                            base_address)
+        _print_gadget_plain(gadget, parser, show_category, show_count, base_address)
         return
 
     parts = gadget.raw_line.split(":", 1)
@@ -102,20 +101,25 @@ def print_gadget_colored(
         rest = printer.stylize_regex(rest, highlight_pattern)
 
     output = _build_rich_output(
-        gadget, parser, address, rest,
-        show_category, show_count, base_address,
+        gadget,
+        parser,
+        address,
+        rest,
+        show_category,
+        show_count,
+        base_address,
     )
     printer.console.print(output)
 
 
 def print_gadgets(
-        gadgets: List[Gadget],
-        limit: Optional[int] = None,
-        parser: Optional[ROPGadgetParser] = None,
-        show_category: bool = False,
-        show_count: bool = False,
-        highlight_pattern: Optional[str] = None,
-        base_address: Optional[int] = None,
+    gadgets: List[Gadget],
+    limit: Optional[int] = None,
+    parser: Optional[ROPGadgetParser] = None,
+    show_category: bool = False,
+    show_count: bool = False,
+    highlight_pattern: Optional[str] = None,
+    base_address: Optional[int] = None,
 ):
     """Pretty print gadgets with optional color using ColorPrinter"""
     for count, gadget in enumerate(gadgets, 1):
@@ -134,8 +138,7 @@ def print_gadgets(
             remaining = len(gadgets) - limit
             if remaining > 0:
                 if printer.enabled:
-                    printer.print_text(f"\n... and {remaining} more gadgets",
-                                       "yellow")
+                    printer.print_text(f"\n... and {remaining} more gadgets", "yellow")
                 else:
                     print(f"\n... and {remaining} more gadgets")
             break

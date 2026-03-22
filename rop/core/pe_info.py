@@ -114,13 +114,11 @@ class PEAnalyzer:
 
         # Get machine type
         machine = pe.FILE_HEADER.Machine
-        machine_type = PEAnalyzer.MACHINE_TYPES.get(machine,
-                                                    f"Unknown (0x{machine:x})")
+        machine_type = PEAnalyzer.MACHINE_TYPES.get(machine, f"Unknown (0x{machine:x})")
 
         # Get subsystem
         subsystem = pe.OPTIONAL_HEADER.Subsystem
-        subsystem_name = PEAnalyzer.SUBSYSTEMS.get(subsystem,
-                                                   f"Unknown ({subsystem})")
+        subsystem_name = PEAnalyzer.SUBSYSTEMS.get(subsystem, f"Unknown ({subsystem})")
 
         # Extract sections
         sections = []

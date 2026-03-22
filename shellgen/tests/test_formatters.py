@@ -174,7 +174,11 @@ class TestFormatCArray(unittest.TestCase):
 
         lines = result.split("\n")
         # Find the data lines (between { and })
-        data_lines = [line for line in lines if "0x" in line and "{" not in line and "}" not in line]
+        data_lines = [
+            line
+            for line in lines
+            if "0x" in line and "{" not in line and "}" not in line
+        ]
 
         # Should have multiple lines
         self.assertGreater(len(data_lines), 1)

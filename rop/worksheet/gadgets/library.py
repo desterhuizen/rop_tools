@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional, Tuple
 
 
 def cmd_gadget_add(
-        ws: Dict[str, Any], address: str, instructions: str
+    ws: Dict[str, Any], address: str, instructions: str
 ) -> Tuple[bool, Optional[str]]:
     """
     Add a gadget to the gadget library.
@@ -30,8 +30,7 @@ def cmd_gadget_add(
     return True, None
 
 
-def cmd_gadget_del(ws: Dict[str, Any], address: str) -> Tuple[
-        bool, Optional[str]]:
+def cmd_gadget_del(ws: Dict[str, Any], address: str) -> Tuple[bool, Optional[str]]:
     """
     Remove a gadget from the library by address.
 

@@ -107,8 +107,7 @@ class TestParseTarget(unittest.TestCase):
 
     def test_parse_all_registers(self):
         """Test parsing of all valid registers."""
-        registers = ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP",
-                     "EIP"]
+        registers = ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"]
 
         for reg in registers:
             tgt_type, tgt_key = parse_target(reg)

@@ -10,8 +10,7 @@ from typing import Any, Dict, Optional, Tuple
 from ..core.resolver import parse_target, resolve_value
 
 
-def log_execution(ws: Dict[str, Any], exec_type: str, source: str,
-                  operation: str):
+def log_execution(ws: Dict[str, Any], exec_type: str, source: str, operation: str):
     """
     Add an operation to the execution log.
 
@@ -30,8 +29,7 @@ def log_execution(ws: Dict[str, Any], exec_type: str, source: str,
         ws["execution_log"] = ws["execution_log"][-10:]
 
 
-def _adjust_stack_offsets(stack: Dict[str, str], adjustment: int) -> Dict[
-        str, str]:
+def _adjust_stack_offsets(stack: Dict[str, str], adjustment: int) -> Dict[str, str]:
     """
     Adjust all stack offsets by a given amount.
 
@@ -58,7 +56,7 @@ def _adjust_stack_offsets(stack: Dict[str, str], adjustment: int) -> Dict[
 
 
 def _process_auto_gadget(
-        ws: Dict[str, Any], dst_key: str, stack_val: str
+    ws: Dict[str, Any], dst_key: str, stack_val: str
 ) -> Tuple[bool, Optional[str]]:
     """
     Process auto-gadget if popping into EIP.
@@ -83,7 +81,7 @@ def _process_auto_gadget(
 
 
 def _parse_register_offset(
-        ws: Dict[str, Any], offset_str: str
+    ws: Dict[str, Any], offset_str: str
 ) -> Tuple[bool, str, str]:
     """
     Parse offset when it's a register name.
@@ -241,7 +239,7 @@ def cmd_pop(ws: Dict[str, Any], dst: str) -> Tuple[bool, Optional[str]]:
 
 
 def cmd_stack(
-        ws: Dict[str, Any], offset_str: str, value: str
+    ws: Dict[str, Any], offset_str: str, value: str
 ) -> Tuple[bool, Optional[str]]:
     """
     Directly set stack value at offset without affecting ESP.
@@ -257,10 +255,8 @@ def cmd_stack(
     offset_str = offset_str.strip()
 
     # Check if offset_str is a register name
-    if offset_str.upper() in ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP",
-                              "ESP"]:
-        success, result_offset, error_msg = _parse_register_offset(ws,
-                                                                   offset_str)
+    if offset_str.upper() in ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP"]:
+        success, result_offset, error_msg = _parse_register_offset(ws, offset_str)
         if not success:
             return False, error_msg
         offset_str = result_offset

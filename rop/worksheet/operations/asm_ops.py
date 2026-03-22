@@ -11,7 +11,7 @@ from ..core.resolver import parse_target, resolve_value
 
 
 def _handle_eip_auto_gadget(
-        ws: Dict[str, Any], value: str
+    ws: Dict[str, Any], value: str
 ) -> Tuple[bool, Optional[str]]:
     """
     Process auto-gadget when setting EIP.
@@ -40,7 +40,7 @@ def _handle_eip_auto_gadget(
 
 
 def _write_deref_to_stack(
-        ws: Dict[str, Any], dst_key: str, value: str
+    ws: Dict[str, Any], dst_key: str, value: str
 ) -> Tuple[bool, Optional[str]]:
     """
     Write value to stack at dereferenced register address.
@@ -81,7 +81,7 @@ def _write_deref_to_stack(
 
 
 def _write_to_register(
-        ws: Dict[str, Any], dst_key: str, value: str, dst: str, src: str
+    ws: Dict[str, Any], dst_key: str, value: str, dst: str, src: str
 ) -> Tuple[bool, Optional[str]]:
     """
     Write value to register and handle EIP auto-gadget processing.
@@ -110,8 +110,7 @@ def _write_to_register(
     return True, None
 
 
-def log_execution(ws: Dict[str, Any], exec_type: str, source: str,
-                  operation: str):
+def log_execution(ws: Dict[str, Any], exec_type: str, source: str, operation: str):
     """
     Add an operation to the execution log.
 
@@ -130,8 +129,7 @@ def log_execution(ws: Dict[str, Any], exec_type: str, source: str,
         ws["execution_log"] = ws["execution_log"][-10:]
 
 
-def cmd_move(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
-        bool, Optional[str]]:
+def cmd_move(ws: Dict[str, Any], dst: str, src: str) -> Tuple[bool, Optional[str]]:
     """
     Move value: mov dst, src (Intel syntax).
 
@@ -176,8 +174,7 @@ def cmd_move(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
     return True, None
 
 
-def cmd_add(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
-        bool, Optional[str]]:
+def cmd_add(ws: Dict[str, Any], dst: str, src: str) -> Tuple[bool, Optional[str]]:
     """
     Add: add dst, src (dst = dst + src).
 
@@ -216,8 +213,7 @@ def cmd_add(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
         return False, "Invalid operands for add"
 
 
-def cmd_xor(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
-        bool, Optional[str]]:
+def cmd_xor(ws: Dict[str, Any], dst: str, src: str) -> Tuple[bool, Optional[str]]:
     """
     XOR: xor dst, src (dst = dst ^ src).
 
@@ -254,8 +250,7 @@ def cmd_xor(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
         return False, "Invalid operands for xor"
 
 
-def cmd_xchg(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
-        bool, Optional[str]]:
+def cmd_xchg(ws: Dict[str, Any], dst: str, src: str) -> Tuple[bool, Optional[str]]:
     """
     Exchange: xchg dst, src (swap values).
 

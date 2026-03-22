@@ -122,11 +122,11 @@ def handle_view(ws: Dict[str, Any], args: str) -> None:
 
 
 def handle_asm_two_operand(
-        ws: Dict[str, Any],
-        args: str,
-        cmd_func: Callable,
-        cmd_name: str,
-        display_success_msg: bool = False,
+    ws: Dict[str, Any],
+    args: str,
+    cmd_func: Callable,
+    cmd_name: str,
+    display_success_msg: bool = False,
 ) -> None:
     """
     Handle ASM operations with two operands (mov, add, xor, xchg).
@@ -152,7 +152,7 @@ def handle_asm_two_operand(
 
 
 def handle_asm_single_operand(
-        ws: Dict[str, Any], args: str, cmd_func: Callable, cmd_name: str
+    ws: Dict[str, Any], args: str, cmd_func: Callable, cmd_name: str
 ) -> None:
     """
     Handle ASM operations with single operand (inc, dec, neg).
@@ -256,7 +256,8 @@ def handle_gadget(ws: Dict[str, Any], args: str) -> None:
     subargs = args.split(None, 1)
     if not subargs:
         show_usage(
-            'gadget <address> "<instructions>" OR gadget del <address> OR gadget clear')
+            'gadget <address> "<instructions>" OR gadget del <address> OR gadget clear'
+        )
         return
 
     subcommand = subargs[0].lower()
@@ -341,8 +342,7 @@ def handle_delete(ws: Dict[str, Any], args: str) -> None:
 
 def handle_import_regs(ws: Dict[str, Any], args: str) -> None:
     """Handle importregs command."""
-    text = read_multiline_input(
-        "Paste WinDbg register output (end with empty line):")
+    text = read_multiline_input("Paste WinDbg register output (end with empty line):")
     if text:
         success, msg = cmd_import_regs(ws, text)
         if success:
@@ -356,8 +356,7 @@ def handle_import_regs(ws: Dict[str, Any], args: str) -> None:
 
 def handle_import_stack(ws: Dict[str, Any], args: str) -> None:
     """Handle importstack command."""
-    text = read_multiline_input(
-        "Paste WinDbg stack dump (end with empty line):")
+    text = read_multiline_input("Paste WinDbg stack dump (end with empty line):")
     if text:
         success, msg = cmd_import_stack(ws, text)
         if success:
@@ -498,7 +497,7 @@ def dispatch_asm_command(ws: Dict[str, Any], action: str, args: str) -> bool:
 
 
 def dispatch_registry_command(
-        ws: Dict[str, Any], action: str, args: str
+    ws: Dict[str, Any], action: str, args: str
 ) -> Tuple[Optional[Dict[str, Any]], bool]:
     """
     Dispatch commands from the registry.
@@ -625,8 +624,7 @@ def main():
                 continue
 
             # Try registry commands
-            updated_ws, should_quit = dispatch_registry_command(ws, action,
-                                                                args)
+            updated_ws, should_quit = dispatch_registry_command(ws, action, args)
             if updated_ws is not None:
                 ws = updated_ws
             if should_quit:

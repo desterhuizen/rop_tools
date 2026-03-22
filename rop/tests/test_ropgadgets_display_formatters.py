@@ -19,8 +19,11 @@ sys.path.insert(0, str(REPO_ROOT))
 from lib.color_printer import printer  # noqa: E402
 from rop.core.gadget import Gadget  # noqa: E402
 from rop.core.parser import ROPGadgetParser  # noqa: E402
-from rop.display.formatters import print_gadget_colored, print_gadgets, \
-    print_statistics  # noqa: E402
+from rop.display.formatters import (  # noqa: E402
+    print_gadget_colored,
+    print_gadgets,
+    print_statistics,
+)
 
 # Sample gadget for testing
 SAMPLE_GADGET = Gadget(
@@ -106,8 +109,7 @@ class TestPrintGadgetColored(unittest.TestCase):
 
         try:
             base_address = 0x10000000
-            print_gadget_colored(SAMPLE_GADGET, parser,
-                                 base_address=base_address)
+            print_gadget_colored(SAMPLE_GADGET, parser, base_address=base_address)
             # Should contain offset
             assert True  # Function executed successfully
         finally:
@@ -167,7 +169,7 @@ class TestPrintStatistics(unittest.TestCase):
 0x10001250: mov eax, ebx ; ret ; (1 found)
 """
         with tempfile.NamedTemporaryFile(
-                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+            mode="w", encoding="utf-8", delete=False, suffix=".txt"
         ) as f:
             f.write(sample_data)
             temp_path = f.name
@@ -190,7 +192,7 @@ FileFormat: PE, Arch: x86
 0x10001234: pop eax ; ret ; (1 found)
 """
         with tempfile.NamedTemporaryFile(
-                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+            mode="w", encoding="utf-8", delete=False, suffix=".txt"
         ) as f:
             f.write(sample_data)
             temp_path = f.name

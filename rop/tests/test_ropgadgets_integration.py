@@ -71,7 +71,7 @@ class BaseSampleGadgetTest(unittest.TestCase):
 
     def setUp(self):
         with tempfile.NamedTemporaryFile(
-                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+            mode="w", encoding="utf-8", delete=False, suffix=".txt"
         ) as f:
             f.write(SAMPLE_GADGET_FILE)
             self.sample_gadget_file = f.name
@@ -86,7 +86,7 @@ class BaseBadCharsTest(unittest.TestCase):
 
     def setUp(self):
         with tempfile.NamedTemporaryFile(
-                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+            mode="w", encoding="utf-8", delete=False, suffix=".txt"
         ) as f:
             f.write(SAMPLE_BAD_CHARS_FILE)
             self.bad_chars_gadget_file = f.name
@@ -101,7 +101,7 @@ class BaseBadInstructionsTest(unittest.TestCase):
 
     def setUp(self):
         with tempfile.NamedTemporaryFile(
-                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+            mode="w", encoding="utf-8", delete=False, suffix=".txt"
         ) as f:
             f.write(SAMPLE_BAD_INSTRUCTIONS_FILE)
             self.bad_instructions_gadget_file = f.name
@@ -1014,15 +1014,14 @@ class TestBadInstructionFiltering(BaseBadInstructionsTest):
 A total of 4 gadgets found.
 """
         with tempfile.NamedTemporaryFile(
-                mode="w", encoding="utf-8", delete=False, suffix=".txt"
+            mode="w", encoding="utf-8", delete=False, suffix=".txt"
         ) as f:
             f.write(uppercase_gadgets)
             temp_path = f.name
 
         try:
             result = subprocess.run(
-                [sys.executable, str(ROP_TOOL_PATH), "-f", temp_path,
-                 "--no-color"],
+                [sys.executable, str(ROP_TOOL_PATH), "-f", temp_path, "--no-color"],
                 capture_output=True,
                 text=True,
             )

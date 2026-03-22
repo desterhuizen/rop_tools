@@ -58,8 +58,7 @@ class TestGadgetBasics(unittest.TestCase):
 
     def test_empty_instructions(self):
         """Test gadget with no instructions"""
-        g = Gadget(address="0x12345678", instructions=[], raw_line="test",
-                   count=1)
+        g = Gadget(address="0x12345678", instructions=[], raw_line="test", count=1)
         assert g.get_first_instruction() == ""
         assert g.get_last_instruction() == ""
         assert g.get_instruction_chain() == ""

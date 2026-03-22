@@ -46,8 +46,7 @@ class ColorPrinter:
         else:
             print(f"\n{text}")
 
-    def print_labeled(self, label, value, label_style="cyan",
-                      value_style="yellow"):
+    def print_labeled(self, label, value, label_style="cyan", value_style="yellow"):
         """Print a 'Label: Value' pair with different styles"""
         if self.enabled:
             output = Text()
@@ -129,8 +128,7 @@ class ColorPrinter:
 
             styled_content = Text(str(content), style=style)
             panel = Panel(
-                styled_content, title=title, border_style=border_style,
-                expand=False
+                styled_content, title=title, border_style=border_style, expand=False
             )
             self.console.print(panel)
         else:
@@ -165,7 +163,7 @@ class ColorPrinter:
         # Build hex string (split into two groups of 8 for readability)
         hex_parts = []
         for i in range(0, len(preview_bytes), 8):
-            chunk = preview_bytes[i: i + 8]
+            chunk = preview_bytes[i : i + 8]
             hex_str = " ".join(f"{b:02x}" for b in chunk)
             hex_parts.append(hex_str)
         hex_line = "  ".join(hex_parts)

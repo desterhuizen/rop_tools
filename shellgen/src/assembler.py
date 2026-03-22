@@ -12,7 +12,6 @@ from lib.color_printer import printer
 # Try to import Keystone for assembly
 try:
     from keystone import (
-        Ks,
         KS_ARCH_ARM,
         KS_ARCH_ARM64,
         KS_ARCH_X86,
@@ -21,6 +20,7 @@ try:
         KS_MODE_ARM,
         KS_MODE_LITTLE_ENDIAN,
         KS_MODE_THUMB,
+        Ks,
     )
 
     KEYSTONE_AVAILABLE = True
@@ -30,13 +30,13 @@ except ImportError:
 # Try to import Capstone for disassembly
 try:
     from capstone import (
-        Cs,
         CS_ARCH_ARM,
         CS_ARCH_ARM64,
         CS_ARCH_X86,
         CS_MODE_32,
         CS_MODE_64,
         CS_MODE_ARM,
+        Cs,
     )
 
     CAPSTONE_AVAILABLE = True
@@ -466,6 +466,170 @@ def get_capstone_arch_mode(arch_name):
     return arch_map[arch_name]
 
 
+def _disassemble_with_highlighting(shellcode, arch, bad_char_set):
+    """Disassemble shellcode with bad character highlighting.
+
+    Returns:
+        dict: Map of byte offset to instruction info, or None on error
+    """
+    printer.print_section("\n" + "=" * 80, "cyan")
+    printer.print_section("DISASSEMBLY WITH BAD CHARACTER HIGHLIGHTING", "bold cyan")
+    printer.print_section("=" * 80, "cyan")
+
+    try:
+        cs_arch, cs_mode = get_capstone_arch_mode(arch)
+        md = Cs(cs_arch, cs_mode)
+        md.detail = True
+    except Exception as e:
+        printer.print_text(f"\nError disassembling shellgen: {e}", "red")
+        return None
+
+    print(f"\n{'Offset':<12} {'Size':<6} {'Opcodes':<48} Instruction")
+    print("-" * 95)
+
+    offset_to_inst = {}
+
+    for inst in md.disasm(shellcode, 0):
+        inst_bytes = shellcode[inst.address : inst.address + inst.size]
+        has_bad = any(b in bad_char_set for b in inst_bytes)
+
+        # Format opcodes with highlighting
+        opcodes_display = []
+        for b in inst_bytes:
+            if b in bad_char_set:
+                opcodes_display.append(f"\033[91m{b:02x}\033[0m")
+            else:
+                opcodes_display.append(f"{b:02x}")
+        opcodes_str = " ".join(opcodes_display)
+
+        if len(inst_bytes) > 16:
+            opcodes_str = opcodes_str[:62] + "..."
+
+        marker = "\033[91m!!!\033[0m" if has_bad else ""
+
+        for i in range(inst.size):
+            offset_to_inst[inst.address + i] = {
+                "address": inst.address,
+                "size": inst.size,
+                "mnemonic": inst.mnemonic,
+                "op_str": inst.op_str,
+                "bytes": inst_bytes,
+            }
+
+        offset_range = f"0x{inst.address:04x}-0x{inst.address + inst.size - 1:04x}"
+        disasm_str = f"{inst.mnemonic} {inst.op_str}".strip()
+        print(
+            f"{offset_range:<12} {inst.size:<6} {opcodes_str:<48} {marker} {disasm_str}"
+        )
+
+    return offset_to_inst
+
+
+def _map_bad_chars_to_instructions(bad_char_locations, offset_to_inst, bad_char_set):
+    """Map bad character locations to their instructions and print the mapping."""
+    printer.print_section("\n" + "=" * 80, "bold red")
+    printer.print_section("BAD CHARACTER LOCATIONS MAPPED TO INSTRUCTIONS", "bold red")
+    printer.print_section("=" * 80, "bold red")
+
+    inst_bad_chars = {}
+    for loc in bad_char_locations:
+        offset = loc["offset"]
+        byte_val = loc["byte"]
+
+        if offset in offset_to_inst:
+            inst_info = offset_to_inst[offset]
+            inst_addr = inst_info["address"]
+
+            if inst_addr not in inst_bad_chars:
+                disasm_str = f"{inst_info['mnemonic']} {inst_info['op_str']}".strip()
+                inst_bad_chars[inst_addr] = {
+                    "instruction": disasm_str,
+                    "offset": inst_addr,
+                    "size": inst_info["size"],
+                    "bytes": inst_info["bytes"],
+                    "bad_bytes": [],
+                }
+
+            byte_pos = offset - inst_addr
+            inst_bad_chars[inst_addr]["bad_bytes"].append(
+                {"byte": byte_val, "abs_offset": offset, "rel_offset": byte_pos}
+            )
+        else:
+            print(
+                f"Warning: Bad char at offset 0x{offset:04x} not mapped to instruction"
+            )
+
+    for inst_addr in sorted(inst_bad_chars.keys()):
+        info = inst_bad_chars[inst_addr]
+        print(f"\nOffset 0x{inst_addr:04x}: {info['instruction']}")
+        print(
+            f"  Instruction range: 0x{info['offset']:04x}-0x{info['offset'] + info['size'] - 1:04x} ({info['size']} bytes)"
+        )
+        print("  Bad characters found:")
+
+        for bad_info in info["bad_bytes"]:
+            print(
+                f"    - Byte 0x{bad_info['byte']:02x} at offset 0x{bad_info['abs_offset']:04x} (byte {bad_info['rel_offset']} of instruction)"
+            )
+
+        opcodes_display = []
+        for _i, b in enumerate(info["bytes"]):
+            if b in bad_char_set:
+                opcodes_display.append(f"\033[91m[{b:02x}]\033[0m")
+            else:
+                opcodes_display.append(f"{b:02x}")
+        print(f"  Opcodes: {' '.join(opcodes_display)}")
+
+    return inst_bad_chars
+
+
+def _print_debug_summary(shellcode, count, bad_char_locations, inst_bad_chars=None):
+    """Print the debug summary section."""
+    if inst_bad_chars:
+        style = "bold red"
+        printer.print_section("\n" + "=" * 80, style)
+        printer.print_section("SUMMARY", style)
+        printer.print_section("=" * 80, style)
+        printer.print_text("Total shellgen size: ", "cyan", end="")
+        printer.print_text(f"{len(shellcode)} bytes\n", "yellow")
+        printer.print_text("Instructions with bad characters: ", "cyan", end="")
+        printer.print_text(f"{len(inst_bad_chars)}\n", "red")
+        printer.print_text("Total bad character occurrences: ", "cyan", end="")
+        printer.print_text(f"{len(bad_char_locations)}\n", "red")
+
+        printer.print_text("\nTo fix these issues:", "bold cyan")
+        printer.print_text("  1. Examine the flagged instructions above\n", "dim white")
+        printer.print_text(
+            "  2. Try using different registers or instruction forms\n", "dim white"
+        )
+        printer.print_text(
+            "  3. For immediate values, ensure bad character encoding is working\n",
+            "dim white",
+        )
+        printer.print_text(
+            "  4. Some opcodes inherently contain bad bytes - consider alternatives\n",
+            "dim white",
+        )
+        printer.print_text(
+            "  5. ModR/M and SIB bytes encode registers - changing registers may help\n",
+            "dim white",
+        )
+        printer.print_section("=" * 80, style)
+    else:
+        style = "bold green"
+        printer.print_section("\n" + "=" * 80, style)
+        printer.print_section("SUMMARY", style)
+        printer.print_section("=" * 80, style)
+        printer.print_text("Total shellgen size: ", "cyan", end="")
+        printer.print_text(f"{len(shellcode)} bytes\n", "yellow")
+        printer.print_text("Total instructions: ", "cyan", end="")
+        printer.print_text(f"{count}\n", "yellow")
+        printer.print_text(
+            "\n✓ No bad characters detected - shellgen is clean!\n", "bold green"
+        )
+        printer.print_section("=" * 80, style)
+
+
 def debug_shellcode_opcodes(asm_code, arch, bad_chars):
     """
     Debug shellgen by disassembling and mapping bad chars to instructions.
@@ -501,13 +665,10 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
     )
     printer.print_section("=" * 80, "bold green")
 
-    # Get architecture and mode for assembly
+    # Assemble the complete shellgen
     ks_arch, ks_mode = get_keystone_arch_mode(arch)
-
-    # Clean the assembly code
     clean_asm = clean_asm_for_keystone(asm_code)
 
-    # Assemble the complete shellgen
     try:
         ks = Ks(ks_arch, ks_mode)
         encoding, count = ks.asm(clean_asm)
@@ -520,20 +681,18 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
         print(
             f"\n[+] Complete shellgen assembled: {len(shellcode)} bytes, {count} instructions"
         )
-
     except Exception as e:
         print(f"Error assembling complete shellgen: {e}")
         return
 
     # Scan for bad characters
     bad_char_set = set(bad_chars)
-    bad_char_locations = []
+    bad_char_locations = [
+        {"offset": offset, "byte": byte_val}
+        for offset, byte_val in enumerate(shellcode)
+        if byte_val in bad_char_set
+    ]
 
-    for offset, byte_val in enumerate(shellcode):
-        if byte_val in bad_char_set:
-            bad_char_locations.append({"offset": offset, "byte": byte_val})
-
-    # Print status (but DON'T return early - always show disassembly)
     if not bad_char_locations:
         printer.print_text(
             "\n✓ No bad characters found in the assembled shellgen!", "bold green"
@@ -548,164 +707,16 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
         )
         printer.print_text(f"Bad bytes: {{{bad_bytes_str}}}", "red")
 
-    # ALWAYS disassemble the shellgen using Capstone (whether bad chars found or not)
-    printer.print_section("\n" + "=" * 80, "cyan")
-    printer.print_section("DISASSEMBLY WITH BAD CHARACTER HIGHLIGHTING", "bold cyan")
-    printer.print_section("=" * 80, "cyan")
-
-    try:
-        cs_arch, cs_mode = get_capstone_arch_mode(arch)
-        md = Cs(cs_arch, cs_mode)
-        md.detail = True
-
-        print(f"\n{'Offset':<12} {'Size':<6} {'Opcodes':<48} Instruction")
-        print("-" * 95)
-
-        offset_to_inst = {}  # Map byte offsets to instruction info
-
-        for inst in md.disasm(shellcode, 0):
-            # Get the bytes for this instruction
-            inst_bytes = shellcode[inst.address : inst.address + inst.size]
-
-            # Check for bad chars
-            bad_in_inst = [b for b in inst_bytes if b in bad_char_set]
-            has_bad = len(bad_in_inst) > 0
-
-            # Format opcodes with highlighting
-            opcodes_display = []
-            for b in inst_bytes:
-                if b in bad_char_set:
-                    opcodes_display.append(f"\033[91m{b:02x}\033[0m")
-                else:
-                    opcodes_display.append(f"{b:02x}")
-            opcodes_str = " ".join(opcodes_display)
-
-            # Truncate if too long
-            if len(inst_bytes) > 16:
-                opcodes_str = opcodes_str[:62] + "..."
-
-            # Mark bad instructions
-            marker = "\033[91m!!!\033[0m" if has_bad else ""
-
-            # Store mapping
-            for i in range(inst.size):
-                offset_to_inst[inst.address + i] = {
-                    "address": inst.address,
-                    "size": inst.size,
-                    "mnemonic": inst.mnemonic,
-                    "op_str": inst.op_str,
-                    "bytes": inst_bytes,
-                }
-
-            # Display
-            offset_range = f"0x{inst.address:04x}-0x{inst.address + inst.size - 1:04x}"
-            disasm_str = f"{inst.mnemonic} {inst.op_str}".strip()
-            print(
-                f"{offset_range:<12} {inst.size:<6} {opcodes_str:<48} {marker} {disasm_str}"
-            )
-
-    except Exception as e:
-        printer.print_text(f"\nError disassembling shellgen: {e}", "red")
+    # Disassemble with highlighting
+    offset_to_inst = _disassemble_with_highlighting(shellcode, arch, bad_char_set)
+    if offset_to_inst is None:
         return
 
-    # Only show bad character mapping if there ARE bad chars
-    if not bad_char_locations:
-        # No bad chars, just show summary and return
-        printer.print_section("\n" + "=" * 80, "bold green")
-        printer.print_section("SUMMARY", "bold green")
-        printer.print_section("=" * 80, "bold green")
-        printer.print_text("Total shellgen size: ", "cyan", end="")
-        printer.print_text(f"{len(shellcode)} bytes\n", "yellow")
-        printer.print_text("Total instructions: ", "cyan", end="")
-        printer.print_text(f"{count}\n", "yellow")
-        printer.print_text(
-            "\n✓ No bad characters detected - shellgen is clean!\n", "bold green"
+    # Map bad chars to instructions and print summary
+    if bad_char_locations:
+        inst_bad_chars = _map_bad_chars_to_instructions(
+            bad_char_locations, offset_to_inst, bad_char_set
         )
-        printer.print_section("=" * 80, "bold green")
-        return
-
-    # Map bad character locations to instructions
-    printer.print_section("\n" + "=" * 80, "bold red")
-    printer.print_section("BAD CHARACTER LOCATIONS MAPPED TO INSTRUCTIONS", "bold red")
-    printer.print_section("=" * 80, "bold red")
-
-    inst_bad_chars = {}
-    for loc in bad_char_locations:
-        offset = loc["offset"]
-        byte_val = loc["byte"]
-
-        if offset in offset_to_inst:
-            inst_info = offset_to_inst[offset]
-            inst_addr = inst_info["address"]
-
-            if inst_addr not in inst_bad_chars:
-                disasm_str = f"{inst_info['mnemonic']} {inst_info['op_str']}".strip()
-                inst_bad_chars[inst_addr] = {
-                    "instruction": disasm_str,
-                    "offset": inst_addr,
-                    "size": inst_info["size"],
-                    "bytes": inst_info["bytes"],
-                    "bad_bytes": [],
-                }
-
-            byte_pos = offset - inst_addr
-            inst_bad_chars[inst_addr]["bad_bytes"].append(
-                {"byte": byte_val, "abs_offset": offset, "rel_offset": byte_pos}
-            )
-        else:
-            print(
-                f"Warning: Bad char at offset 0x{offset:04x} not mapped to instruction"
-            )
-
-    # Print grouped bad chars by instruction
-    for inst_addr in sorted(inst_bad_chars.keys()):
-        info = inst_bad_chars[inst_addr]
-        print(f"\nOffset 0x{inst_addr:04x}: {info['instruction']}")
-        print(
-            f"  Instruction range: 0x{info['offset']:04x}-0x{info['offset'] + info['size'] - 1:04x} ({info['size']} bytes)"
-        )
-        print("  Bad characters found:")
-
-        for bad_info in info["bad_bytes"]:
-            print(
-                f"    - Byte 0x{bad_info['byte']:02x} at offset 0x{bad_info['abs_offset']:04x} (byte {bad_info['rel_offset']} of instruction)"
-            )
-
-        # Show opcodes with highlighting
-        opcodes_display = []
-        for _i, b in enumerate(info["bytes"]):
-            if b in bad_char_set:
-                opcodes_display.append(f"\033[91m[{b:02x}]\033[0m")
-            else:
-                opcodes_display.append(f"{b:02x}")
-        print(f"  Opcodes: {' '.join(opcodes_display)}")
-
-    # Summary
-    printer.print_section("\n" + "=" * 80, "bold red")
-    printer.print_section("SUMMARY", "bold red")
-    printer.print_section("=" * 80, "bold red")
-    printer.print_text("Total shellgen size: ", "cyan", end="")
-    printer.print_text(f"{len(shellcode)} bytes\n", "yellow")
-    printer.print_text("Instructions with bad characters: ", "cyan", end="")
-    printer.print_text(f"{len(inst_bad_chars)}\n", "red")
-    printer.print_text("Total bad character occurrences: ", "cyan", end="")
-    printer.print_text(f"{len(bad_char_locations)}\n", "red")
-
-    printer.print_text("\nTo fix these issues:", "bold cyan")
-    printer.print_text("  1. Examine the flagged instructions above\n", "dim white")
-    printer.print_text(
-        "  2. Try using different registers or instruction forms\n", "dim white"
-    )
-    printer.print_text(
-        "  3. For immediate values, ensure bad character encoding is working\n",
-        "dim white",
-    )
-    printer.print_text(
-        "  4. Some opcodes inherently contain bad bytes - consider alternatives\n",
-        "dim white",
-    )
-    printer.print_text(
-        "  5. ModR/M and SIB bytes encode registers - changing registers may help\n",
-        "dim white",
-    )
-    printer.print_section("=" * 80, "bold red")
+        _print_debug_summary(shellcode, count, bad_char_locations, inst_bad_chars)
+    else:
+        _print_debug_summary(shellcode, count, bad_char_locations)

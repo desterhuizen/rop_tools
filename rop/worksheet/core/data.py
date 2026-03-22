@@ -27,7 +27,7 @@ def blank_worksheet() -> Dict[str, Any]:
     return {
         "registers": dict.fromkeys(
             ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"],
-            "0x00000000"
+            "0x00000000",
         ),
         "stack": {},  # offset -> value (e.g., "+0x00": "0xdeadbeef")
         "named": {},  # name -> value (e.g., "shellgen": "0x00501000")

@@ -10,8 +10,7 @@ from typing import Any, Dict, Optional, Tuple
 from ..core.resolver import parse_target, resolve_value
 
 
-def cmd_set(ws: Dict[str, Any], target: str, value: str) -> Tuple[
-        bool, Optional[str]]:
+def cmd_set(ws: Dict[str, Any], target: str, value: str) -> Tuple[bool, Optional[str]]:
     """
     Set a register, stack slot, or named value directly.
 

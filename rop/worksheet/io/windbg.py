@@ -60,7 +60,7 @@ def _parse_stack_address(addr_str: str) -> Optional[int]:
 
 
 def _process_dword_values(
-        ws: Dict[str, Any], stack_addr: int, values: list, esp_val: int
+    ws: Dict[str, Any], stack_addr: int, values: list, esp_val: int
 ) -> int:
     """
     Process DWORD values from a WinDbg stack dump line.
@@ -145,8 +145,7 @@ def cmd_import_stack(ws: Dict[str, Any], text: str) -> Tuple[bool, str]:
 
         # Process each DWORD value in this line
         try:
-            imported += _process_dword_values(ws, stack_addr, parts[1:],
-                                              esp_val)
+            imported += _process_dword_values(ws, stack_addr, parts[1:], esp_val)
         except (ValueError, IndexError):
             continue
 

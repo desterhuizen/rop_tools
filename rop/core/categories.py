@@ -48,8 +48,7 @@ class GadgetCategory:
 
 def _is_stack_pivot(instructions_lower, first_inst, last_inst):
     return any(
-        re.match(r"(xchg|xor|add|sub|lea).*[er]sp", inst)
-        for inst in instructions_lower
+        re.match(r"(xchg|xor|add|sub|lea).*[er]sp", inst) for inst in instructions_lower
     )
 
 
@@ -94,8 +93,7 @@ def _is_xchg_register(instructions_lower, first_inst, last_inst):
 
 def _is_load_register(instructions_lower, first_inst, last_inst):
     return any(
-        inst.startswith(("lea", "ld", "ldr", "ldd"))
-        for inst in instructions_lower
+        inst.startswith(("lea", "ld", "ldr", "ldd")) for inst in instructions_lower
     )
 
 

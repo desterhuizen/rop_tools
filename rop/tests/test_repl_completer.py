@@ -33,10 +33,8 @@ class TestWorksheetCompleter(unittest.TestCase):
                 "gadget1": 0x10001234,
             },
             "chain": [
-                {"addr": 0x10001234, "gadget": "pop eax ; ret",
-                 "effect": "Load value"},
-                {"addr": 0x10005678, "gadget": "pop ebx ; ret",
-                 "effect": "Load value"},
+                {"addr": 0x10001234, "gadget": "pop eax ; ret", "effect": "Load value"},
+                {"addr": 0x10005678, "gadget": "pop ebx ; ret", "effect": "Load value"},
             ],
         }
         self.completer = WorksheetCompleter(self.ws)
@@ -88,8 +86,7 @@ class TestWorksheetCompleter(unittest.TestCase):
         mock_readline.return_value = "mov e"
         result = self.completer.complete("e", 0)
         self.assertIn(
-            result,
-            ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"]
+            result, ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"]
         )
 
     @patch("readline.get_line_buffer")

@@ -17,8 +17,7 @@ class ROPGadgetParser:
     """Parser for rp++ output files"""
 
     # Regex pattern to match gadget lines
-    GADGET_PATTERN = re.compile(
-        r"^(0x[0-9a-fA-F]+):\s+(.+?)\s+;\s+\((\d+)\s+found\)$")
+    GADGET_PATTERN = re.compile(r"^(0x[0-9a-fA-F]+):\s+(.+?)\s+;\s+\((\d+)\s+found\)$")
 
     def __init__(self, filepath: Optional[str] = None):
         self.filepath = filepath
@@ -61,12 +60,10 @@ class ROPGadgetParser:
                 if null_count > len(sample) * 0.3 and len(sample) >= 2:
                     # Count positions of null bytes
                     even_nulls = sum(
-                        1 for i in range(0, len(sample) - 1, 2) if
-                        sample[i] == 0
+                        1 for i in range(0, len(sample) - 1, 2) if sample[i] == 0
                     )
                     odd_nulls = sum(
-                        1 for i in range(1, len(sample), 2) if
-                        sample[i] == 0
+                        1 for i in range(1, len(sample), 2) if sample[i] == 0
                     )
 
                     if odd_nulls > even_nulls:
@@ -100,9 +97,7 @@ class ROPGadgetParser:
         if not match:
             return
 
-        instructions = [
-            inst.strip() for inst in match.group(2).split(";")
-        ]
+        instructions = [inst.strip() for inst in match.group(2).split(";")]
         gadget = Gadget(
             address=match.group(1),
             instructions=instructions,
@@ -127,8 +122,7 @@ class ROPGadgetParser:
 
         try:
             with open(
-                    self.filepath, "r", encoding=detected_encoding,
-                    errors="replace"
+                self.filepath, "r", encoding=detected_encoding, errors="replace"
             ) as f:
                 for line in f:
                     line = line.rstrip()
@@ -139,8 +133,7 @@ class ROPGadgetParser:
                     self._parse_gadget_line(line)
 
         except FileNotFoundError:
-            print(f"[!] Error: File '{self.filepath}' not found",
-                  file=sys.stderr)
+            print(f"[!] Error: File '{self.filepath}' not found", file=sys.stderr)
             sys.exit(1)
         except Exception as e:
             print(f"[!] Error parsing file: {e}", file=sys.stderr)
@@ -149,7 +142,7 @@ class ROPGadgetParser:
         return self.gadgets
 
     def filter_by_instruction(
-            self, instruction: str, position: str = "any"
+        self, instruction: str, position: str = "any"
     ) -> List[Gadget]:
         """
         Filter gadgets by instruction
@@ -160,17 +153,14 @@ class ROPGadgetParser:
 
         for gadget in self.gadgets:
             if position == "first":
-                if gadget.get_first_instruction().lower().startswith(
-                        instruction_lower):
+                if gadget.get_first_instruction().lower().startswith(instruction_lower):
                     filtered.append(gadget)
             elif position == "last":
-                if gadget.get_last_instruction().lower().startswith(
-                        instruction_lower):
+                if gadget.get_last_instruction().lower().startswith(instruction_lower):
                     filtered.append(gadget)
             else:  # any
                 if any(
-                        instruction_lower in inst.lower() for inst in
-                        gadget.instructions
+                    instruction_lower in inst.lower() for inst in gadget.instructions
                 ):
                     filtered.append(gadget)
 
@@ -195,8 +185,7 @@ class ROPGadgetParser:
             for c in bad_chars
         }
 
-        return [g for g in self.gadgets if
-                not g.contains_bad_chars(bad_char_set)]
+        return [g for g in self.gadgets if not g.contains_bad_chars(bad_char_set)]
 
     def filter_by_max_instructions(self, max_count: int) -> List[Gadget]:
         """Filter gadgets with at most max_count instructions"""
@@ -257,7 +246,7 @@ class ROPGadgetParser:
         return dict(groups)
 
     def group_by_affected_register(
-            self, gadgets: Optional[List[Gadget]] = None
+        self, gadgets: Optional[List[Gadget]] = None
     ) -> Dict[str, List[Gadget]]:
         """Group gadgets by registers they affect"""
         groups = defaultdict(list)
@@ -274,7 +263,7 @@ class ROPGadgetParser:
         return dict(groups)
 
     def group_by_modified_register(
-            self, gadgets: Optional[List[Gadget]] = None
+        self, gadgets: Optional[List[Gadget]] = None
     ) -> Dict[str, List[Gadget]]:
         """Group gadgets by registers they modify"""
         groups = defaultdict(list)
@@ -291,7 +280,7 @@ class ROPGadgetParser:
         return dict(groups)
 
     def filter_by_register(
-            self, register: str, modified_only: bool = False
+        self, register: str, modified_only: bool = False
     ) -> List[Gadget]:
         """Filter gadgets that affect or modify a specific register"""
         register_lower = register.lower()
@@ -309,7 +298,7 @@ class ROPGadgetParser:
         return filtered
 
     def filter_dereferenced_registers(
-            self, register: Optional[str] = None
+        self, register: Optional[str] = None
     ) -> List[Gadget]:
         """Filter gadgets that use dereferenced registers (e.g., [eax], [rsp+8])"""
         filtered = []
@@ -327,7 +316,7 @@ class ROPGadgetParser:
         return filtered
 
     def group_by_dereferenced_register(
-            self, gadgets: Optional[List[Gadget]] = None
+        self, gadgets: Optional[List[Gadget]] = None
     ) -> Dict[str, List[Gadget]]:
         """Group gadgets by dereferenced registers"""
         groups = defaultdict(list)
@@ -344,7 +333,7 @@ class ROPGadgetParser:
         return dict(groups)
 
     def group_by_category_and_register(
-            self, gadgets: Optional[List[Gadget]] = None
+        self, gadgets: Optional[List[Gadget]] = None
     ) -> Dict[str, Dict[str, List[Gadget]]]:
         """Group gadgets by category, then by modified registers within each category"""
         nested_groups = defaultdict(lambda: defaultdict(list))

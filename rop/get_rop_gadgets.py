@@ -249,12 +249,8 @@ def _display_simple_groups(groups, label, style, display_kwargs):
     """Display gadgets grouped by a single key (register, instruction, etc.)."""
     printer.print_section(f"=== Grouped by {label} ===\n", "bold green")
 
-    for key, gadgets in sorted(
-        groups.items(), key=lambda x: len(x[1]), reverse=True
-    ):
-        printer.print_section(
-            f"\n--- {key} ({len(gadgets)} gadgets) ---", style
-        )
+    for key, gadgets in sorted(groups.items(), key=lambda x: len(x[1]), reverse=True):
+        printer.print_section(f"\n--- {key} ({len(gadgets)} gadgets) ---", style)
         print_gadgets(gadgets, **display_kwargs)
 
 
@@ -286,9 +282,7 @@ def _display_category_register_groups(nested_groups, display_kwargs):
         for reg, gadgets in sorted(
             reg_groups.items(), key=lambda x: len(x[1]), reverse=True
         ):
-            printer.print_section(
-                f"  --- {reg} ({len(gadgets)} gadgets) ---", "cyan"
-            )
+            printer.print_section(f"  --- {reg} ({len(gadgets)} gadgets) ---", "cyan")
             print_gadgets(gadgets, **display_kwargs)
             print()
 
@@ -314,12 +308,18 @@ def _display_category_groups(rop_parser, filtered_gadgets, display_kwargs):
 def _get_grouped_gadgets(group_type, rop_parser, filtered_gadgets):
     """Build groups and return (groups, label, style) for the given group type."""
     if group_type == "register":
-        return (rop_parser.group_by_affected_register(filtered_gadgets),
-                "affected register", "yellow")
+        return (
+            rop_parser.group_by_affected_register(filtered_gadgets),
+            "affected register",
+            "yellow",
+        )
 
     if group_type == "modified-register":
-        return (rop_parser.group_by_modified_register(filtered_gadgets),
-                "modified register", "cyan")
+        return (
+            rop_parser.group_by_modified_register(filtered_gadgets),
+            "modified register",
+            "cyan",
+        )
 
     if group_type == "dereferenced-register":
         groups = rop_parser.group_by_dereferenced_register(filtered_gadgets)
@@ -344,9 +344,7 @@ def display_grouped_results(args, rop_parser, filtered_gadgets, display_kwargs):
     if args.group == "category":
         _display_category_groups(rop_parser, filtered_gadgets, display_kwargs)
     elif args.group == "category-register":
-        nested_groups = rop_parser.group_by_category_and_register(
-            filtered_gadgets
-        )
+        nested_groups = rop_parser.group_by_category_and_register(filtered_gadgets)
         _display_category_register_groups(nested_groups, display_kwargs)
     else:
         groups, label, style = _get_grouped_gadgets(
@@ -438,7 +436,9 @@ Categories:
         """,
     )
 
-    arg_parser.add_argument("-f", "--file", required=True, help="Path to rp++ output file")
+    arg_parser.add_argument(
+        "-f", "--file", required=True, help="Path to rp++ output file"
+    )
     arg_parser.add_argument("-i", "--instruction", help="Filter by instruction name")
     arg_parser.add_argument(
         "-p",
@@ -578,8 +578,7 @@ def main():
     if args.stats:
         print_statistics(rop_parser)
     elif args.group:
-        display_grouped_results(args, rop_parser, filtered_gadgets,
-                                display_kwargs)
+        display_grouped_results(args, rop_parser, filtered_gadgets, display_kwargs)
     else:
         printer.print_section(
             f"=== Results ({len(filtered_gadgets)} gadgets) ===\n", "bold green"

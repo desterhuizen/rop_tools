@@ -43,8 +43,7 @@ class TestPEAnalyzerBasics(unittest.TestCase):
         assert isinstance(base_address, int)
         assert base_address > 0
         # Common ImageBase values
-        assert base_address in [0x00400000, 0x10000000,
-                                0x140000000] or base_address > 0
+        assert base_address in [0x00400000, 0x10000000, 0x140000000] or base_address > 0
 
     def test_analyze_file_structure(self):
         """Test PEInfo dataclass population"""
@@ -79,8 +78,9 @@ class TestPEAnalyzerBasics(unittest.TestCase):
     def test_invalid_pe_file(self):
         """Test error handling for non-PE files"""
         import tempfile
+
         # Create a non-PE file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("This is not a PE file")
             invalid_file = f.name
 
@@ -294,8 +294,7 @@ class TestDataClasses(unittest.TestCase):
     def test_iat_entry_dataclass(self):
         """Test IATEntry dataclass creation"""
         entry = IATEntry(
-            dll="kernel32.dll", function="WriteFile", address=0x2000,
-            ordinal=123
+            dll="kernel32.dll", function="WriteFile", address=0x2000, ordinal=123
         )
 
         assert entry.dll == "kernel32.dll"
@@ -308,8 +307,7 @@ class TestDataClasses(unittest.TestCase):
 
     def test_iat_entry_without_ordinal(self):
         """Test IATEntry without ordinal"""
-        entry = IATEntry(dll="user32.dll", function="MessageBoxA",
-                         address=0x3000)
+        entry = IATEntry(dll="user32.dll", function="MessageBoxA", address=0x3000)
 
         assert entry.dll == "user32.dll"
         assert entry.function == "MessageBoxA"
