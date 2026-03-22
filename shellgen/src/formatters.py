@@ -206,12 +206,12 @@ def format_pyasm(asm_code, arch="x86", platform="windows"):
     arch_const, mode_const = arch_const_map.get(arch, ("KS_ARCH_X86", "KS_MODE_32"))
 
     # Convert assembly with inline comments to Python tuple format
-    _convert_asm_to_python_tuple(asm_code)
+    asm_tuple = _convert_asm_to_python_tuple(asm_code)
 
     pyasm_template = '''#!/usr/bin/env python3
 """
 Shellcode Compiler - Keystone Engine
-Architecture: {arch.upper()}
+Architecture: {arch_upper}
 Platform: {platform}
 """
 import ctypes, struct
@@ -297,7 +297,13 @@ else:
         print("=" * 40)
     '''
 
-    return pyasm_template
+    return pyasm_template.format(
+        arch_upper=arch.upper(),
+        platform=platform,
+        asm_tuple=asm_tuple,
+        arch_const=arch_const,
+        mode_const=mode_const,
+    )
 
 
 def format_output(asm_code, output_format, arch="x86", platform="windows"):

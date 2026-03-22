@@ -88,9 +88,10 @@ class TestResolveValue(unittest.TestCase):
         assert resolve_value("nonexistent", ws) is None
 
     def test_resolve_stack_offset_missing(self):
-        """Test resolution of non-existent stack offset returns None."""
+        """Test resolution of ESP+offset uses arithmetic when stack offset is missing."""
         ws = blank_worksheet()
-        assert resolve_value("ESP+0x100", ws) is None
+        # ESP is 0x00000000 by default, so ESP+0x100 resolves via arithmetic
+        assert resolve_value("ESP+0x100", ws) == "0x00000100"
 
 
 class TestParseTarget(unittest.TestCase):
