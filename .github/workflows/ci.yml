@@ -21,17 +21,17 @@ jobs:
       run: pip install -r requirements-lint.txt
 
     - name: flake8
-      run: flake8 lib/ rop/ shellgen/ code_snippets/ --statistics
+      run: flake8 lib/ rop/ shellgen/ code_snippets/ target_builder/ --statistics
 
     - name: black
-      run: black --check --diff lib/ rop/ shellgen/ code_snippets/
+      run: black --check --diff lib/ rop/ shellgen/ code_snippets/ target_builder/
 
     - name: isort
-      run: isort --check-only --diff lib/ rop/ shellgen/ code_snippets/
+      run: isort --check-only --diff lib/ rop/ shellgen/ code_snippets/ target_builder/
 
     - name: mypy
       continue-on-error: true
-      run: mypy lib/ rop/ shellgen/ code_snippets/ || true
+      run: mypy lib/ rop/ shellgen/ code_snippets/ target_builder/ || true
 
   test:
     name: Test (Python ${{ matrix.python-version }})
@@ -55,6 +55,7 @@ jobs:
         python -m unittest discover -s lib/tests -p "test_*.py" -t . -v
         python -m unittest discover -s rop/tests -p "test_*.py" -t . -v
         python -m unittest discover -s shellgen/tests -p "test_*.py" -t . -v
+        python -m unittest discover -s target_builder/tests -p "test_*.py" -t . -v
 
     - name: Generate coverage
       if: matrix.python-version == '3.12' && github.ref == 'refs/heads/main'
@@ -63,6 +64,7 @@ jobs:
         coverage run -m unittest discover -s lib/tests -p "test_*.py" -t .
         coverage run -a -m unittest discover -s rop/tests -p "test_*.py" -t .
         coverage run -a -m unittest discover -s shellgen/tests -p "test_*.py" -t .
+        coverage run -a -m unittest discover -s target_builder/tests -p "test_*.py" -t .
         coverage report -m
         coverage xml
         coverage html

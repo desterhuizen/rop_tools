@@ -1,0 +1,227 @@
+"""Tests for vulnerability and protocol templates.
+
+Verifies each template produces valid C++ fragments with expected patterns.
+"""
+
+import unittest
+
+from target_builder.src.config import (
+    DecoyType,
+    Protocol,
+    ServerConfig,
+    VulnType,
+)
+from target_builder.src.templates import (
+    buffer_overflow,
+    decoys,
+    egghunter,
+    format_string,
+    seh_overflow,
+)
+from target_builder.src.templates.protocols import http as http_proto
+from target_builder.src.templates.protocols import rpc as rpc_proto
+from target_builder.src.templates.protocols import tcp as tcp_proto
+
+
+class TestBufferOverflow(unittest.TestCase):
+    """Test buffer overflow template."""
+
+    def test_contains_strcpy(self):
+        config = ServerConfig(vuln_type=VulnType.BOF, buffer_size=512)
+        result = buffer_overflow.generate_vuln_function(config)
+        self.assertIn("strcpy", result)
+        self.assertIn("buffer[512]", result)
+
+    def test_handler_call_tcp(self):
+        config = ServerConfig(protocol=Protocol.TCP)
+        call = buffer_overflow.generate_vuln_handler_call(config)
+        self.assertIn("vuln_function(data, data_len)", call)
+
+    def test_handler_call_http(self):
+        config = ServerConfig(protocol=Protocol.HTTP)
+        call = buffer_overflow.generate_vuln_handler_call(config)
+        self.assertIn("req->body", call)
+
+    def test_handler_call_rpc(self):
+        config = ServerConfig(protocol=Protocol.RPC)
+        call = buffer_overflow.generate_vuln_handler_call(config)
+        self.assertIn("payload", call)
+
+    def test_bad_char_filter_included(self):
+        config = ServerConfig(vuln_type=VulnType.BOF, bad_chars=[0x0A])
+        result = buffer_overflow.generate_vuln_function(config)
+        self.assertIn("filter_bad_chars", result)
+
+    def test_no_filter_without_bad_chars(self):
+        config = ServerConfig(vuln_type=VulnType.BOF, bad_chars=[])
+        result = buffer_overflow.generate_vuln_function(config)
+        self.assertNotIn("filter_bad_chars", result)
+
+
+class TestSEHOverflow(unittest.TestCase):
+    """Test SEH overflow template."""
+
+    def test_contains_try_except(self):
+        config = ServerConfig(vuln_type=VulnType.SEH)
+        result = seh_overflow.generate_vuln_function(config)
+        self.assertIn("__try", result)
+        self.assertIn("__except", result)
+        self.assertIn("strcpy", result)
+
+    def test_buffer_size(self):
+        config = ServerConfig(vuln_type=VulnType.SEH, buffer_size=300)
+        result = seh_overflow.generate_vuln_function(config)
+        self.assertIn("buffer[300]", result)
+
+
+class TestEgghunter(unittest.TestCase):
+    """Test egghunter template."""
+
+    def test_contains_heap_stash(self):
+        config = ServerConfig(
+            vuln_type=VulnType.EGGHUNTER,
+            vuln_buffer_size=128,
+            buffer_size=2048,
+        )
+        result = egghunter.generate_vuln_function(config)
+        self.assertIn("small_buffer[128]", result)
+        self.assertIn("g_heap_log", result)
+        self.assertIn("malloc", result)
+        self.assertIn("memcpy", result)
+        self.assertIn("strcpy", result)
+
+    def test_egg_tag_in_comment(self):
+        config = ServerConfig(
+            vuln_type=VulnType.EGGHUNTER,
+            egg_tag="test",
+        )
+        result = egghunter.generate_vuln_function(config)
+        self.assertIn("test", result)
+
+
+class TestFormatString(unittest.TestCase):
+    """Test format string template."""
+
+    def test_contains_printf_vuln(self):
+        config = ServerConfig(vuln_type=VulnType.FMTSTR)
+        result = format_string.generate_vuln_function(config)
+        # Should have printf(data) without format specifier
+        self.assertIn("printf(data)", result)
+        # Should have secret values for leaking
+        self.assertIn("0xDEADBEEF", result)
+
+    def test_handler_call_includes_socket(self):
+        config = ServerConfig(vuln_type=VulnType.FMTSTR, protocol=Protocol.TCP)
+        call = format_string.generate_vuln_handler_call(config)
+        self.assertIn("client", call)
+
+
+class TestDecoys(unittest.TestCase):
+    """Test decoy command generation."""
+
+    def test_near_miss_buffer(self):
+        config = ServerConfig()
+        result = decoys.generate_decoy_functions(
+            config, [("PROCESS", DecoyType.NEAR_MISS_BUFFER)]
+        )
+        self.assertIn("strncpy", result)
+        self.assertIn("sizeof(buffer)", result)
+
+    def test_safe_format(self):
+        config = ServerConfig()
+        result = decoys.generate_decoy_functions(
+            config, [("QUERY", DecoyType.SAFE_FORMAT)]
+        )
+        self.assertIn("%s", result)
+        self.assertIn("_snprintf", result)
+
+    def test_bounded_copy(self):
+        config = ServerConfig()
+        result = decoys.generate_decoy_functions(
+            config, [("UPDATE", DecoyType.BOUNDED_COPY)]
+        )
+        self.assertIn("memcpy", result)
+        self.assertIn("copy_len", result)
+
+    def test_heap_buffer(self):
+        config = ServerConfig()
+        result = decoys.generate_decoy_functions(
+            config, [("VALIDATE", DecoyType.HEAP_BUFFER)]
+        )
+        self.assertIn("malloc", result)
+        self.assertIn("free", result)
+
+    def test_multiple_decoys(self):
+        config = ServerConfig()
+        specs = [
+            ("CMD1", DecoyType.NEAR_MISS_BUFFER),
+            ("CMD2", DecoyType.SAFE_FORMAT),
+        ]
+        result = decoys.generate_decoy_functions(config, specs)
+        self.assertIn("handle_cmd1", result)
+        self.assertIn("handle_cmd2", result)
+
+
+class TestTCPProtocol(unittest.TestCase):
+    """Test TCP protocol template."""
+
+    def test_connection_handler(self):
+        config = ServerConfig(protocol=Protocol.TCP)
+        result = tcp_proto.generate_connection_handler(config)
+        self.assertIn("handle_connection", result)
+        self.assertIn("recv", result)
+        self.assertIn("dispatch_command", result)
+
+    def test_info_leak_with_aslr(self):
+        config = ServerConfig(protocol=Protocol.TCP, aslr=True)
+        result = tcp_proto.generate_info_leak(config)
+        self.assertIn("DEBUG", result)
+        self.assertIn("0x%p", result)
+
+    def test_no_info_leak_without_aslr(self):
+        config = ServerConfig(protocol=Protocol.TCP, aslr=False)
+        result = tcp_proto.generate_info_leak(config)
+        self.assertEqual(result, "")
+
+
+class TestHTTPProtocol(unittest.TestCase):
+    """Test HTTP protocol template."""
+
+    def test_connection_handler(self):
+        config = ServerConfig(protocol=Protocol.HTTP)
+        result = http_proto.generate_connection_handler(config)
+        self.assertIn("http_request_t", result)
+        self.assertIn("parse_http_request", result)
+        self.assertIn("dispatch_http", result)
+
+    def test_info_leak_with_aslr(self):
+        config = ServerConfig(protocol=Protocol.HTTP, aslr=True)
+        result = http_proto.generate_info_leak(config)
+        self.assertIn("/info", result)
+        self.assertIn("debug_handle", result)
+
+
+class TestRPCProtocol(unittest.TestCase):
+    """Test RPC protocol template."""
+
+    def test_connection_handler(self):
+        config = ServerConfig(protocol=Protocol.RPC)
+        result = rpc_proto.generate_connection_handler(config)
+        self.assertIn("rpc_header_t", result)
+        self.assertIn("recv_exact", result)
+        self.assertIn("dispatch_rpc", result)
+
+    def test_info_leak_with_aslr(self):
+        config = ServerConfig(protocol=Protocol.RPC, aslr=True)
+        result = rpc_proto.generate_info_leak(config)
+        self.assertIn("INFO_OPCODE", result)
+        self.assertIn("internal_handle", result)
+
+    def test_custom_opcode(self):
+        config = ServerConfig(protocol=Protocol.RPC, command="5")
+        result = rpc_proto.generate_connection_handler(config)
+        self.assertIn("VULN_OPCODE 5", result)
+
+
+if __name__ == "__main__":
+    unittest.main()

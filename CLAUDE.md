@@ -75,6 +75,24 @@ rop_tools/
 │   │   └── formatters.py       # Uses lib/color_printer
 │   └── tests/                  # ROP tools tests
 │
+├── target_builder/             # Vulnerable server generator
+│   ├── CLAUDE.md               # Target builder development notes
+│   ├── target_builder_cli.py   # Main entry point
+│   ├── src/                    # Core modules
+│   │   ├── config.py           # Enums, dataclasses, validation
+│   │   ├── renderer.py         # Template assembly into C++ source
+│   │   ├── bad_chars.py        # Bad char filter C++ generation
+│   │   ├── exploit_skeleton.py # Python exploit script generation
+│   │   ├── build_script.py     # build.bat generation
+│   │   ├── cli.py              # CLI interface
+│   │   └── templates/          # C++ code templates
+│   │       ├── base.py         # Winsock2 skeleton
+│   │       ├── protocols/      # TCP, HTTP, RPC handlers
+│   │       ├── buffer_overflow.py, seh_overflow.py, egghunter.py, format_string.py
+│   │       ├── decoys.py       # Non-exploitable decoy commands
+│   │       └── rop_dll.py      # Companion DLL with ROP gadgets
+│   └── tests/                  # Target builder tests (114 tests)
+│
 ├── code_snippets/              # Utility scripts
 │   ├── rop_encoder_decoder.py
 │   └── skeletons.py
@@ -148,6 +166,15 @@ Gadget analysis, PE inspection, and interactive ROP chain building.
 
 **See:** `rop/CLAUDE.md` for technical details
 
+### 3. Target Builder (target_builder/)
+Generate compilable C++ Windows servers with configurable vulnerabilities for security training.
+
+**Vulnerability Types:** Buffer overflow, SEH overflow, egghunter, format string
+**Protocols:** TCP, HTTP, RPC
+**Key Features:** Configurable mitigations (DEP/ASLR/GS/SafeSEH), randomized challenges, exploit skeleton generation, ROP companion DLL, build script generation
+
+**See:** `target_builder/CLAUDE.md` for technical details
+
 ---
 
 ## Installation (User Perspective)
@@ -160,6 +187,7 @@ ln -sf "$(pwd)/shellgen/hash_generator.py" ~/.local/bin/hash_generator
 ln -sf "$(pwd)/rop/get_rop_gadgets.py" ~/.local/bin/get_rop_gadgets
 ln -sf "$(pwd)/rop/get_base_address.py" ~/.local/bin/get_base_address
 ln -sf "$(pwd)/rop/rop_worksheet.py" ~/.local/bin/rop_worksheet
+ln -sf "$(pwd)/target_builder/target_builder_cli.py" ~/.local/bin/target_builder
 ```
 
 All scripts have proper shebangs (`#!/usr/bin/env python3`) and can be run directly.
@@ -209,6 +237,7 @@ python -m unittest discover
 # Specific module
 python -m unittest discover -s shellgen/tests
 python -m unittest discover -s rop/tests
+python -m unittest discover -s target_builder/tests
 
 # With coverage
 coverage run -m unittest discover
@@ -302,6 +331,7 @@ pip install -r requirements-lint.txt
 - **Project-wide context**: This file (CLAUDE.md)
 - **Shellgen technical details**: `shellgen/CLAUDE.md`
 - **ROP tools technical details**: `rop/CLAUDE.md`
+- **Target builder technical details**: `target_builder/CLAUDE.md`
 - **User documentation**: README.md files (main and tool-specific)
 - **Installation**: `INSTALL.md`
 
@@ -328,6 +358,15 @@ pip install -r requirements-lint.txt
 - **Updated GitHub Actions**: All workflows now use Node.js 24-compatible actions (v6)
 - **Compacted CLAUDE.md files**: 54% reduction (rop/), 69% reduction (shellgen/)
 - **Added this file**: Central AI development guide
+- **New tool: target_builder** — Vulnerable server generator for security training
+  - 18 source files implementing full C++ server code generation pipeline
+  - 4 vulnerability types (bof, seh, egghunter, fmtstr) x 3 protocols (TCP, HTTP, RPC)
+  - Configurable mitigations (DEP with 6 bypass APIs, ASLR with info leak, GS, SafeSEH)
+  - Randomization with seeds, difficulty presets, decoy commands
+  - Exploit skeleton generation (3 levels x 3 protocols)
+  - ROP companion DLL with 3 gadget density levels
+  - Build script generation with correct cl.exe flags
+  - 114 tests across 6 test files
 
 ### Earlier
 - **Shared ColorPrinter**: Migrated to `lib/color_printer.py` for consistent output

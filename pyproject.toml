@@ -46,10 +46,10 @@ skip = [
 
 # Group imports: stdlib, third-party, first-party, local
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
-known_first_party = ["lib", "shellgen", "rop"]
+known_first_party = ["lib", "shellgen", "rop", "target_builder"]
 
 [tool.coverage.run]
-source = ["lib", "rop", "shellgen"]
+source = ["lib", "rop", "shellgen", "target_builder"]
 omit = ["*/tests/*"]
 
 [tool.coverage.report]

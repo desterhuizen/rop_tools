@@ -71,6 +71,7 @@ chmod +x shellgen/hash_generator.py
 chmod +x rop/get_rop_gadgets.py
 chmod +x rop/get_base_address.py
 chmod +x rop/rop_worksheet.py
+chmod +x target_builder/target_builder_cli.py
 
 # Create symbolic links
 ln -sf "$(pwd)/shellgen/shellgen_cli.py" ~/.local/bin/shellgen
@@ -78,6 +79,7 @@ ln -sf "$(pwd)/shellgen/hash_generator.py" ~/.local/bin/hash_generator
 ln -sf "$(pwd)/rop/get_rop_gadgets.py" ~/.local/bin/get_rop_gadgets
 ln -sf "$(pwd)/rop/get_base_address.py" ~/.local/bin/get_base_address
 ln -sf "$(pwd)/rop/rop_worksheet.py" ~/.local/bin/rop_worksheet
+ln -sf "$(pwd)/target_builder/target_builder_cli.py" ~/.local/bin/target_builder
 ```
 
 ## Add to PATH
@@ -121,6 +123,7 @@ which hash_generator
 which get_rop_gadgets
 which get_base_address
 which rop_worksheet
+which target_builder
 ```
 
 All commands should show: `~/.local/bin/<command_name>`
@@ -167,6 +170,7 @@ After installation, the following commands will be available system-wide:
 | `get_rop_gadgets`  | Parse and filter ROP gadgets           | `rop/get_rop_gadgets.py`     |
 | `get_base_address` | Extract PE base address and info       | `rop/get_base_address.py`    |
 | `rop_worksheet`    | Interactive ROP chain building         | `rop/rop_worksheet.py`       |
+| `target_builder`   | Vulnerable server generator            | `target_builder/target_builder_cli.py` |
 
 ## Usage Examples
 
@@ -206,6 +210,7 @@ rm ~/.local/bin/hash_generator
 rm ~/.local/bin/get_rop_gadgets
 rm ~/.local/bin/get_base_address
 rm ~/.local/bin/rop_worksheet
+rm ~/.local/bin/target_builder
 ```
 
 ### Remove Virtual Environment (if using Method 1)

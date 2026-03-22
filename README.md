@@ -75,7 +75,41 @@ cd rop && ./get_rop_gadgets.py -f gadgets.txt -i pop -b "\x00\x0a" -m 3
 
 ---
 
-### 3. 📝 [Code Snippets](code_snippets/)
+### 3. 🎯 [Target Builder](target_builder/)
+**Generate vulnerable C++ servers for exploit development practice**
+
+Generate compilable C++ Windows servers with configurable vulnerabilities, mitigations, and protocols. Produces complete source code ready for MSVC compilation, with optional exploit skeleton scripts and ROP companion DLLs.
+
+```bash
+# Simple buffer overflow server
+target_builder --vuln bof --buffer-size 2048 --output server.cpp --build-script
+
+# SEH overflow with DEP and ASLR, HTTP protocol
+target_builder --vuln seh --dep --aslr --protocol http --output server.cpp
+
+# Randomized challenge (reproducible with seed)
+target_builder --random --random-seed 42 --difficulty hard --output server.cpp \
+  --exploit crash --rop-dll
+
+# Or run directly without installation:
+cd target_builder && ./target_builder_cli.py --vuln bof --output server.cpp
+```
+
+**Key Features:**
+- 4 vulnerability types: buffer overflow, SEH, egghunter, format string
+- 3 protocols: raw TCP, HTTP/1.1, binary RPC
+- Configurable mitigations: DEP (6 bypass APIs), ASLR (with info leak), /GS, SafeSEH
+- Randomized challenges with seeds and difficulty presets
+- Exploit skeleton generation (connect/interact/crash)
+- ROP companion DLL with gadgets at 3 density levels
+- Decoy commands to force proper fuzzing
+- Build script generation with correct cl.exe flags
+
+**[📖 Full Documentation →](target_builder/CLAUDE.md)**
+
+---
+
+### 4. 📝 [Code Snippets](code_snippets/)
 **Utility scripts for common exploit development tasks**
 
 Collection of helper scripts and code skeletons for rapid exploit development.
@@ -86,7 +120,7 @@ Collection of helper scripts and code skeletons for rapid exploit development.
 
 ---
 
-### 4. 📚 [Shared Libraries](lib/)
+### 5. 📚 [Shared Libraries](lib/)
 **Common utilities used across all tools**
 
 Shared Python modules providing consistent functionality across the entire toolkit.
@@ -192,6 +226,12 @@ rop_tools/
 │   ├── get_base_address.py   # PE base extractor
 │   ├── rop_worksheet.py      # Interactive worksheet
 │   └── tests/                # Test suite
+│
+├── target_builder/           # Vulnerable server generator
+│   ├── CLAUDE.md             # Development notes
+│   ├── target_builder_cli.py # Main entry point
+│   ├── src/                  # Core modules + templates
+│   └── tests/                # Test suite (114 tests)
 │
 └── code_snippets/            # Utility scripts
     ├── rop_encoder_decoder.py
