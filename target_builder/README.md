@@ -84,6 +84,25 @@ When `--dep` is enabled, the server imports one of these APIs for a legitimate p
 | `setprocessdeppolicy`  | `SetProcessDEPPolicy`       |
 | `ntallocate`           | `NtAllocateVirtualMemory`   |
 
+### Base Address
+
+The default base address is `0x11110000` — chosen to avoid null bytes in code addresses. Standard Windows EXEs load at `0x00400000`, but that means every code address contains `0x00`, making string-based exploits (strcpy, etc.) impossible.
+
+```bash
+# Uses default 0x11110000 (no null bytes in upper address bytes)
+target_builder --vuln bof
+
+# Explicit base address
+target_builder --vuln bof --base-address 0x22220000
+
+# Auto-select based on bad chars (avoids all specified bad bytes)
+target_builder --vuln bof --bad-chars "00,0a,0d,11" --base-address auto
+```
+
+When `--random` is used with bad characters, a safe base address is automatically selected.
+
+Only the upper 2 bytes of the base address matter — the lower 2 bytes (`0x0000` from 64KB alignment) are replaced by the RVA offset in actual code addresses.
+
 ---
 
 ## Bad Characters
@@ -193,6 +212,7 @@ Server:
   --additional-commands    Comma-separated safe commands
   --decoy-commands N       Number of decoy commands
   --banner TEXT            Custom server banner
+  --base-address ADDR      EXE base address: hex or "auto" (default: 0x11110000)
 
 Bad Characters:
   --bad-chars HEXBYTES     e.g. "00,0a,0d,25"

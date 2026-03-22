@@ -58,6 +58,9 @@ def generate_compile_instructions(config: ServerConfig) -> str:
     else:
         link_flags.append("/DYNAMICBASE:NO")
 
+    # Base address
+    link_flags.append(f"/BASE:0x{config.base_address:08X}")
+
     # SafeSEH (x86 only)
     if config.arch == Architecture.X86:
         if config.safe_seh:

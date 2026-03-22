@@ -6,7 +6,7 @@ protocols, mitigations, and the main ServerConfig dataclass.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 
 class VulnType(Enum):
@@ -164,6 +164,109 @@ DIFFICULTY_PRESETS = {
 }
 
 
+def address_base_bytes(address: int, arch: "Architecture") -> Tuple[int, ...]:
+    """Extract the bytes contributed by the base address to code addresses.
+
+    For a 64KB-aligned base, the low 2 bytes are always 0x00 and get
+    replaced by the RVA offset in actual code addresses. Only the upper
+    non-zero bytes are determined by the base address choice.
+
+    For x86: bytes 2 and 3 (the upper 2 bytes of a 32-bit address).
+    For x64: bytes 2-7, but only those that are non-zero. In practice,
+    user-mode addresses fit in 32 bits, so this is usually bytes 2 and 3.
+    We skip zero bytes in upper positions since they won't appear in the
+    actual code addresses (the linker places code in the low RVA range).
+
+    Args:
+        address: Base address (must be 0x10000-aligned).
+        arch: Target architecture.
+
+    Returns:
+        Tuple of byte values contributed by the base address.
+    """
+    if arch == Architecture.X86:
+        return ((address >> 16) & 0xFF, (address >> 24) & 0xFF)
+    # x64: check bytes 2 and 3 (same as x86 for sub-4GB addresses)
+    # Only include higher bytes if the address actually uses them
+    result = [(address >> 16) & 0xFF, (address >> 24) & 0xFF]
+    for i in range(4, 8):
+        byte_val = (address >> (i * 8)) & 0xFF
+        if byte_val != 0:
+            result.append(byte_val)
+    return tuple(result)
+
+
+def address_conflicts_with_bad_chars(
+    address: int, bad_chars: List[int], arch: "Architecture"
+) -> bool:
+    """Check if a base address has bytes that conflict with bad characters.
+
+    Only checks the bytes contributed by the base address (upper bytes),
+    not the low 2 bytes which come from the RVA offset.
+
+    Args:
+        address: Base address to check.
+        bad_chars: List of bad character byte values.
+        arch: Target architecture.
+
+    Returns:
+        True if any base-contributed byte is in bad_chars.
+    """
+    if not bad_chars:
+        return False
+    bad_set = set(bad_chars)
+    return any(b in bad_set for b in address_base_bytes(address, arch))
+
+
+def find_safe_base_address(bad_chars: List[int], arch: "Architecture") -> int:
+    """Find a base address whose upper bytes avoid all bad characters.
+
+    Searches for a 64KB-aligned address where the bytes contributed by
+    the base (upper 2 bytes for x86) don't conflict with bad characters.
+
+    Args:
+        bad_chars: List of bad character byte values.
+        arch: Target architecture.
+
+    Returns:
+        A safe base address.
+
+    Raises:
+        ValueError: If no safe address can be found.
+    """
+    # Preferred candidates — common exploit-friendly addresses
+    preferred = [
+        0x11110000,
+        0x22220000,
+        0x33330000,
+        0x44440000,
+        0x55550000,
+        0x66660000,
+        0x77770000,
+        0x11120000,
+        0x11130000,
+        0x21210000,
+        0x31310000,
+        0x41410000,
+        0x51510000,
+        0x61610000,
+        0x71710000,
+    ]
+
+    for candidate in preferred:
+        if not address_conflicts_with_bad_chars(candidate, bad_chars, arch):
+            return candidate
+
+    # Systematic scan: 0x01010000 to 0x7FFE0000 in 0x10000 steps
+    for addr in range(0x01010000, 0x7FFE0000, 0x10000):
+        if not address_conflicts_with_bad_chars(addr, bad_chars, arch):
+            return addr
+
+    raise ValueError(
+        "Cannot find a base address whose upper bytes avoid all bad characters"
+    )
+
+
 @dataclass
 class RopDllConfig:
     """Configuration for the optional ROP companion DLL."""
@@ -205,6 +308,9 @@ class ServerConfig:
         default_factory=lambda: ["HELP", "STATS", "EXIT"]
     )
     banner: str = ""
+
+    # Base address — default 0x11110000 avoids null bytes in code addresses
+    base_address: int = 0x11110000
 
     # Bad characters
     bad_chars: List[int] = field(default_factory=list)
@@ -249,7 +355,7 @@ class ServerConfig:
         if not self.command:
             self.command = DEFAULT_COMMANDS.get(self.protocol, "TRAD")
 
-    def validate(self):
+    def validate(self):  # noqa: C901
         """Validate configuration, raising ValueError on invalid combos."""
         # Architecture constraints
         allowed_archs = VULN_ARCH_COMPAT.get(self.vuln_type, set())
@@ -280,6 +386,40 @@ class ServerConfig:
         if self.vuln_type == VulnType.EGGHUNTER and len(self.egg_tag) != 4:
             raise ValueError("--egg tag must be exactly 4 characters")
 
+        # Base address validation
+        self._validate_base_address()
+
+        # ROP DLL base address validation against bad chars
+        if (
+            self.rop_dll.enabled
+            and self.bad_chars
+            and address_conflicts_with_bad_chars(
+                self.rop_dll.base_address, self.bad_chars, self.arch
+            )
+        ):
+            raise ValueError(
+                f"--rop-dll-base 0x{self.rop_dll.base_address:08X} "
+                "contains bytes that conflict with --bad-chars"
+            )
+
         # Port range
         if not (1 <= self.port <= 65535):
             raise ValueError("--port must be between 1 and 65535")
+
+    def _validate_base_address(self):
+        """Validate the base_address field (called when not None)."""
+        if self.base_address % 0x10000 != 0:
+            raise ValueError("--base-address must be aligned to 0x10000 (64KB)")
+        if self.arch == Architecture.X86 and not (
+            0x10000 <= self.base_address <= 0x7FFE0000
+        ):
+            raise ValueError(
+                "--base-address must be between 0x00010000 and " "0x7FFE0000 for x86"
+            )
+        if self.bad_chars and address_conflicts_with_bad_chars(
+            self.base_address, self.bad_chars, self.arch
+        ):
+            raise ValueError(
+                f"--base-address 0x{self.base_address:08X} contains bytes "
+                "that conflict with --bad-chars"
+            )

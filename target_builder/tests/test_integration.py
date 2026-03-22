@@ -268,5 +268,76 @@ class TestCLIRun(unittest.TestCase):
                 os.unlink(tmp_bat)
 
 
+class TestBaseAddress(unittest.TestCase):
+    """Test base address CLI and rendering."""
+
+    def test_base_address_hex_parsed(self):
+        config = parse_args(["--vuln", "bof", "--base-address", "0x11110000"])
+        self.assertEqual(config.base_address, 0x11110000)
+
+    def test_base_address_auto(self):
+        config = parse_args(
+            [
+                "--vuln",
+                "bof",
+                "--base-address",
+                "auto",
+                "--bad-chars",
+                "00,0a,0d",
+            ]
+        )
+        self.assertIsNotNone(config.base_address)
+        # Upper bytes should not contain bad chars
+        upper = (config.base_address >> 16) & 0xFF
+        self.assertNotIn(upper, [0x00, 0x0A, 0x0D])
+
+    def test_base_address_in_build_script(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            protocol=Protocol.TCP,
+            base_address=0x11110000,
+            banner="Test",
+        )
+        from target_builder.src.build_script import generate as gen_build
+
+        bat = gen_build(config)
+        self.assertIn("/BASE:0x11110000", bat)
+
+    def test_base_address_in_compile_instructions(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            protocol=Protocol.TCP,
+            base_address=0x11110000,
+            banner="Test",
+        )
+        result = render(config)
+        self.assertIn("/BASE:0x11110000", result)
+
+    def test_default_base_address(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            protocol=Protocol.TCP,
+            banner="Test",
+        )
+        result = render(config)
+        self.assertIn("/BASE:0x11110000", result)
+
+    def test_random_with_bad_chars_gets_safe_base(self):
+        config = parse_args(
+            [
+                "--random",
+                "--random-seed",
+                "42",
+                "--bad-chars",
+                "00,0a,0d",
+            ]
+        )
+        self.assertIsNotNone(config.base_address)
+        upper_b2 = (config.base_address >> 16) & 0xFF
+        upper_b3 = (config.base_address >> 24) & 0xFF
+        for byte in [upper_b2, upper_b3]:
+            self.assertNotIn(byte, [0x00, 0x0A, 0x0D])
+
+
 if __name__ == "__main__":
     unittest.main()

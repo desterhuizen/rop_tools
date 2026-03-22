@@ -18,6 +18,9 @@ from target_builder.src.config import (
     RopDllConfig,
     ServerConfig,
     VulnType,
+    address_base_bytes,
+    address_conflicts_with_bad_chars,
+    find_safe_base_address,
 )
 
 
@@ -207,6 +210,113 @@ class TestRopDllConfig(unittest.TestCase):
         self.assertEqual(cfg.gadget_density, GadgetDensity.STANDARD)
         self.assertTrue(cfg.no_aslr)
         self.assertEqual(cfg.base_address, 0x10000000)
+
+
+class TestBaseAddressUtils(unittest.TestCase):
+    """Test base address utility functions."""
+
+    def test_address_base_bytes_x86(self):
+        # 0xAABB0000 -> upper bytes are 0xBB, 0xAA
+        self.assertEqual(address_base_bytes(0xAABB0000, Architecture.X86), (0xBB, 0xAA))
+
+    def test_address_base_bytes_x86_typical(self):
+        # 0x11110000 -> upper bytes are 0x11, 0x11
+        self.assertEqual(address_base_bytes(0x11110000, Architecture.X86), (0x11, 0x11))
+
+    def test_address_base_bytes_x64_sub4gb(self):
+        # x64 with sub-4GB address should return same as x86
+        self.assertEqual(address_base_bytes(0x11110000, Architecture.X64), (0x11, 0x11))
+
+    def test_address_conflicts_no_conflict(self):
+        self.assertFalse(
+            address_conflicts_with_bad_chars(
+                0x11110000, [0x00, 0x0A, 0x0D], Architecture.X86
+            )
+        )
+
+    def test_address_conflicts_with_null(self):
+        # 0x00110000 has 0x11 and 0x00 as upper bytes
+        # 0x00 is in bad chars -> conflict
+        self.assertTrue(
+            address_conflicts_with_bad_chars(0x00110000, [0x00], Architecture.X86)
+        )
+
+    def test_address_conflicts_empty_bad_chars(self):
+        self.assertFalse(
+            address_conflicts_with_bad_chars(0x00400000, [], Architecture.X86)
+        )
+
+    def test_find_safe_base_avoids_null(self):
+        addr = find_safe_base_address([0x00], Architecture.X86)
+        upper_bytes = address_base_bytes(addr, Architecture.X86)
+        self.assertNotIn(0x00, upper_bytes)
+
+    def test_find_safe_base_avoids_multiple(self):
+        bad = [0x00, 0x0A, 0x0D, 0x11]
+        addr = find_safe_base_address(bad, Architecture.X86)
+        upper_bytes = address_base_bytes(addr, Architecture.X86)
+        for b in bad:
+            self.assertNotIn(b, upper_bytes)
+
+    def test_find_safe_base_alignment(self):
+        addr = find_safe_base_address([0x00], Architecture.X86)
+        self.assertEqual(addr % 0x10000, 0)
+
+    def test_find_safe_base_x64(self):
+        addr = find_safe_base_address([0x00, 0x0A], Architecture.X64)
+        upper_bytes = address_base_bytes(addr, Architecture.X64)
+        self.assertNotIn(0x00, upper_bytes)
+        self.assertNotIn(0x0A, upper_bytes)
+
+    def test_find_safe_base_skips_conflicting_preferred(self):
+        # 0x11 is in bad chars, so 0x11110000 should be skipped
+        bad = [0x00, 0x11]
+        addr = find_safe_base_address(bad, Architecture.X86)
+        self.assertNotEqual(addr, 0x11110000)
+        upper_bytes = address_base_bytes(addr, Architecture.X86)
+        self.assertNotIn(0x11, upper_bytes)
+
+
+class TestBaseAddressValidation(unittest.TestCase):
+    """Test ServerConfig validation of base_address."""
+
+    def test_valid_base_address(self):
+        config = ServerConfig(base_address=0x11110000)
+        config.validate()  # Should not raise
+
+    def test_misaligned_base_rejected(self):
+        config = ServerConfig(base_address=0x11110001)
+        with self.assertRaises(ValueError):
+            config.validate()
+
+    def test_out_of_range_base_rejected(self):
+        config = ServerConfig(base_address=0x80000000, arch=Architecture.X86)
+        with self.assertRaises(ValueError):
+            config.validate()
+
+    def test_base_conflicting_with_bad_chars_rejected(self):
+        config = ServerConfig(
+            base_address=0x110A0000,
+            bad_chars=[0x0A],
+        )
+        with self.assertRaises(ValueError):
+            config.validate()
+
+    def test_rop_dll_base_conflicting_rejected(self):
+        config = ServerConfig(
+            bad_chars=[0x10],
+            rop_dll=RopDllConfig(
+                enabled=True,
+                base_address=0x10100000,
+            ),
+        )
+        with self.assertRaises(ValueError):
+            config.validate()
+
+    def test_default_base_address(self):
+        config = ServerConfig()
+        self.assertEqual(config.base_address, 0x11110000)
+        config.validate()  # Should not raise
 
 
 if __name__ == "__main__":

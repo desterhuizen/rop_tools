@@ -26,6 +26,7 @@ from target_builder.src.config import (
     RopDllConfig,
     ServerConfig,
     VulnType,
+    find_safe_base_address,
 )
 from target_builder.src.exploit_skeleton import generate as generate_exploit
 from target_builder.src.renderer import render
@@ -101,6 +102,15 @@ def build_parser() -> argparse.ArgumentParser:
         type=str,
         default="",
         help="Custom server banner",
+    )
+    server.add_argument(
+        "--base-address",
+        type=str,
+        default="0x11110000",
+        help=(
+            'EXE base address: hex address or "auto" to avoid bad chars '
+            "(default: 0x11110000)"
+        ),
     )
 
     # Bad characters
@@ -312,17 +322,26 @@ def _args_to_config(args: argparse.Namespace) -> ServerConfig:
     ]
 
     # Parse DLL base address
-    dll_base = int(args.rop_dll_base, 0)
+    arch = Architecture(args.arch)
+    dll_base = _resolve_base_address_arg(args.rop_dll_base, bad_chars, arch)
+    if dll_base is None:
+        dll_base = 0x10000000
+
+    # Parse server base address
+    base_address = _resolve_base_address_arg(args.base_address, bad_chars, arch)
+    if base_address is None:
+        base_address = 0x11110000
 
     config = ServerConfig(
         vuln_type=VulnType(args.vuln),
         port=args.port,
-        arch=Architecture(args.arch),
+        arch=arch,
         buffer_size=args.buffer_size,
         protocol=Protocol(args.protocol),
         command=args.command,
         additional_commands=add_cmds,
         banner=args.banner if args.banner else _default_banner(),
+        base_address=base_address,
         bad_chars=bad_chars,
         bad_char_action=BadCharAction(args.bad_char_action),
         egg_tag=args.egg,
@@ -358,7 +377,7 @@ def _args_to_config(args: argparse.Namespace) -> ServerConfig:
     return config
 
 
-def _randomize_config(args: argparse.Namespace) -> ServerConfig:
+def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
     """Build a randomized ServerConfig."""
     seed = (
         args.random_seed if args.random_seed is not None else random.randint(0, 2**31)
@@ -454,6 +473,21 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:
     # Banner
     banner = args.banner if args.banner else rng.choice(BANNER_POOL)
 
+    # Base addresses — auto-select safe addresses avoiding bad chars
+    base_address = _resolve_base_address_arg(args.base_address, bad_chars, arch)
+    if base_address is None:
+        if bad_chars:
+            base_address = find_safe_base_address(bad_chars, arch)
+        else:
+            base_address = 0x11110000
+
+    dll_base = _resolve_base_address_arg(args.rop_dll_base, bad_chars, arch)
+    if dll_base is None:
+        if args.rop_dll and bad_chars:
+            dll_base = find_safe_base_address(bad_chars, arch)
+        else:
+            dll_base = 0x10000000
+
     # Build config
     config = ServerConfig(
         vuln_type=vuln_type,
@@ -466,6 +500,7 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:
             c.strip().upper() for c in args.additional_commands.split(",") if c.strip()
         ],
         banner=banner,
+        base_address=base_address,
         bad_chars=bad_chars,
         bad_char_action=bad_char_action,
         egg_tag=args.egg,
@@ -497,7 +532,7 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:
             output_file=args.rop_dll_output,
             gadget_density=GadgetDensity(args.rop_dll_gadgets),
             no_aslr=args.rop_dll_no_aslr,
-            base_address=int(args.rop_dll_base, 0),
+            base_address=dll_base,
         ),
     )
 
@@ -546,6 +581,28 @@ def _generate_random_bad_chars(count: int, rng: random.Random) -> List[int]:
     return sorted(selected)
 
 
+def _resolve_base_address_arg(
+    arg_value: Optional[str],
+    bad_chars: List[int],
+    arch: Architecture,
+) -> Optional[int]:
+    """Resolve a base address CLI argument.
+
+    Args:
+        arg_value: Raw CLI value — None, "auto", or a hex string.
+        bad_chars: Configured bad characters.
+        arch: Target architecture.
+
+    Returns:
+        Resolved address as int, or None if not specified.
+    """
+    if arg_value is None:
+        return None
+    if arg_value.lower() == "auto":
+        return find_safe_base_address(bad_chars, arch)
+    return int(arg_value, 0)
+
+
 def _default_banner() -> str:
     """Return a default banner."""
     return "Target Server v1.0 - Type HELP for commands"
@@ -577,6 +634,7 @@ def _print_challenge_summary(config: ServerConfig) -> None:
         f"  Bad chars:      {bad_hex if bad_hex else 'none (0x00 implicit)'}",
         f"  Bad char mode:  {config.bad_char_action.value}",
         f"  Mitigations:    {', '.join(mitigations) if mitigations else 'none'}",
+        f"  Base address:   0x{config.base_address:08X}",
         f"  Decoys:         {config.decoy_count}",
         f"  Seed:           {config.random_seed}",
         "=" * 50,

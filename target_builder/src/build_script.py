@@ -45,6 +45,8 @@ def generate(config: ServerConfig) -> str:
     else:
         link_flags.append("/DYNAMICBASE:NO")
 
+    link_flags.append(f"/BASE:0x{config.base_address:08X}")
+
     if config.arch == Architecture.X86:
         if config.safe_seh:
             link_flags.append("/SAFESEH")
