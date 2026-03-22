@@ -273,8 +273,7 @@ class ServerConfig:
             and self.vuln_buffer_size >= self.buffer_size
         ):
             raise ValueError(
-                "--vuln-buffer-size must be smaller than --buffer-size "
-                "for egghunter"
+                "--vuln-buffer-size must be smaller than --buffer-size for egghunter"
             )
 
         # Egg tag must be exactly 4 bytes
