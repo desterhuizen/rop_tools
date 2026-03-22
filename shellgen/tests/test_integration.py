@@ -5,9 +5,7 @@ Tests the overall workflow of shellcode generation including CLI integration,
 payload building, encoding, and output formatting.
 """
 
-import sys
 import unittest
-from unittest.mock import MagicMock, patch
 
 from shellgen.hash_generator import generate_hash_dict
 from shellgen.src.encoders import encode_dword, ror13_hash, string_to_push_dwords
@@ -133,7 +131,6 @@ class TestHashAndEncoderIntegration(unittest.TestCase):
     def test_multiple_api_hashes_encoding(self):
         """Test encoding multiple API hashes."""
         apis = ["LoadLibraryA", "GetProcAddress", "ExitProcess"]
-        bad_chars = {0x00}
 
         for api in apis:
             with self.subTest(api=api):

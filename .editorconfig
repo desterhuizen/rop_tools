@@ -1,0 +1,73 @@
+# EditorConfig for ROP Tools Suite
+# https://editorconfig.org
+
+# Top-most EditorConfig file
+root = true
+
+# Default settings for all files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Python files
+[*.py]
+indent_style = space
+indent_size = 4
+# PEP 8 compliant continuation indent (fixes E125/E126 errors)
+continuation_indent_size = 8
+max_line_length = 88
+
+# Python stub files
+[*.pyi]
+indent_style = space
+indent_size = 4
+continuation_indent_size = 8
+max_line_length = 88
+
+# Markdown files
+[*.md]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = false
+max_line_length = 120
+
+# YAML files
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# JSON files
+[*.json]
+indent_style = space
+indent_size = 2
+
+# TOML files (pyproject.toml, etc.)
+[*.toml]
+indent_style = space
+indent_size = 2
+
+# Shell scripts
+[*.sh]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+
+# Makefiles require tabs
+[Makefile]
+indent_style = tab
+
+# GitHub Actions workflows
+[.github/workflows/*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Configuration files
+[.flake8]
+indent_style = space
+indent_size = 2
+
+[{.gitignore,.gitattributes}]
+indent_style = space
+indent_size = 2

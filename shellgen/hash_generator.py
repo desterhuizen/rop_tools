@@ -234,7 +234,7 @@ Common Windows API Functions:
     parser.add_argument("functions", nargs="*", help="Function names to hash")
 
     parser.add_argument(
-        "--file", "-f", help="Read function names from file (one per line)"
+        "--file", "-", help="Read function names from file (one per line)"
     )
 
     parser.add_argument(

@@ -121,9 +121,9 @@ class TestParseTarget(unittest.TestCase):
         assert parse_target(
             "esp+0x00",
         ) == (
-                   "stack",
-                   "+0x00",
-               )  # Case insensitive
+            "stack",
+            "+0x00",
+        )  # Case insensitive
         assert parse_target("ESP-0x04") == ("stack", "-0x04")
 
     def test_parse_dereferenced_register(self):

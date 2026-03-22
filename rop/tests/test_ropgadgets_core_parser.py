@@ -9,7 +9,6 @@ import os
 import tempfile
 import unittest
 
-from rop.core.gadget import Gadget
 from rop.core.parser import ROPGadgetParser
 
 # Sample gadget data for testing

@@ -11,7 +11,17 @@ from lib.color_printer import printer
 
 # Try to import Keystone for assembly
 try:
-    from keystone import *
+    from keystone import (
+        Ks,
+        KS_ARCH_ARM,
+        KS_ARCH_ARM64,
+        KS_ARCH_X86,
+        KS_MODE_32,
+        KS_MODE_64,
+        KS_MODE_ARM,
+        KS_MODE_LITTLE_ENDIAN,
+        KS_MODE_THUMB,
+    )
 
     KEYSTONE_AVAILABLE = True
 except ImportError:
@@ -19,7 +29,15 @@ except ImportError:
 
 # Try to import Capstone for disassembly
 try:
-    from capstone import *
+    from capstone import (
+        Cs,
+        CS_ARCH_ARM,
+        CS_ARCH_ARM64,
+        CS_ARCH_X86,
+        CS_MODE_32,
+        CS_MODE_64,
+        CS_MODE_ARM,
+    )
 
     CAPSTONE_AVAILABLE = True
 except ImportError:
@@ -236,7 +254,7 @@ def verify_shellcode_bad_chars(shellcode_bytes, bad_chars):
         "is_clean": is_clean,
         "total_bytes": len(shellcode_bytes),
         "bad_char_count": len(bad_char_locations),
-        "bad_chars_found": list(set(loc["byte"] for loc in bad_char_locations)),
+        "bad_chars_found": {loc["byte"] for loc in bad_char_locations},
         "locations": bad_char_locations[:20],  # Limit to first 20 occurrences
     }
 
@@ -282,7 +300,7 @@ def print_bad_char_report(report, bad_chars):
 
         print(f"{i:2d}. Offset 0x{offset:04x} ({offset:5d}): byte 0x{byte:02x}")
         print(f"    Context: {context_hex}")
-        print(f"             {' '*3*bad_byte_pos}^^")
+        print(f"             {' ' * 3 * bad_byte_pos}^^")
 
     if report["bad_char_count"] > 20:
         print(f"    ... and {report['bad_char_count'] - 20} more occurrences")
@@ -374,7 +392,7 @@ def print_bad_char_summary(scan_result):
 
     # Build warning header
     warning_header = f"Shellcode size: {scan_result['total_bytes']} bytes\n"
-    warning_header += f"Potential bad characters found"
+    warning_header += "Potential bad characters found"
 
     printer.print_panel(
         warning_header,
@@ -475,9 +493,9 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
         "SHELLCODE DEBUG MODE - Bad Character Analysis with Disassembly", "bold green"
     )
     printer.print_section("=" * 80, "bold green")
-    printer.print_text(f"Architecture: ", "cyan", end="")
+    printer.print_text("Architecture: ", "cyan", end="")
     printer.print_text(f"{arch}\n", "yellow")
-    printer.print_text(f"Bad chars to avoid: ", "cyan", end="")
+    printer.print_text("Bad chars to avoid: ", "cyan", end="")
     printer.print_text(
         f"{{{', '.join(f'0x{b:02x}' for b in sorted(bad_chars))}}}\n", "red"
     )
@@ -526,7 +544,7 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
             "bold red",
         )
         bad_bytes_str = ", ".join(
-            f"0x{b:02x}" for b in sorted(set(loc["byte"] for loc in bad_char_locations))
+            f"0x{b:02x}" for b in sorted({loc["byte"] for loc in bad_char_locations})
         )
         printer.print_text(f"Bad bytes: {{{bad_bytes_str}}}", "red")
 
@@ -580,7 +598,7 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
                 }
 
             # Display
-            offset_range = f"0x{inst.address:04x}-0x{inst.address+inst.size-1:04x}"
+            offset_range = f"0x{inst.address:04x}-0x{inst.address + inst.size - 1:04x}"
             disasm_str = f"{inst.mnemonic} {inst.op_str}".strip()
             print(
                 f"{offset_range:<12} {inst.size:<6} {opcodes_str:<48} {marker} {disasm_str}"
@@ -596,9 +614,9 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
         printer.print_section("\n" + "=" * 80, "bold green")
         printer.print_section("SUMMARY", "bold green")
         printer.print_section("=" * 80, "bold green")
-        printer.print_text(f"Total shellgen size: ", "cyan", end="")
+        printer.print_text("Total shellgen size: ", "cyan", end="")
         printer.print_text(f"{len(shellcode)} bytes\n", "yellow")
-        printer.print_text(f"Total instructions: ", "cyan", end="")
+        printer.print_text("Total instructions: ", "cyan", end="")
         printer.print_text(f"{count}\n", "yellow")
         printer.print_text(
             "\n✓ No bad characters detected - shellgen is clean!\n", "bold green"
@@ -644,9 +662,9 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
         info = inst_bad_chars[inst_addr]
         print(f"\nOffset 0x{inst_addr:04x}: {info['instruction']}")
         print(
-            f"  Instruction range: 0x{info['offset']:04x}-0x{info['offset']+info['size']-1:04x} ({info['size']} bytes)"
+            f"  Instruction range: 0x{info['offset']:04x}-0x{info['offset'] + info['size'] - 1:04x} ({info['size']} bytes)"
         )
-        print(f"  Bad characters found:")
+        print("  Bad characters found:")
 
         for bad_info in info["bad_bytes"]:
             print(
@@ -655,7 +673,7 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
 
         # Show opcodes with highlighting
         opcodes_display = []
-        for i, b in enumerate(info["bytes"]):
+        for _i, b in enumerate(info["bytes"]):
             if b in bad_char_set:
                 opcodes_display.append(f"\033[91m[{b:02x}]\033[0m")
             else:
@@ -666,14 +684,14 @@ def debug_shellcode_opcodes(asm_code, arch, bad_chars):
     printer.print_section("\n" + "=" * 80, "bold red")
     printer.print_section("SUMMARY", "bold red")
     printer.print_section("=" * 80, "bold red")
-    printer.print_text(f"Total shellgen size: ", "cyan", end="")
+    printer.print_text("Total shellgen size: ", "cyan", end="")
     printer.print_text(f"{len(shellcode)} bytes\n", "yellow")
-    printer.print_text(f"Instructions with bad characters: ", "cyan", end="")
+    printer.print_text("Instructions with bad characters: ", "cyan", end="")
     printer.print_text(f"{len(inst_bad_chars)}\n", "red")
-    printer.print_text(f"Total bad character occurrences: ", "cyan", end="")
+    printer.print_text("Total bad character occurrences: ", "cyan", end="")
     printer.print_text(f"{len(bad_char_locations)}\n", "red")
 
-    printer.print_text(f"\nTo fix these issues:", "bold cyan")
+    printer.print_text("\nTo fix these issues:", "bold cyan")
     printer.print_text("  1. Examine the flagged instructions above\n", "dim white")
     printer.print_text(
         "  2. Try using different registers or instruction forms\n", "dim white"

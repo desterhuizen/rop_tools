@@ -30,6 +30,123 @@ def log_execution(ws: Dict[str, Any], exec_type: str, source: str,
         ws["execution_log"] = ws["execution_log"][-10:]
 
 
+def _adjust_stack_offsets(stack: Dict[str, str], adjustment: int) -> Dict[
+        str, str]:
+    """
+    Adjust all stack offsets by a given amount.
+
+    Args:
+        stack: Current stack dictionary
+        adjustment: Amount to adjust (positive or negative)
+
+    Returns:
+        New stack dictionary with adjusted offsets
+    """
+    new_stack = {}
+    for offset_str, value in stack.items():
+        # Parse the offset
+        offset_val = int(offset_str, 16)
+        # Adjust
+        new_offset_val = offset_val + adjustment
+        # Format as string
+        if new_offset_val < 0:
+            new_offset_str = f"-0x{abs(new_offset_val):02x}"
+        else:
+            new_offset_str = f"+0x{new_offset_val:02x}"
+        new_stack[new_offset_str] = value
+    return new_stack
+
+
+def _process_auto_gadget(
+        ws: Dict[str, Any], dst_key: str, stack_val: str
+) -> Tuple[bool, Optional[str]]:
+    """
+    Process auto-gadget if popping into EIP.
+
+    Args:
+        ws: Worksheet dictionary
+        dst_key: Destination register key
+        stack_val: Value being popped
+
+    Returns:
+        (success, message) tuple or (False, None) if not applicable
+    """
+    from ..gadgets.processor import find_gadget_by_address, process_gadget
+
+    if dst_key == "EIP" and stack_val and ws.get("auto_gadget", True):
+        gadget_str = find_gadget_by_address(ws, stack_val)
+        if gadget_str:
+            executed = process_gadget(ws, gadget_str, stack_val)
+            if executed:
+                return True, f"Executed gadget: {' ; '.join(executed)}"
+    return False, None
+
+
+def _parse_register_offset(
+        ws: Dict[str, Any], offset_str: str
+) -> Tuple[bool, str, str]:
+    """
+    Parse offset when it's a register name.
+
+    Args:
+        ws: Worksheet dictionary
+        offset_str: Register name
+
+    Returns:
+        (success, offset_string, error_message) tuple
+    """
+    # Get the register's value
+    reg_value = ws["registers"].get(offset_str.upper(), "0x00000000")
+    if not reg_value or reg_value == "0x00000000":
+        return False, "", f"{offset_str.upper()} does not contain a valid address"
+
+    # Get current ESP value
+    esp_str = ws["registers"].get("ESP", "0x00000000")
+    if not esp_str or esp_str == "0x00000000":
+        return False, "", "ESP not set"
+
+    try:
+        # Calculate offset from ESP
+        reg_addr = int(reg_value, 16)
+        esp_val = int(esp_str, 16)
+        offset = reg_addr - esp_val
+
+        # Format offset as string
+        if offset < 0:
+            result_offset = f"-0x{abs(offset):02x}"
+        else:
+            result_offset = f"+0x{offset:02x}"
+
+        return True, result_offset, ""
+    except ValueError:
+        return False, "", f"Invalid address in {offset_str.upper()}"
+
+
+def _normalize_offset_string(offset_str: str) -> Tuple[bool, str, str]:
+    """
+    Normalize offset string to standard format.
+
+    Args:
+        offset_str: Raw offset string
+
+    Returns:
+        (success, normalized_offset, error_message) tuple
+    """
+    # Remove "ESP" prefix if present (case-insensitive)
+    if offset_str.upper().startswith("ESP"):
+        offset_str = offset_str[3:]
+
+    # Ensure it starts with + or -
+    if not offset_str.startswith("+") and not offset_str.startswith("-"):
+        offset_str = "+" + offset_str
+
+    # Validate offset format (case-insensitive for 0x)
+    if not re.match(r"^[+-]0x[0-9a-fA-F]+$", offset_str, re.IGNORECASE):
+        return False, "", f"Invalid offset format: {offset_str}"
+
+    return True, offset_str, ""
+
+
 def cmd_push(ws: Dict[str, Any], src: str) -> Tuple[bool, Optional[str]]:
     """
     Push to stack: push src (ESP -= 4, [ESP] = src).
@@ -56,18 +173,7 @@ def cmd_push(ws: Dict[str, Any], src: str) -> Tuple[bool, Optional[str]]:
         ws["registers"]["ESP"] = f"0x{new_esp:08x}"
 
         # Adjust all existing stack offsets by +4 (they're farther from new ESP)
-        new_stack = {}
-        for offset_str, val in ws["stack"].items():
-            # Parse the offset
-            offset_val = int(offset_str, 16)
-            # Adjust by +4
-            new_offset_val = offset_val + 4
-            # Format as string
-            if new_offset_val < 0:
-                new_offset_str = f"-0x{abs(new_offset_val):02x}"
-            else:
-                new_offset_str = f"+0x{new_offset_val:02x}"
-            new_stack[new_offset_str] = val
+        new_stack = _adjust_stack_offsets(ws["stack"], +4)
 
         # Store the pushed value at +0x00 (new top of stack)
         new_stack["+0x00"] = value
@@ -93,9 +199,6 @@ def cmd_pop(ws: Dict[str, Any], dst: str) -> Tuple[bool, Optional[str]]:
     Returns:
         (success, error_message) tuple
     """
-    # Import here to avoid circular dependency
-    from ..gadgets.processor import find_gadget_by_address, process_gadget
-
     # Get value at ESP
     esp_val = ws["registers"].get("ESP", "")
     if not esp_val:
@@ -113,26 +216,13 @@ def cmd_pop(ws: Dict[str, Any], dst: str) -> Tuple[bool, Optional[str]]:
     elif dst_type == "stack":
         ws["stack"][dst_key] = stack_val
 
-    # Increment ESP by 4 FIRST
+    # Increment ESP by 4
     current_esp = int(esp_val, 16)
     new_esp = (current_esp + 4) & 0xFFFFFFFF
     ws["registers"]["ESP"] = f"0x{new_esp:08x}"
 
     # Adjust all stack offsets by -4 (they're all 4 bytes closer to ESP now)
-    new_stack = {}
-    for offset_str, value in ws["stack"].items():
-        # Parse the offset
-        offset_val = int(offset_str, 16)
-        # Adjust by -4
-        new_offset_val = offset_val - 4
-        # Format as string
-        if new_offset_val < 0:
-            new_offset_str = f"-0x{abs(new_offset_val):02x}"
-        else:
-            new_offset_str = f"+0x{new_offset_val:02x}"
-        new_stack[new_offset_str] = value
-
-    ws["stack"] = new_stack
+    ws["stack"] = _adjust_stack_offsets(ws["stack"], -4)
 
     # Remove the value that was at +0x00 (now at -0x04, which doesn't make sense)
     if "-0x04" in ws["stack"]:
@@ -143,12 +233,9 @@ def cmd_pop(ws: Dict[str, Any], dst: str) -> Tuple[bool, Optional[str]]:
         log_execution(ws, "manual", "User", f"pop {dst}")
 
     # Auto-process gadget if popping into EIP (and auto-gadget is enabled)
-    if dst_key == "EIP" and stack_val and ws.get("auto_gadget", True):
-        gadget_str = find_gadget_by_address(ws, stack_val)
-        if gadget_str:
-            executed = process_gadget(ws, gadget_str, stack_val)
-            if executed:
-                return True, f"Executed gadget: {' ; '.join(executed)}"
+    gadget_processed, gadget_msg = _process_auto_gadget(ws, dst_key, stack_val)
+    if gadget_processed:
+        return True, gadget_msg
 
     return True, None
 
@@ -167,53 +254,27 @@ def cmd_stack(
     Returns:
         (success, error_message) tuple
     """
-    # Parse offset - can be like "+0x10", "ESP+0x10", "0x10", or a register containing a stack address
     offset_str = offset_str.strip()
 
     # Check if offset_str is a register name
     if offset_str.upper() in ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP",
                               "ESP"]:
-        # Get the register's value
-        reg_value = ws["registers"].get(offset_str.upper(), "0x00000000")
-        if not reg_value or reg_value == "0x00000000":
-            return False, f"{offset_str.upper()} does not contain a valid address"
-
-        # Get current ESP value
-        esp_str = ws["registers"].get("ESP", "0x00000000")
-        if not esp_str or esp_str == "0x00000000":
-            return False, "ESP not set"
-
-        try:
-            # Calculate offset from ESP
-            reg_addr = int(reg_value, 16)
-            esp_val = int(esp_str, 16)
-            offset = reg_addr - esp_val
-
-            # Format offset as string
-            if offset < 0:
-                offset_str = f"-0x{abs(offset):02x}"
-            else:
-                offset_str = f"+0x{offset:02x}"
-        except ValueError:
-            return False, f"Invalid address in {offset_str.upper()}"
+        success, result_offset, error_msg = _parse_register_offset(ws,
+                                                                   offset_str)
+        if not success:
+            return False, error_msg
+        offset_str = result_offset
     else:
-        # Remove "ESP" prefix if present (case-insensitive)
-        if offset_str.upper().startswith("ESP"):
-            offset_str = offset_str[3:]
-
-        # Ensure it starts with + or -
-        if not offset_str.startswith("+") and not offset_str.startswith("-"):
-            offset_str = "+" + offset_str
-
-        # Validate offset format (case-insensitive for 0x)
-        if not re.match(r"^[+-]0x[0-9a-fA-F]+$", offset_str, re.IGNORECASE):
-            return False, f"Invalid offset format: {offset_str}"
+        # Normalize offset string
+        success, result_offset, error_msg = _normalize_offset_string(offset_str)
+        if not success:
+            return False, error_msg
+        offset_str = result_offset
 
     # Try to resolve the value (handles registers, stack refs, named values)
     resolved_value = resolve_value(value, ws)
     if resolved_value is not None:
         value = resolved_value
-    # else: keep original value (for raw hex or named values that don't exist yet)
 
     # Store value at the offset
     ws["stack"][offset_str] = value

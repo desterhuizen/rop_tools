@@ -5,10 +5,8 @@ Tests the PEAnalyzer class for extracting PE file information,
 including base addresses, sections, and Import Address Table (IAT) entries.
 """
 
-import shutil
 import sys
 import unittest
-from pathlib import Path
 
 import pefile
 
@@ -78,18 +76,20 @@ class TestPEAnalyzerBasics(unittest.TestCase):
         assert isinstance(section.raw_size, int)
         assert isinstance(section.characteristics, int)
 
-    def test_invalid_pe_file(self, tmp_path):
+    def test_invalid_pe_file(self):
         """Test error handling for non-PE files"""
+        import tempfile
         # Create a non-PE file
-        invalid_file = tmp_path / "invalid.txt"
-        invalid_file.write_text("This is not a PE file")
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+            f.write("This is not a PE file")
+            invalid_file = f.name
 
-        with pytest.raises(pefile.PEFormatError):
-            PEAnalyzer.analyze_file(str(invalid_file))
+        with self.assertRaises(pefile.PEFormatError):
+            PEAnalyzer.analyze_file(invalid_file)
 
     def test_missing_file(self):
         """Test error handling for missing files"""
-        with pytest.raises((FileNotFoundError, pefile.PEFormatError)):
+        with self.assertRaises((FileNotFoundError, pefile.PEFormatError)):
             PEAnalyzer.analyze_file("/nonexistent/file.exe")
 
     def test_machine_type_detection(self):
@@ -98,14 +98,14 @@ class TestPEAnalyzerBasics(unittest.TestCase):
 
         # Should detect valid machine type
         assert (
-                pe_info.machine_type
-                in [
-                    "x86 (I386)",
-                    "x64 (AMD64)",
-                    "ARM",
-                    "ARM64",
-                ]
-                or "Unknown" in pe_info.machine_type
+            pe_info.machine_type
+            in [
+                "x86 (I386)",
+                "x64 (AMD64)",
+                "ARM",
+                "ARM64",
+            ]
+            or "Unknown" in pe_info.machine_type
         )
 
     def test_entry_point_calculation(self):

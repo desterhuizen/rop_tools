@@ -10,19 +10,17 @@ import os
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
-from io import StringIO
 from pathlib import Path
 
 # Add repo root to path for lib imports
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from lib.color_printer import printer
-from rop.core.gadget import Gadget
-from rop.core.parser import ROPGadgetParser
+from lib.color_printer import printer  # noqa: E402
+from rop.core.gadget import Gadget  # noqa: E402
+from rop.core.parser import ROPGadgetParser  # noqa: E402
 from rop.display.formatters import print_gadget_colored, print_gadgets, \
-    print_statistics
+    print_statistics  # noqa: E402
 
 # Sample gadget for testing
 SAMPLE_GADGET = Gadget(

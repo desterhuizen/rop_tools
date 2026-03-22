@@ -5,8 +5,6 @@ These tests verify that all components work correctly together,
 ensuring backward compatibility after refactoring.
 """
 
-import unittest
-
 from rop.worksheet.chain.manager import cmd_chain_add
 from rop.worksheet.core.data import blank_worksheet
 from rop.worksheet.core.resolver import parse_target, resolve_value

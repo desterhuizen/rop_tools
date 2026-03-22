@@ -206,14 +206,14 @@ All scripts have proper shebangs (`#!/usr/bin/env python3`) and can be run direc
 ### Running Tests
 ```bash
 # All tests
-python -m pytest
+python -m unittest discover
 
 # Specific module
-python -m pytest shellgen/tests/
-python -m pytest rop/tests/
+python -m unittest discover -s shellgen/tests
+python -m unittest discover -s rop/tests
 
 # With coverage
-coverage run -m pytest
+coverage run -m unittest discover
 coverage report
 ```
 
@@ -260,8 +260,8 @@ pip install -r requirements.txt
 ```bash
 pip install -r requirements-test.txt
 ```
-- `pytest` - Testing framework
 - `coverage` - Code coverage
+- `rich` - Terminal formatting (needed for display tests)
 
 ### Linting Dependencies
 ```bash

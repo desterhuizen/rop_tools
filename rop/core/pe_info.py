@@ -5,8 +5,8 @@ Provides classes and functions for extracting information from PE files,
 including base addresses, section information, and other PE metadata.
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from dataclasses import dataclass
+from typing import List, Optional
 
 import pefile
 

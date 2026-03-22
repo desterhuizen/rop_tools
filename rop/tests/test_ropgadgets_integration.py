@@ -879,8 +879,8 @@ class TestBadInstructionFiltering(BaseBadInstructionsTest):
         assert result.returncode == 0
         # Should NOT show filtering message when flag is used
         assert (
-                "Filtered out" not in result.stdout
-                or "bad instructions" not in result.stdout
+            "Filtered out" not in result.stdout
+            or "bad instructions" not in result.stdout
         )
         # All gadgets should be present
         assert "call [eax]" in result.stdout

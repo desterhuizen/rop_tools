@@ -55,7 +55,8 @@ class WorksheetCompleter:
             "auto",
             "logmanual",
         ]
-        self.registers = ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"]
+        self.registers = ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP",
+                          "ESP", "EIP"]
         self.common_stack_offsets = [
             "ESP+0x00",
             "ESP+0x04",
@@ -96,15 +97,18 @@ class WorksheetCompleter:
         candidates = []
 
         # Add registers
-        candidates.extend([r for r in self.registers if r.lower().startswith(text.lower())])
+        candidates.extend(
+            [r for r in self.registers if r.lower().startswith(text.lower())])
 
         # Add common stack offsets
         candidates.extend(
-            [s for s in self.common_stack_offsets if s.lower().startswith(text.lower())]
+            [s for s in self.common_stack_offsets if
+             s.lower().startswith(text.lower())]
         )
 
         # Add named values from worksheet
-        candidates.extend([n for n in self.ws["named"].keys() if n.startswith(text)])
+        candidates.extend(
+            [n for n in self.ws["named"].keys() if n.startswith(text)])
 
         # Add stack entries from worksheet
         for offset in self.ws["stack"].keys():
@@ -125,7 +129,8 @@ class WorksheetCompleter:
             List of matching chain indices
         """
         max_idx = len(self.ws["chain"])
-        return [str(i) for i in range(1, max_idx + 1) if str(i).startswith(text)]
+        return [str(i) for i in range(1, max_idx + 1) if
+                str(i).startswith(text)]
 
     def _complete_json_files(self, text: str) -> List[str]:
         """
@@ -163,7 +168,8 @@ class WorksheetCompleter:
         command = tokens[0].lower()
 
         # After register/value commands - complete with registers, offsets, named values
-        if command in ["mov", "move", "m", "xchg", "set", "s", "clr", "clear", "stack"]:
+        if command in ["mov", "move", "m", "xchg", "set", "s", "clr", "clear",
+                       "stack"]:
             return self._complete_register_context(text)
 
         # After 'del' - complete with chain indices

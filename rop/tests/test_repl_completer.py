@@ -5,10 +5,8 @@ Tests tab completion functionality for commands, registers, stack offsets,
 named values, and file names.
 """
 
-import os
-import tempfile
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from rop.worksheet.repl.completer import WorksheetCompleter
 

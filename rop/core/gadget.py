@@ -74,31 +74,29 @@ class Gadget:
             inst_lower = inst.lower().strip()
 
             # For most instructions, first operand is destination
-            if inst_lower.startswith(
-                    (
-                            "mov",
-                            "lea",
-                            "add",
-                            "sub",
-                            "xor",
-                            "and",
-                            "or",
-                            "inc",
-                            "dec",
-                            "neg",
-                            "not",
-                            "shl",
-                            "shr",
-                            "sal",
-                            "sar",
-                            "rol",
-                            "ror",
-                            "mul",
-                            "imul",
-                            "div",
-                            "idiv",
-                    )
-            ):
+            if inst_lower.startswith((
+                "mov",
+                "lea",
+                "add",
+                "sub",
+                "xor",
+                "and",
+                "or",
+                "inc",
+                "dec",
+                "neg",
+                "not",
+                "shl",
+                "shr",
+                "sal",
+                "sar",
+                "rol",
+                "ror",
+                "mul",
+                "imul",
+                "div",
+                "idiv",
+            )):
                 parts = inst_lower.split(None, 1)
                 if len(parts) > 1:
                     operands = parts[1]
@@ -107,13 +105,8 @@ class Gadget:
                     matches = re.findall(reg_pattern, dest)
                     modified.update(matches)
 
-            # Pop modifies the register
-            elif inst_lower.startswith("pop"):
-                matches = re.findall(reg_pattern, inst_lower)
-                modified.update(matches)
-
-            # XCHG modifies both operands
-            elif inst_lower.startswith("xchg"):
+            # Pop and XCHG modify the register(s)
+            elif inst_lower.startswith(("pop", "xchg")):
                 matches = re.findall(reg_pattern, inst_lower)
                 modified.update(matches)
 

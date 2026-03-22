@@ -172,12 +172,14 @@ class TestEncodeQword(unittest.TestCase):
 
                 if result[0] != "ADD":
                     clean, offset = result
-                    self.assertEqual((clean - offset) & 0xFFFFFFFFFFFFFFFF, target)
+                    self.assertEqual((clean - offset) & 0xFFFFFFFFFFFFFFFF,
+                                     target)
                     # Verify no bad chars
                     clean_bytes = struct.pack("<Q", clean)
                     offset_bytes = struct.pack("<Q", offset)
                     self.assertFalse(contains_bad_chars(clean_bytes, bad_chars))
-                    self.assertFalse(contains_bad_chars(offset_bytes, bad_chars))
+                    self.assertFalse(
+                        contains_bad_chars(offset_bytes, bad_chars))
         except ValueError:
             # Acceptable if encoder cannot find a clean encoding
             pass
@@ -358,10 +360,9 @@ class TestEncodingEdgeCases(unittest.TestCase):
         # Should either encode or raise ValueError
         try:
             result = encode_dword(target, bad_chars)
-            if result:
-                if result[0] != "ADD":
-                    clean, offset = result
-                    self.assertEqual((clean - offset) & 0xFFFFFFFF, target)
+            if result and result[0] != "ADD":
+                clean, offset = result
+                self.assertEqual((clean - offset) & 0xFFFFFFFF, target)
         except ValueError:
             pass  # Acceptable
 
@@ -372,10 +373,9 @@ class TestEncodingEdgeCases(unittest.TestCase):
 
         try:
             result = encode_qword(target, bad_chars)
-            if result:
-                if result[0] != "ADD":
-                    clean, offset = result
-                    self.assertEqual((clean - offset) & 0xFFFFFFFFFFFFFFFF, target)
+            if result and result[0] != "ADD":
+                clean, offset = result
+                self.assertEqual((clean - offset) & 0xFFFFFFFFFFFFFFFF, target)
         except ValueError:
             pass  # Acceptable
 

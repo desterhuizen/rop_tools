@@ -31,7 +31,7 @@ def cmd_gadget_add(
 
 
 def cmd_gadget_del(ws: Dict[str, Any], address: str) -> Tuple[
-    bool, Optional[str]]:
+        bool, Optional[str]]:
     """
     Remove a gadget from the library by address.
 

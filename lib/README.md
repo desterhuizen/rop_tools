@@ -161,7 +161,7 @@ To test shared library components:
 
 ```bash
 # From repo root
-python3 -m pytest lib/tests/
+python3 -m unittest discover -s lib/tests
 
 # Test with a specific tool
 cd rop

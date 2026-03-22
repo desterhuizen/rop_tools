@@ -96,9 +96,9 @@ class TestVerboseMode(unittest.TestCase):
         assert "Entry Point" in result.stdout or "entry" in result.stdout.lower()
         # Should show machine type
         assert (
-                "Machine" in result.stdout
-                or "x86" in result.stdout
-                or "x64" in result.stdout
+            "Machine" in result.stdout
+            or "x86" in result.stdout
+            or "x64" in result.stdout
         )
         # Should show sections
         assert "Section" in result.stdout or ".text" in result.stdout
@@ -225,7 +225,8 @@ class TestErrorHandling(unittest.TestCase):
             assert result.returncode != 0
             assert "Error" in result.stderr or "Error" in result.stdout
             assert (
-                    "not a valid PE" in result.stderr or "not a valid PE" in result.stdout
+                "not a valid PE" in result.stderr
+                or "not a valid PE" in result.stdout
             )
         finally:
             os.unlink(temp_path)

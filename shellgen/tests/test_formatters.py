@@ -4,9 +4,8 @@ Tests for src/formatters.py
 Tests output formatting in various formats: ASM, Python, C, raw, and pyasm.
 """
 
-import sys
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from shellgen.src.formatters import (
     _convert_asm_to_python_tuple,
@@ -46,7 +45,7 @@ class TestConvertAsmToPythonTuple(unittest.TestCase):
         asm_code = "mov eax, ebx\n\nmov ecx, edx"
         result = _convert_asm_to_python_tuple(asm_code)
         # Should not have extra blank lines
-        self.assertNotIn('    f""', result)
+        self.assertNotIn('    ""', result)
 
     def test_multiple_instructions(self):
         """Test multiple instructions."""
@@ -175,7 +174,7 @@ class TestFormatCArray(unittest.TestCase):
 
         lines = result.split("\n")
         # Find the data lines (between { and })
-        data_lines = [l for l in lines if "0x" in l and "{" not in l and "}" not in l]
+        data_lines = [line for line in lines if "0x" in line and "{" not in line and "}" not in line]
 
         # Should have multiple lines
         self.assertGreater(len(data_lines), 1)

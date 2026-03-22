@@ -46,100 +46,115 @@ class GadgetCategory:
     OTHER = "other"
 
 
+def _is_stack_pivot(instructions_lower, first_inst, last_inst):
+    return any(
+        re.match(r"(xchg|xor|add|sub|lea).*[er]sp", inst)
+        for inst in instructions_lower
+    )
+
+
+def _is_stack_pop(instructions_lower, first_inst, last_inst):
+    return "pop" in first_inst
+
+
+def _is_stack_push(instructions_lower, first_inst, last_inst):
+    return "push" in first_inst
+
+
+def _is_call(instructions_lower, first_inst, last_inst):
+    return "call" in last_inst
+
+
+def _is_jmp(instructions_lower, first_inst, last_inst):
+    return "jmp" in last_inst or "jne" in last_inst or "je" in last_inst
+
+
+def _is_conditional(instructions_lower, first_inst, last_inst):
+    return any(
+        inst.startswith(("jne", "je", "jz", "jnz", "jl", "jg", "jle", "jge"))
+        for inst in instructions_lower
+    )
+
+
+def _is_memory_read(instructions_lower, first_inst, last_inst):
+    return any(re.match(r"mov.*,.*\[", inst) for inst in instructions_lower)
+
+
+def _is_memory_write(instructions_lower, first_inst, last_inst):
+    return any(re.match(r"mov.*\[.*,", inst) for inst in instructions_lower)
+
+
+def _is_move_register(instructions_lower, first_inst, last_inst):
+    return "mov" in first_inst and "[" not in first_inst
+
+
+def _is_xchg_register(instructions_lower, first_inst, last_inst):
+    return "xchg" in first_inst
+
+
+def _is_load_register(instructions_lower, first_inst, last_inst):
+    return any(
+        inst.startswith(("lea", "ld", "ldr", "ldd"))
+        for inst in instructions_lower
+    )
+
+
+def _is_arithmetic(instructions_lower, first_inst, last_inst):
+    arith_ops = {"add", "sub", "inc", "dec", "mul", "imul", "div", "idiv", "neg"}
+    return any(inst.split()[0] in arith_ops for inst in instructions_lower)
+
+
+def _is_logic(instructions_lower, first_inst, last_inst):
+    logic_ops = {"and", "or", "xor", "not", "shl", "shr", "ror", "rol", "sal", "sar"}
+    return any(inst.split()[0] in logic_ops for inst in instructions_lower)
+
+
+def _is_string_ops(instructions_lower, first_inst, last_inst):
+    str_ops = {"movs", "lods", "stos", "scas", "cmps", "movsb", "movsw", "movsd"}
+    return any(inst.split()[0] in str_ops for inst in instructions_lower)
+
+
+def _is_syscall(instructions_lower, first_inst, last_inst):
+    return any(
+        inst in ("syscall", "sysenter", "int 0x80", "int 0x2e")
+        for inst in instructions_lower
+    )
+
+
+def _is_interrupt(instructions_lower, first_inst, last_inst):
+    return any(inst.startswith("int") for inst in instructions_lower)
+
+
+# Ordered list of (check_func, category) - first match wins
+_CATEGORY_RULES = [
+    (_is_stack_pivot, GadgetCategory.STACK_PIVOT),
+    (_is_stack_pop, GadgetCategory.STACK_POP),
+    (_is_stack_push, GadgetCategory.STACK_PUSH),
+    (_is_call, GadgetCategory.CALL),
+    (_is_jmp, GadgetCategory.JMP),
+    (_is_conditional, GadgetCategory.CONDITIONAL),
+    (_is_memory_read, GadgetCategory.MEMORY_READ),
+    (_is_memory_write, GadgetCategory.MEMORY_WRITE),
+    (_is_move_register, GadgetCategory.MOVE_REGISTER),
+    (_is_xchg_register, GadgetCategory.XCHG_REGISTER),
+    (_is_load_register, GadgetCategory.LOAD_REGISTER),
+    (_is_arithmetic, GadgetCategory.ARITHMETIC),
+    (_is_logic, GadgetCategory.LOGIC),
+    (_is_string_ops, GadgetCategory.STRING_OPS),
+    (_is_syscall, GadgetCategory.SYSCALL),
+    (_is_interrupt, GadgetCategory.INTERRUPT),
+]
+
+
 def categorize_gadget(gadget: Gadget) -> str:
     """Categorize a gadget based on its instructions"""
     instructions_lower = [inst.lower() for inst in gadget.instructions]
     first_inst = instructions_lower[0] if instructions_lower else ""
     last_inst = instructions_lower[-1] if instructions_lower else ""
 
-    # Stack pivots (esp/rsp manipulation)
-    if any(
-            re.match(r"(xchg|xor|add|sub|lea).*[er]sp", inst) for inst in
-            instructions_lower
-    ):
-        return GadgetCategory.STACK_PIVOT
-
-    # Stack pops
-    if "pop" in first_inst:
-        return GadgetCategory.STACK_POP
-
-    # Stack push
-    if "push" in first_inst:
-        return GadgetCategory.STACK_PUSH
-
-    # Calls
-    if "call" in last_inst:
-        return GadgetCategory.CALL
-
-    # Jumps
-    if "jmp" in last_inst or "jne" in last_inst or "je" in last_inst:
-        return GadgetCategory.JMP
-
-    # Conditionals
-    if any(
-            inst.startswith(
-                ("jne", "je", "jz", "jnz", "jl", "jg", "jle", "jge"))
-            for inst in instructions_lower
-    ):
-        return GadgetCategory.CONDITIONAL
-
-    # Memory read operations
-    if any(re.match(r"mov.*,.*\[", inst) for inst in instructions_lower):
-        return GadgetCategory.MEMORY_READ
-
-    # Memory write operations
-    if any(re.match(r"mov.*\[.*,", inst) for inst in instructions_lower):
-        return GadgetCategory.MEMORY_WRITE
-
-    # Register moves
-    if "mov" in first_inst and "[" not in first_inst:
-        return GadgetCategory.MOVE_REGISTER
-
-    # Register exchange
-    if "xchg" in first_inst:
-        return GadgetCategory.XCHG_REGISTER
-
-    # Load operations
-    if any(inst.startswith(("lea", "ld", "ldr", "ldd")) for inst in
-           instructions_lower):
-        return GadgetCategory.LOAD_REGISTER
-
-    # Arithmetic
-    if any(
-            inst.split()[0]
-            in ("add", "sub", "inc", "dec", "mul", "imul", "div", "idiv", "neg")
-            for inst in instructions_lower
-    ):
-        return GadgetCategory.ARITHMETIC
-
-    # Logic operations
-    if any(
-            inst.split()[0]
-            in ("and", "or", "xor", "not", "shl", "shr", "ror", "rol", "sal",
-                "sar")
-            for inst in instructions_lower
-    ):
-        return GadgetCategory.LOGIC
-
-    # String operations
-    if any(
-            inst.split()[0]
-            in ("movs", "lods", "stos", "scas", "cmps", "movsb", "movsw",
-                "movsd")
-            for inst in instructions_lower
-    ):
-        return GadgetCategory.STRING_OPS
-
-    # System calls
-    if any(
-            inst in ("syscall", "sysenter", "int 0x80", "int 0x2e")
-            for inst in instructions_lower
-    ):
-        return GadgetCategory.SYSCALL
-
-    # Interrupts
-    if any(inst.startswith("int") for inst in instructions_lower):
-        return GadgetCategory.INTERRUPT
+    for check_func, category in _CATEGORY_RULES:
+        if check_func(instructions_lower, first_inst, last_inst):
+            return category
 
     return GadgetCategory.OTHER
 

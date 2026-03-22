@@ -55,7 +55,7 @@ def _build_header_panel(ws: Dict[str, Any]) -> Panel:
 
 
 def _build_registers_table(
-    ws: Dict[str, Any], value_to_names: Dict[str, List[str]]
+        ws: Dict[str, Any], value_to_names: Dict[str, List[str]]
 ) -> Table:
     """
     Build the registers display table.
@@ -68,7 +68,8 @@ def _build_registers_table(
         Rich Table with register contents
     """
     reg_table = Table(
-        title="REGISTERS", box=box.SIMPLE, show_header=True, header_style="bold magenta"
+        title="REGISTERS", box=box.SIMPLE, show_header=True,
+        header_style="bold magenta"
     )
     reg_table.add_column("REG", style="cyan", width=6)
     reg_table.add_column("VALUE", style="white", width=24)
@@ -88,7 +89,8 @@ def _build_registers_table(
         reg_table.add_row(reg, display_val, name_match)
 
     # Separator before EIP
-    reg_table.add_row("─────", "────────────────────────", "───────────────", style="dim")
+    reg_table.add_row("─────", "────────────────────────", "───────────────",
+                      style="dim")
 
     # Display EIP separately with highlighting
     eip_val = ws["registers"].get("EIP", "0x00000000")
@@ -109,7 +111,7 @@ def _build_registers_table(
 
 
 def _build_stack_table(
-    ws: Dict[str, Any], value_to_names: Dict[str, List[str]]
+        ws: Dict[str, Any], value_to_names: Dict[str, List[str]]
 ) -> Table:
     """
     Build the stack display table.
@@ -122,7 +124,8 @@ def _build_stack_table(
         Rich Table with stack contents
     """
     stack_table = Table(
-        title="STACK", box=box.SIMPLE, show_header=True, header_style="bold magenta"
+        title="STACK", box=box.SIMPLE, show_header=True,
+        header_style="bold magenta"
     )
     stack_table.add_column("ADDRESS", style="dim cyan", width=12)
     stack_table.add_column("OFFSET", style="cyan", width=10)
@@ -156,7 +159,8 @@ def _build_stack_table(
             if val in value_to_names:
                 name_match = f"[dim green]{', '.join(value_to_names[val])}[/dim green]"
 
-            stack_table.add_row(addr_str, f"ESP{offset}", display_val, name_match)
+            stack_table.add_row(addr_str, f"ESP{offset}", display_val,
+                                name_match)
     else:
         stack_table.add_row("[dim]—[/dim]", "[dim]empty[/dim]", "", "")
 
@@ -344,6 +348,7 @@ def build_worksheet_view(ws: Dict[str, Any]) -> Group:
 
     # Notes
     if ws["notes"]:
-        elements.append(Panel(ws["notes"], title="NOTES", border_style="dim white"))
+        elements.append(
+            Panel(ws["notes"], title="NOTES", border_style="dim white"))
 
     return Group(*elements)

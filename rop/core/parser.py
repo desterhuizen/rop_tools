@@ -7,7 +7,7 @@ Provides file parsing, filtering, and grouping functionality for ROP gadgets.
 import re
 import sys
 from collections import defaultdict
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional
 
 from .categories import categorize_gadget
 from .gadget import Gadget
@@ -55,25 +55,24 @@ class ROPGadgetParser:
                 null_count = sample.count(b"\x00")
 
                 # If more than 30% null bytes, likely UTF-16
-                if null_count > len(sample) * 0.3:
-                    # Check byte pattern to determine endianness
-                    # UTF-16-LE has pattern: char, 0x00
-                    # UTF-16-BE has pattern: 0x00, char
-                    if len(sample) >= 2:
-                        # Count positions of null bytes
-                        even_nulls = sum(
-                            1 for i in range(0, len(sample) - 1, 2) if
-                            sample[i] == 0
-                        )
-                        odd_nulls = sum(
-                            1 for i in range(1, len(sample), 2) if
-                            sample[i] == 0
-                        )
+                # Check byte pattern to determine endianness
+                # UTF-16-LE has pattern: char, 0x00
+                # UTF-16-BE has pattern: 0x00, char
+                if null_count > len(sample) * 0.3 and len(sample) >= 2:
+                    # Count positions of null bytes
+                    even_nulls = sum(
+                        1 for i in range(0, len(sample) - 1, 2) if
+                        sample[i] == 0
+                    )
+                    odd_nulls = sum(
+                        1 for i in range(1, len(sample), 2) if
+                        sample[i] == 0
+                    )
 
-                        if odd_nulls > even_nulls:
-                            return "utf-16-le"
-                        elif even_nulls > odd_nulls:
-                            return "utf-16-be"
+                    if odd_nulls > even_nulls:
+                        return "utf-16-le"
+                    elif even_nulls > odd_nulls:
+                        return "utf-16-be"
 
                 # Default to UTF-8
                 return "utf-8"
@@ -81,6 +80,36 @@ class ROPGadgetParser:
         except Exception:
             # If detection fails, default to UTF-8
             return "utf-8"
+
+    def _parse_metadata_line(self, line: str):
+        """Extract metadata from rp++ header lines."""
+        if line.startswith("Trying to open"):
+            self.metadata["dll"] = line.split("'")[1]
+        elif line.startswith("FileFormat:"):
+            parts = line.split(",")
+            self.metadata["format"] = parts[0].split(":")[1].strip()
+            self.metadata["arch"] = parts[1].split(":")[1].strip()
+        elif "total of" in line and "gadgets found" in line:
+            match = re.search(r"(\d+)\s+gadgets", line)
+            if match:
+                self.metadata["total_gadgets"] = match.group(1)
+
+    def _parse_gadget_line(self, line: str):
+        """Parse a single gadget line and append to self.gadgets if valid."""
+        match = self.GADGET_PATTERN.match(line)
+        if not match:
+            return
+
+        instructions = [
+            inst.strip() for inst in match.group(2).split(";")
+        ]
+        gadget = Gadget(
+            address=match.group(1),
+            instructions=instructions,
+            raw_line=line,
+            count=int(match.group(3)),
+        )
+        self.gadgets.append(gadget)
 
     def parse_file(self, filepath: Optional[str] = None) -> List[Gadget]:
         """Parse the rp++ output file with automatic encoding detection"""
@@ -103,42 +132,11 @@ class ROPGadgetParser:
             ) as f:
                 for line in f:
                     line = line.rstrip()
-
-                    # Skip empty lines
                     if not line:
                         continue
 
-                    # Parse metadata lines
-                    if line.startswith("Trying to open"):
-                        self.metadata["dll"] = line.split("'")[1]
-                    elif line.startswith("FileFormat:"):
-                        parts = line.split(",")
-                        self.metadata["format"] = parts[0].split(":")[1].strip()
-                        self.metadata["arch"] = parts[1].split(":")[1].strip()
-                    elif "total of" in line and "gadgets found" in line:
-                        match = re.search(r"(\d+)\s+gadgets", line)
-                        if match:
-                            self.metadata["total_gadgets"] = match.group(1)
-
-                    # Parse gadget lines
-                    match = self.GADGET_PATTERN.match(line)
-                    if match:
-                        address = match.group(1)
-                        instructions_str = match.group(2)
-                        count = int(match.group(3))
-
-                        # Split instructions by ';' and clean them
-                        instructions = [
-                            inst.strip() for inst in instructions_str.split(";")
-                        ]
-
-                        gadget = Gadget(
-                            address=address,
-                            instructions=instructions,
-                            raw_line=line,
-                            count=count,
-                        )
-                        self.gadgets.append(gadget)
+                    self._parse_metadata_line(line)
+                    self._parse_gadget_line(line)
 
         except FileNotFoundError:
             print(f"[!] Error: File '{self.filepath}' not found",
@@ -368,7 +366,7 @@ class ROPGadgetParser:
         """Get statistics about parsed gadgets"""
         stats = {
             "total_gadgets": len(self.gadgets),
-            "unique_addresses": len(set(g.address for g in self.gadgets)),
+            "unique_addresses": len({g.address for g in self.gadgets}),
         }
 
         # Count instructions

@@ -16,10 +16,8 @@ import pefile
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from typing import List
-
-from lib.color_printer import printer
-from rop.core import IATEntry, PEAnalyzer, PEInfo
+from lib.color_printer import printer  # noqa: E402
+from rop.core import PEAnalyzer, PEInfo  # noqa: E402
 
 
 def print_pe_info(pe_info: PEInfo, verbose: bool = False):
@@ -44,7 +42,8 @@ def print_pe_info(pe_info: PEInfo, verbose: bool = False):
         value_style="yellow",
     )
     printer.print_labeled(
-        "Decimal", str(pe_info.image_base), label_style="cyan", value_style="yellow"
+        "Decimal", str(pe_info.image_base), label_style="cyan",
+        value_style="yellow"
     )
 
     if verbose:
@@ -68,7 +67,8 @@ def print_pe_info(pe_info: PEInfo, verbose: bool = False):
             value_style="white",
         )
         printer.print_labeled(
-            "Subsystem", pe_info.subsystem, label_style="cyan", value_style="white"
+            "Subsystem", pe_info.subsystem, label_style="cyan",
+            value_style="white"
         )
 
         # Print section information
@@ -108,6 +108,53 @@ def print_pe_info(pe_info: PEInfo, verbose: bool = False):
                     print(f"  Flags:           {flags}")
 
 
+def _get_func_display(entry):
+    """Format function name with ordinal if applicable."""
+    if entry.ordinal and not entry.function.startswith("Ordinal_"):
+        return f"{entry.function} (#{entry.ordinal})"
+    return entry.function
+
+
+def _print_iat_colored(dll_groups, image_base):
+    """Print IAT entries using Rich tables."""
+    from rich.table import Table
+
+    for dll, entries in sorted(dll_groups.items()):
+        printer.print_text(f"\n[{dll}] - {len(entries)} imports",
+                           "bold cyan")
+
+        table = Table(
+            show_header=True, header_style="bold yellow", box=None,
+            padding=(0, 1)
+        )
+        table.add_column("Function", style="white", overflow="fold")
+        table.add_column("RVA", style="yellow", width=12, justify="right")
+        table.add_column("Absolute", style="green", width=12,
+                         justify="right")
+
+        for entry in entries:
+            abs_addr = entry.get_absolute_address(image_base)
+            table.add_row(
+                _get_func_display(entry),
+                f"0x{entry.address:08x}",
+                f"0x{abs_addr:08x}",
+            )
+
+        printer.console.print(table)
+
+
+def _print_iat_plain(dll_groups, image_base):
+    """Print IAT entries as plain text."""
+    for dll, entries in sorted(dll_groups.items()):
+        print(f"\n[{dll}] - {len(entries)} imports")
+        for entry in entries:
+            abs_addr = entry.get_absolute_address(image_base)
+            func_display = _get_func_display(entry)
+            print(
+                f"  {func_display:<40} RVA: 0x{entry.address:08x}  Abs: 0x{abs_addr:08x}"
+            )
+
+
 def print_iat_info(filepath: str, image_base: int, filter_dll: str = None):
     """
     Print Import Address Table (IAT) information.
@@ -126,7 +173,8 @@ def print_iat_info(filepath: str, image_base: int, filter_dll: str = None):
     # Filter by DLL if requested
     if filter_dll:
         filter_dll_lower = filter_dll.lower()
-        iat_entries = [e for e in iat_entries if filter_dll_lower in e.dll.lower()]
+        iat_entries = [e for e in iat_entries if
+                       filter_dll_lower in e.dll.lower()]
         if not iat_entries:
             printer.print_text(
                 f"\n[!] No imports found for DLL: {filter_dll}", "yellow"
@@ -136,7 +184,8 @@ def print_iat_info(filepath: str, image_base: int, filter_dll: str = None):
     # Print header
     printer.print_header("\n=== Import Address Table (IAT) ===", "bold green")
     printer.print_labeled(
-        "Total Imports", str(len(iat_entries)), label_style="cyan", value_style="white"
+        "Total Imports", str(len(iat_entries)), label_style="cyan",
+        value_style="white"
     )
 
     # Group by DLL
@@ -147,43 +196,9 @@ def print_iat_info(filepath: str, image_base: int, filter_dll: str = None):
         dll_groups[entry.dll].append(entry)
 
     if printer.enabled:
-        # Use Rich table for colored output
-        from rich.table import Table
-
-        for dll, entries in sorted(dll_groups.items()):
-            printer.print_text(f"\n[{dll}] - {len(entries)} imports", "bold cyan")
-
-            table = Table(
-                show_header=True, header_style="bold yellow", box=None, padding=(0, 1)
-            )
-            table.add_column("Function", style="white", overflow="fold")
-            table.add_column("RVA", style="yellow", width=12, justify="right")
-            table.add_column("Absolute", style="green", width=12, justify="right")
-
-            for entry in entries:
-                abs_addr = entry.get_absolute_address(image_base)
-                func_display = entry.function
-                if entry.ordinal and not entry.function.startswith("Ordinal_"):
-                    func_display = f"{entry.function} (#{entry.ordinal})"
-
-                table.add_row(
-                    func_display, f"0x{entry.address:08x}", f"0x{abs_addr:08x}"
-                )
-
-            printer.console.print(table)
+        _print_iat_colored(dll_groups, image_base)
     else:
-        # Fallback to plain text
-        for dll, entries in sorted(dll_groups.items()):
-            print(f"\n[{dll}] - {len(entries)} imports")
-            for entry in entries:
-                abs_addr = entry.get_absolute_address(image_base)
-                func_display = entry.function
-                if entry.ordinal and not entry.function.startswith("Ordinal_"):
-                    func_display = f"{entry.function} (#{entry.ordinal})"
-
-                print(
-                    f"  {func_display:<40} RVA: 0x{entry.address:08x}  Abs: 0x{abs_addr:08x}"
-                )
+        _print_iat_plain(dll_groups, image_base)
 
 
 def main():
@@ -237,10 +252,12 @@ def main():
 
             # Print IAT if requested
             if args.iat:
-                print_iat_info(args.file, pe_info.image_base, filter_dll=args.dll)
+                print_iat_info(args.file, pe_info.image_base,
+                               filter_dll=args.dll)
 
     except FileNotFoundError:
-        printer.print_text(f"[!] Error: File '{args.file}' not found", "bold red")
+        printer.print_text(f"[!] Error: File '{args.file}' not found",
+                           "bold red")
         sys.exit(1)
     except pefile.PEFormatError:
         printer.print_text(

@@ -10,6 +10,106 @@ from typing import Any, Dict, Optional, Tuple
 from ..core.resolver import parse_target, resolve_value
 
 
+def _handle_eip_auto_gadget(
+        ws: Dict[str, Any], value: str
+) -> Tuple[bool, Optional[str]]:
+    """
+    Process auto-gadget when setting EIP.
+
+    Args:
+        ws: Worksheet dictionary
+        value: Value being set to EIP
+
+    Returns:
+        (gadget_executed, message) tuple
+    """
+    from ..gadgets.processor import find_gadget_by_address, process_gadget
+
+    if not value or not ws.get("auto_gadget", True):
+        return False, None
+
+    gadget_str = find_gadget_by_address(ws, value)
+    if not gadget_str:
+        return False, None
+
+    executed = process_gadget(ws, gadget_str, value)
+    if executed:
+        return True, f"Executed gadget: {' ; '.join(executed)}"
+
+    return False, None
+
+
+def _write_deref_to_stack(
+        ws: Dict[str, Any], dst_key: str, value: str
+) -> Tuple[bool, Optional[str]]:
+    """
+    Write value to stack at dereferenced register address.
+
+    Args:
+        ws: Worksheet dictionary
+        dst_key: Register containing the address
+        value: Value to write
+
+    Returns:
+        (success, error_message) tuple
+    """
+    reg_val = ws["registers"].get(dst_key, "0x00000000")
+    if not reg_val or reg_val == "0x00000000":
+        return False, f"{dst_key} does not contain a valid address"
+
+    esp_str = ws["registers"].get("ESP", "0x00000000")
+    if not esp_str or esp_str == "0x00000000":
+        return False, "ESP not set"
+
+    try:
+        # Calculate offset from ESP
+        addr = int(reg_val, 16)
+        esp_val = int(esp_str, 16)
+        offset = addr - esp_val
+
+        # Format as stack offset
+        if offset < 0:
+            offset_str = f"-0x{abs(offset):02x}"
+        else:
+            offset_str = f"+0x{offset:02x}"
+
+        # Write to stack at this offset
+        ws["stack"][offset_str] = value
+        return True, None
+    except Exception:
+        return False, f"Cannot dereference {dst_key}"
+
+
+def _write_to_register(
+        ws: Dict[str, Any], dst_key: str, value: str, dst: str, src: str
+) -> Tuple[bool, Optional[str]]:
+    """
+    Write value to register and handle EIP auto-gadget processing.
+
+    Args:
+        ws: Worksheet dictionary
+        dst_key: Register name
+        value: Value to write
+        dst: Original destination string (for logging)
+        src: Original source string (for logging)
+
+    Returns:
+        (success, message) tuple - message is set if gadget executed
+    """
+    ws["registers"][dst_key] = value
+
+    # Auto-process gadget if setting EIP
+    if dst_key == "EIP":
+        gadget_executed, gadget_msg = _handle_eip_auto_gadget(ws, value)
+        if gadget_executed:
+            # Log manual operation if enabled
+            if ws.get("log_manual", True):
+                log_execution(ws, "manual", "User", f"mov {dst}, {src}")
+            return True, gadget_msg
+
+    return True, None
+
+
 def log_execution(ws: Dict[str, Any], exec_type: str, source: str,
                   operation: str):
     """
@@ -31,7 +131,7 @@ def log_execution(ws: Dict[str, Any], exec_type: str, source: str,
 
 
 def cmd_move(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
-    bool, Optional[str]]:
+        bool, Optional[str]]:
     """
     Move value: mov dst, src (Intel syntax).
 
@@ -43,9 +143,6 @@ def cmd_move(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
     Returns:
         (success, error_message) tuple
     """
-    # Import here to avoid circular dependency
-    from ..gadgets.processor import find_gadget_by_address, process_gadget
-
     # Resolve source value
     value = resolve_value(src, ws)
     if value is None:
@@ -54,47 +151,21 @@ def cmd_move(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
     # Parse destination
     dst_type, dst_key = parse_target(dst)
 
+    # Handle different destination types
     if dst_type == "reg":
-        ws["registers"][dst_key] = value
+        success, msg = _write_to_register(ws, dst_key, value, dst, src)
+        if msg:  # Gadget was executed
+            return success, msg
 
-        # Auto-process gadget if setting EIP (and auto-gadget is enabled)
-        if dst_key == "EIP" and value and ws.get("auto_gadget", True):
-            gadget_str = find_gadget_by_address(ws, value)
-            if gadget_str:
-                executed = process_gadget(ws, gadget_str, value)
-                if executed:
-                    # Log manual operation if enabled
-                    if ws.get("log_manual", True):
-                        log_execution(ws, "manual", "User", f"mov {dst}, {src}")
-                    return True, f"Executed gadget: {' ; '.join(executed)}"
     elif dst_type == "stack":
         ws["stack"][dst_key] = value
+
     elif dst_type == "deref":
-        # Dereferenced register: [EAX], [ECX], etc. - write to stack at address in register
-        reg_val = ws["registers"].get(dst_key, "0x00000000")
-        if not reg_val or reg_val == "0x00000000":
-            return False, f"{dst_key} does not contain a valid address"
+        # Dereferenced register: [EAX], [ECX], etc.
+        success, error_msg = _write_deref_to_stack(ws, dst_key, value)
+        if not success:
+            return False, error_msg
 
-        esp_str = ws["registers"].get("ESP", "0x00000000")
-        if not esp_str or esp_str == "0x00000000":
-            return False, "ESP not set"
-
-        try:
-            # Calculate offset from ESP
-            addr = int(reg_val, 16)
-            esp_val = int(esp_str, 16)
-            offset = addr - esp_val
-
-            # Format as stack offset
-            if offset < 0:
-                offset_str = f"-0x{abs(offset):02x}"
-            else:
-                offset_str = f"+0x{offset:02x}"
-
-            # Write to stack at this offset
-            ws["stack"][offset_str] = value
-        except Exception:
-            return False, f"Cannot dereference {dst_key}"
     elif dst_type == "named":
         ws["named"][dst_key] = value
 
@@ -106,7 +177,7 @@ def cmd_move(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
 
 
 def cmd_add(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
-    bool, Optional[str]]:
+        bool, Optional[str]]:
     """
     Add: add dst, src (dst = dst + src).
 
@@ -146,7 +217,7 @@ def cmd_add(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
 
 
 def cmd_xor(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
-    bool, Optional[str]]:
+        bool, Optional[str]]:
     """
     XOR: xor dst, src (dst = dst ^ src).
 
@@ -184,7 +255,7 @@ def cmd_xor(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
 
 
 def cmd_xchg(ws: Dict[str, Any], dst: str, src: str) -> Tuple[
-    bool, Optional[str]]:
+        bool, Optional[str]]:
     """
     Exchange: xchg dst, src (swap values).
 

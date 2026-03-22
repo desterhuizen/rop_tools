@@ -48,29 +48,31 @@ pip install -r requirements-test.txt
 
 ```bash
 # From the rop/ directory
-python -m pytest tests/
+python -m unittest discover -s tests
 
 # With verbose output
-python -m pytest tests/ -v
+python -m unittest discover -s tests -v
 
 # Run specific test file
-python -m pytest tests/test_core_data.py -v
+python -m unittest tests.test_core_data -v
 
 # Run specific test class
-python -m pytest tests/test_core_data.py::TestBlankWorksheet -v
+python -m unittest tests.test_core_data.TestBlankWorksheet -v
 
 # Run specific test
-python -m pytest tests/test_core_data.py::TestBlankWorksheet::test_blank_worksheet_structure -v
+python -m unittest tests.test_core_data.TestBlankWorksheet.test_blank_worksheet_structure -v
 ```
 
 ### Run Tests with Coverage
 
 ```bash
 # Generate coverage report
-python -m pytest tests/ --cov=worksheet --cov-report=term-missing
+coverage run -m unittest discover -s tests
+coverage report
 
 # Generate HTML coverage report
-python -m pytest tests/ --cov=worksheet --cov-report=html
+coverage run -m unittest discover -s tests
+coverage html
 # Then open htmlcov/index.html
 ```
 
@@ -173,18 +175,18 @@ When adding new functionality, follow these guidelines:
    """
    Unit tests for worksheet.module.name module.
    """
-   import pytest
+   import unittest
    from worksheet.core.data import blank_worksheet
    from worksheet.module.name import function_to_test
 
-   class TestFunctionName:
+   class TestFunctionName(unittest.TestCase):
        """Test the function_name function."""
 
        def test_basic_functionality(self):
            """Test basic case."""
            ws = blank_worksheet()
            # Test code here
-           assert expected == actual
+           self.assertEqual(expected, actual)
    ```
 
 2. **Use descriptive test names** that explain what is being tested
@@ -209,13 +211,12 @@ When adding new functionality, follow these guidelines:
     - Boundary conditions
     - Error conditions
 
-5. **Use fixtures** for common setup (if needed):
+5. **Use setUp** for common setup (if needed):
    ```python
-   @pytest.fixture
-   def populated_worksheet():
-       ws = blank_worksheet()
-       ws["registers"]["EAX"] = "0xdeadbeef"
-       return ws
+   class TestWithWorksheet(unittest.TestCase):
+       def setUp(self):
+           self.ws = blank_worksheet()
+           self.ws["registers"]["EAX"] = "0xdeadbeef"
    ```
 
 ## Continuous Integration
@@ -230,12 +231,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - run: pip install -r requirements-test.txt
-      - run: python -m pytest tests/ -v --cov=worksheet
+      - run: python -m unittest discover -s tests -v
 ```
 
 ## Known Issues

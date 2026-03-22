@@ -9,12 +9,12 @@ This is the main entry point for the modular shellgen generator.
 import sys
 from pathlib import Path
 
+from src.cli import run_cli
+
 # Add repo root to Python path to access shared lib/
 # Use .resolve() to handle symlinks correctly
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
-
-from src.cli import run_cli
 
 if __name__ == "__main__":
     try:

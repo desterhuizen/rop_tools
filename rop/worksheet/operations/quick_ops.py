@@ -11,7 +11,7 @@ from ..core.resolver import parse_target, resolve_value
 
 
 def cmd_set(ws: Dict[str, Any], target: str, value: str) -> Tuple[
-    bool, Optional[str]]:
+        bool, Optional[str]]:
     """
     Set a register, stack slot, or named value directly.
 
@@ -56,11 +56,9 @@ def cmd_clear(ws: Dict[str, Any], target: str) -> Tuple[bool, Optional[str]]:
 
     if target_type == "reg":
         ws["registers"][target_key] = ""
-    elif target_type == "stack":
-        if target_key in ws["stack"]:
-            del ws["stack"][target_key]
-    elif target_type == "named":
-        if target_key in ws["named"]:
-            del ws["named"][target_key]
+    elif target_type == "stack" and target_key in ws["stack"]:
+        del ws["stack"][target_key]
+    elif target_type == "named" and target_key in ws["named"]:
+        del ws["named"][target_key]
 
     return True, None

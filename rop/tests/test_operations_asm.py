@@ -313,7 +313,7 @@ class TestLogging(unittest.TestCase):
         ws["log_manual"] = True
 
         # Add 15 operations
-        for i in range(15):
+        for _i in range(15):
             cmd_inc(ws, "EAX")
 
         assert len(ws["execution_log"]) == 10

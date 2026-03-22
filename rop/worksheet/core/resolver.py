@@ -9,6 +9,99 @@ import re
 from typing import Any, Dict, Optional, Tuple
 
 
+def _resolve_stack_reference(expr: str, ws: Dict[str, Any]) -> Optional[str]:
+    """
+    Resolve stack reference like [ESP+0x10] or ESP+0x10.
+
+    Args:
+        expr: Expression string
+        ws: Worksheet dictionary
+
+    Returns:
+        Resolved value or None
+    """
+    m = re.match(r"\[?ESP([+-]0x[0-9a-fA-F]+)\]?", expr, re.IGNORECASE)
+    if m:
+        offset = m.group(1)
+        return ws["stack"].get(offset)
+    return None
+
+
+def _resolve_deref_register(expr: str, ws: Dict[str, Any]) -> Optional[str]:
+    """
+    Resolve dereferenced register like [EAX] when it points to stack.
+
+    Args:
+        expr: Expression string
+        ws: Worksheet dictionary
+
+    Returns:
+        Resolved value or None
+    """
+    m = re.match(r"\[([A-Z]{3}|EIP)\]", expr, re.IGNORECASE)
+    if not m:
+        return None
+
+    reg_name = m.group(1).upper()
+    if reg_name not in ws["registers"]:
+        return None
+
+    # Get the address stored in this register
+    reg_val = ws["registers"][reg_name]
+    if not reg_val or not reg_val.startswith("0x"):
+        return None
+
+    try:
+        addr = int(reg_val, 16)
+        # Check if this address is on the stack
+        esp_str = ws["registers"].get("ESP", "0x00000000")
+        if not esp_str or esp_str == "0x00000000":
+            return None
+
+        esp_val = int(esp_str, 16)
+        offset = addr - esp_val
+
+        # Format as stack offset
+        if offset < 0:
+            offset_str = f"-0x{abs(offset):02x}"
+        else:
+            offset_str = f"+0x{offset:02x}"
+
+        # Get the value at that stack offset
+        return ws["stack"].get(offset_str)
+    except Exception:
+        return None
+
+
+def _resolve_arithmetic(expr: str, ws: Dict[str, Any]) -> Optional[str]:
+    """
+    Resolve arithmetic expression like name+0x100 or name-0x10.
+
+    Args:
+        expr: Expression string
+        ws: Worksheet dictionary
+
+    Returns:
+        Resolved value or None
+    """
+    m = re.match(r"^([A-Za-z_]\w*)\s*([+-])\s*(0x[0-9a-fA-F]+)$", expr)
+    if not m:
+        return None
+
+    name, op, offset_str = m.groups()
+    base = resolve_value(name, ws)
+    if not base or not base.startswith("0x"):
+        return None
+
+    try:
+        base_val = int(base, 16)
+        offset_val = int(offset_str, 16)
+        result = base_val + offset_val if op == "+" else base_val - offset_val
+        return f"0x{result:08x}"
+    except Exception:
+        return None
+
+
 def resolve_value(expr: str, ws: Dict[str, Any]) -> Optional[str]:
     """
     Resolve an expression to a value.
@@ -34,44 +127,17 @@ def resolve_value(expr: str, ws: Dict[str, Any]) -> Optional[str]:
 
     # Direct hex value
     if expr.startswith("0x"):
-        try:
-            return expr
-        except Exception:
-            return None
+        return expr
 
     # Stack reference [ESP+offset]
-    m = re.match(r"\[?ESP([+-]0x[0-9a-fA-F]+)\]?", expr, re.IGNORECASE)
-    if m:
-        offset = m.group(1)
-        return ws["stack"].get(offset)
+    result = _resolve_stack_reference(expr, ws)
+    if result is not None:
+        return result
 
-    # Dereferenced register: [EAX], [EBX], etc. (when it points to a stack address)
-    m = re.match(r"\[([A-Z]{3}|EIP)\]", expr, re.IGNORECASE)
-    if m:
-        reg_name = m.group(1).upper()
-        if reg_name in ws["registers"]:
-            # Get the address stored in this register
-            reg_val = ws["registers"][reg_name]
-            if reg_val and reg_val.startswith("0x"):
-                try:
-                    addr = int(reg_val, 16)
-                    # Check if this address is on the stack
-                    esp_str = ws["registers"].get("ESP", "0x00000000")
-                    if esp_str and esp_str != "0x00000000":
-                        esp_val = int(esp_str, 16)
-                        offset = addr - esp_val
-
-                        # Format as stack offset
-                        if offset < 0:
-                            offset_str = f"-0x{abs(offset):02x}"
-                        else:
-                            offset_str = f"+0x{offset:02x}"
-
-                        # Get the value at that stack offset
-                        return ws["stack"].get(offset_str)
-                except Exception:
-                    pass
-        return None
+    # Dereferenced register: [EAX], [EBX], etc.
+    result = _resolve_deref_register(expr, ws)
+    if result is not None:
+        return result
 
     # Register
     if expr.upper() in ws["registers"]:
@@ -82,18 +148,9 @@ def resolve_value(expr: str, ws: Dict[str, Any]) -> Optional[str]:
         return ws["named"][expr]
 
     # Arithmetic: name+0x100 or name-0x10
-    m = re.match(r"^([A-Za-z_]\w*)\s*([+-])\s*(0x[0-9a-fA-F]+)$", expr)
-    if m:
-        name, op, offset_str = m.groups()
-        base = resolve_value(name, ws)
-        if base and base.startswith("0x"):
-            try:
-                base_val = int(base, 16)
-                offset_val = int(offset_str, 16)
-                result = base_val + offset_val if op == "+" else base_val - offset_val
-                return f"0x{result:08x}"
-            except Exception:
-                pass
+    result = _resolve_arithmetic(expr, ws)
+    if result is not None:
+        return result
 
     return None
 

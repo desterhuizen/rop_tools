@@ -79,7 +79,7 @@ class WindowsGenerator:
             scratch_reg = "eax"
 
         # Push in reverse order so the string is laid out correctly in memory
-        for i, dword in enumerate(reversed(dwords)):
+        for _i, dword in enumerate(reversed(dwords)):
             if dword == 0x00000000:
                 lines.append(f"    xor {scratch_reg}, {scratch_reg}")
                 lines.append(f"    push {scratch_reg}               ; null terminator")
@@ -106,7 +106,7 @@ class WindowsGenerator:
 
     def gen_boilerplate_x86(self):
         """Generate x86 PEB walk + find_function subroutine."""
-        return f"""; ==========================================================================
+        return """; ==========================================================================
 ; Setup stack frame and find kernel32.dll (x86)
 ; ==========================================================================
 start:
@@ -123,7 +123,7 @@ next_module:
     mov ebx, [esi+0x08]         ; EBX = current module base address
     mov edi, [esi+0x20]         ; EDI = current module name (unicode)
     mov esi, [esi]              ; ESI = next module (Flink)
-    cmp word ptr [edi+12*2], cx ; Check if position 12 == 0x00 (kernel32 = 12 chars)
+    cmp word ptr [edi+12 * 2], cx ; Check if position 12 == 0x00 (kernel32 = 12 chars)
     jne next_module             ; Repeat if not found
 
 ; ==========================================================================
@@ -155,7 +155,7 @@ find_function_loop:
     jecxz find_function_finished
     dec ecx
     mov eax, [ebp-4]            ; Restore AddressOfNames VA
-    mov esi, [eax+ecx*4]        ; Get RVA of symbol name
+    mov esi, [eax+ecx * 4]        ; Get RVA of symbol name
     add esi, ebx                ; Get VA of symbol name
 
 compute_hash:
@@ -206,7 +206,7 @@ resolve_symbols_kernel32:
 
     def gen_boilerplate_x64(self):
         """Generate x64 PEB walk + find_function subroutine."""
-        return f"""; ==========================================================================
+        return """; ==========================================================================
 ; Setup stack frame and find kernel32.dll/kernelbase.dll (x64)
 ; ==========================================================================
 start:
@@ -225,7 +225,7 @@ next_module:
     mov rax, [rdi + 0x10]       ; RAX = InInitOrder[X].base_address
     mov rsi, [rdi + 0x40]       ; RSI = InInitOrder[X].module_name
     mov rdi, [rdi]              ; RDI = InInitOrder[X].flink (next)
-    cmp [rsi + 12*2], cx        ; (unicode) modulename[12] == 0x00 ?
+    cmp [rsi + 12 * 2], cx        ; (unicode) modulename[12] == 0x00 ?
     jne next_module             ; No: try next module
     cmp [rsi], dl               ; modulename starts with "K"?
     jne next_module             ; No: try next module
@@ -323,11 +323,11 @@ resolve_symbols_kernel32:
         """Generate x86 code to load a DLL and save its base at [ebp+offset]."""
         lines = []
         lines.append(
-            f"\n; =========================================================================="
+            "\n; =========================================================================="
         )
         lines.append(f"; Load {dll_name}")
         lines.append(
-            f"; =========================================================================="
+            "; =========================================================================="
         )
 
         # Push DLL name onto stack
@@ -352,11 +352,11 @@ resolve_symbols_kernel32:
         """Generate x64 code to load a DLL and save its base at [rbp+offset]."""
         lines = []
         lines.append(
-            f"\n; =========================================================================="
+            "\n; =========================================================================="
         )
         lines.append(f"; Load {dll_name}")
         lines.append(
-            f"; =========================================================================="
+            "; =========================================================================="
         )
 
         # Push DLL name onto stack (still need to build string)
@@ -406,7 +406,7 @@ resolve_symbols_kernel32:
             lines.append(f"    mov ebx, {dll_base_location}  ; Load DLL base to EBX")
 
         lines.append(f"    push 0x{api_hash:08x}       ; {api_name} hash")
-        lines.append(f"    call dword ptr [ebp+0x04]   ; Call find_function")
+        lines.append("    call dword ptr [ebp+0x04]   ; Call find_function")
         lines.append(f"    mov {save_location}, eax    ; Save {api_name}")
 
         return "\n".join(lines)
@@ -428,7 +428,7 @@ resolve_symbols_kernel32:
             lines.append(f"    mov rdi, {dll_base_location}  ; Load DLL base to RDI")
 
         lines.append(f"    mov edx, 0x{api_hash:08x}       ; {api_name} hash")
-        lines.append(f"    call qword ptr [rbp+0x08]   ; Call lookup_func")
+        lines.append("    call qword ptr [rbp+0x08]   ; Call lookup_func")
         lines.append(f"    mov {save_location}, rax    ; Save {api_name}")
 
         return "\n".join(lines)
@@ -547,7 +547,7 @@ resolve_symbols_kernel32:
 
         # Identify strings used more than once
         reused_strings = {
-            s: f"[ebp-{(i+1)*4}]"
+            s: f"[ebp-{(i + 1) * 4}]"
             for i, (s, count) in enumerate(string_usage.items())
             if count > 1
         }
@@ -580,7 +580,7 @@ resolve_symbols_kernel32:
             calls: List of API call configurations
             include_exit_apis: If True, also pre-resolve GetCurrentProcess and TerminateProcess
 
-        Returns:
+        Returns:k
             tuple: (assembly_code, api_to_offset_map)
         """
         lines = []
@@ -827,7 +827,7 @@ resolve_symbols_kernel32:
                 else:
                     # If we run out of registers, save to stack (rare case)
                     lines.append(
-                        f"    push rcx               ; save string pointer on stack"
+                        "    push rcx               ; save string pointer on stack"
                     )
                     string_to_reg[i] = f"[rsp+{(reg_idx - len(string_registers)) * 8}]"
 
@@ -846,33 +846,33 @@ resolve_symbols_kernel32:
 
                 if isinstance(arg, int):
                     if arg == 0:
-                        lines.append(f"    xor {reg}, {reg}         ; arg {i+1} = 0")
+                        lines.append(f"    xor {reg}, {reg}         ; arg {i + 1} = 0")
                     else:
                         lines.append(
-                            f"    mov {reg}, 0x{arg:x}    ; arg {i+1} = 0x{arg:x}"
+                            f"    mov {reg}, 0x{arg:x}    ; arg {i + 1} = 0x{arg:x}"
                         )
                 elif isinstance(arg, str) and arg.startswith("STR_PTR:"):
                     string_val = arg[8:]
                     if string_val in string_cache:
                         cached_reg = string_cache[string_val]
                         lines.append(
-                            f"    mov {reg}, {cached_reg}  ; arg {i+1} = cached string pointer"
+                            f"    mov {reg}, {cached_reg}  ; arg {i + 1} = cached string pointer"
                         )
                     else:
                         lines.append(self.gen_push_string(string_val))
                         lines.append(
-                            f"    mov {reg}, rcx           ; arg {i+1} = string pointer"
+                            f"    mov {reg}, rcx           ; arg {i + 1} = string pointer"
                         )
                 elif isinstance(arg, str) and arg.startswith("MEM:"):
                     mem_ref = arg[4:]
                     lines.append(
-                        f"    mov {reg}, {mem_ref}     ; arg {i+1} from memory"
+                        f"    mov {reg}, {mem_ref}     ; arg {i + 1} from memory"
                     )
                 elif isinstance(arg, str) and arg.startswith("REG:"):
                     src_reg = arg.split(":")[1]
                     if src_reg != reg:
                         lines.append(
-                            f"    mov {reg}, {src_reg}     ; arg {i+1} from register"
+                            f"    mov {reg}, {src_reg}     ; arg {i + 1} from register"
                         )
                 elif isinstance(arg, str):
                     # String argument - get pointer from saved register
@@ -880,16 +880,16 @@ resolve_symbols_kernel32:
                         src_reg = string_to_reg[i]
                         if src_reg.startswith("["):
                             lines.append(
-                                f"    mov {reg}, {src_reg}     ; arg {i+1} = string pointer from stack"
+                                f"    mov {reg}, {src_reg}     ; arg {i + 1} = string pointer from stack"
                             )
                         else:
                             lines.append(
-                                f"    mov {reg}, {src_reg}     ; arg {i+1} = string pointer"
+                                f"    mov {reg}, {src_reg}     ; arg {i + 1} = string pointer"
                             )
                     else:
                         lines.append(self.gen_push_string(arg))
                         lines.append(
-                            f"    mov {reg}, rcx           ; arg {i+1} = string pointer"
+                            f"    mov {reg}, rcx           ; arg {i + 1} = string pointer"
                         )
             else:
                 # Args 5+ go on stack (pushed in reverse order for proper stack layout)
@@ -898,18 +898,18 @@ resolve_symbols_kernel32:
 
         # If there are more than 4 arguments, push them onto stack in reverse order
         if len(args) > 4:
-            lines.append(f"\n; Push remaining arguments (5+) onto stack")
+            lines.append("\n; Push remaining arguments (5+) onto stack")
             for i in range(len(args) - 1, 3, -1):
                 arg = args[i]
 
                 if isinstance(arg, int):
                     if arg == 0:
                         lines.append("    xor rax, rax")
-                        lines.append(f"    push rax               ; arg {i+1} = 0")
+                        lines.append(f"    push rax               ; arg {i + 1} = 0")
                     else:
                         lines.append(
                             self.gen_push_encoded_dword(
-                                arg, comment=f"arg {i+1} = 0x{arg:x}"
+                                arg, comment=f"arg {i + 1} = 0x{arg:x}"
                             )
                         )
                 elif isinstance(arg, str) and arg.startswith("STR_PTR:"):
@@ -917,20 +917,20 @@ resolve_symbols_kernel32:
                     if string_val in string_cache:
                         cached_reg = string_cache[string_val]
                         lines.append(
-                            f"    push {cached_reg}          ; arg {i+1} = cached string"
+                            f"    push {cached_reg}          ; arg {i + 1} = cached string"
                         )
                     else:
                         lines.append(self.gen_push_string(string_val))
                         lines.append(
-                            f"    push rcx               ; arg {i+1} = string pointer"
+                            f"    push rcx               ; arg {i + 1} = string pointer"
                         )
                 elif isinstance(arg, str) and arg.startswith("MEM:"):
                     mem_ref = arg[4:]
-                    lines.append(f"    push {mem_ref}          ; arg {i+1} from memory")
+                    lines.append(f"    push {mem_ref}          ; arg {i + 1} from memory")
                 elif isinstance(arg, str) and arg.startswith("REG:"):
                     src_reg = arg.split(":")[1]
                     lines.append(
-                        f"    push {src_reg}          ; arg {i+1} from register"
+                        f"    push {src_reg}          ; arg {i + 1} from register"
                     )
                 elif isinstance(arg, str):
                     if i in string_to_reg:
@@ -938,16 +938,16 @@ resolve_symbols_kernel32:
                         if src_reg.startswith("["):
                             lines.append(f"    mov rax, {src_reg}")
                             lines.append(
-                                f"    push rax               ; arg {i+1} = string pointer"
+                                f"    push rax               ; arg {i + 1} = string pointer"
                             )
                         else:
                             lines.append(
-                                f"    push {src_reg}         ; arg {i+1} = string pointer"
+                                f"    push {src_reg}         ; arg {i + 1} = string pointer"
                             )
                     else:
                         lines.append(self.gen_push_string(arg))
                         lines.append(
-                            f"    push rcx               ; arg {i+1} = string pointer"
+                            f"    push rcx               ; arg {i + 1} = string pointer"
                         )
 
         # Shadow space + call
@@ -1025,13 +1025,13 @@ resolve_symbols_kernel32:
             # Handle custom assembly blocks
             if call.get("custom_asm"):
                 output.append(
-                    f"\n; =========================================================================="
+                    "\n; =========================================================================="
                 )
                 output.append(
-                    f"; Call #{i+1}: {call['api']}({', '.join(str(a) for a in call['args'])})"
+                    f"; Call #{i + 1}: {call['api']}({', '.join(str(a) for a in call['args'])})"
                 )
                 output.append(
-                    f"; =========================================================================="
+                    "; =========================================================================="
                 )
                 output.append(call.get("custom_asm"))
                 output.append("")
@@ -1041,13 +1041,13 @@ resolve_symbols_kernel32:
             api_offset = api_to_offset[api_name]
 
             output.append(
-                f"\n; =========================================================================="
+                "\n; =========================================================================="
             )
             output.append(
-                f"; Call #{i+1}: {api_name}({', '.join(str(a) for a in call['args'])})"
+                f"; Call #{i + 1}: {api_name}({', '.join(str(a) for a in call['args'])})"
             )
             output.append(
-                f"; =========================================================================="
+                "; =========================================================================="
             )
             output.append(
                 self.gen_api_call_preresolve(
@@ -1073,7 +1073,7 @@ resolve_symbols_kernel32:
         print(f"API calls:      {len(calls)}", file=sys.stderr)
         for i, call in enumerate(calls):
             print(
-                f"  [{i+1}] {call['api']}({', '.join(str(a)[:50] for a in call['args'])})",
+                f"  [{i + 1}] {call['api']}({', '.join(str(a)[:50] for a in call['args'])})",
                 file=sys.stderr,
             )
         print(f"Clean exit:     {do_exit}", file=sys.stderr)

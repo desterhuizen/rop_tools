@@ -6,7 +6,106 @@ when EIP is set (if auto-gadget mode is enabled).
 """
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+
+
+def _validate_operands(operands: List[str], known_regs: List[str]) -> bool:
+    """
+    Validate that all operands are known registers or hex values.
+
+    Args:
+        operands: List of operand strings
+        known_regs: List of known register names
+
+    Returns:
+        True if all operands are valid, False otherwise
+    """
+    for op in operands:
+        if not op:
+            continue
+        # Check if it's a known register
+        if op.upper() in known_regs:
+            continue
+        # Check if it's a hex value
+        if re.match(r"^0x[0-9a-fA-F]+$", op, re.IGNORECASE):
+            continue
+        # Check if it's a stack reference like [esp+0x10]
+        if re.match(r"\[?ESP[+-]0x[0-9a-fA-F]+\]?", op, re.IGNORECASE):
+            continue
+        # Check if it's a dereferenced register like [eax], [ecx], etc.
+        if re.match(r"\[(" + "|".join(known_regs) + r")\]", op, re.IGNORECASE):
+            continue
+        # Unknown operand
+        return False
+    return True
+
+
+def _execute_instruction(
+        ws: Dict[str, Any], opcode: str, operands: List[str]
+) -> Tuple[bool, Optional[str]]:
+    """
+    Execute a single instruction.
+
+    Args:
+        ws: Worksheet dictionary
+        opcode: Instruction opcode
+        operands: List of operands
+
+    Returns:
+        (success, error_message) tuple
+    """
+    from ..operations.asm_ops import (
+        cmd_add,
+        cmd_dec,
+        cmd_inc,
+        cmd_move,
+        cmd_neg,
+        cmd_xchg,
+        cmd_xor,
+    )
+    from ..operations.stack_ops import cmd_pop, cmd_push
+
+    if opcode == "mov" and len(operands) == 2:
+        return cmd_move(ws, operands[0], operands[1])
+    elif opcode == "add" and len(operands) == 2:
+        return cmd_add(ws, operands[0], operands[1])
+    elif opcode == "xor" and len(operands) == 2:
+        return cmd_xor(ws, operands[0], operands[1])
+    elif opcode == "xchg" and len(operands) == 2:
+        return cmd_xchg(ws, operands[0], operands[1])
+    elif opcode == "inc" and len(operands) == 1:
+        return cmd_inc(ws, operands[0])
+    elif opcode == "dec" and len(operands) == 1:
+        return cmd_dec(ws, operands[0])
+    elif opcode == "neg" and len(operands) == 1:
+        return cmd_neg(ws, operands[0])
+    elif opcode == "pop" and len(operands) == 1:
+        return cmd_pop(ws, operands[0])
+    elif opcode == "push" and len(operands) == 1:
+        return cmd_push(ws, operands[0])
+
+    return False, None
+
+
+def _parse_instruction(inst: str) -> Optional[Tuple[str, List[str]]]:
+    """
+    Parse instruction string into opcode and operands.
+
+    Args:
+        inst: Instruction string
+
+    Returns:
+        (opcode, operands) tuple or None if invalid
+    """
+    parts = inst.split(None, 1)
+    if not parts:
+        return None
+
+    opcode = parts[0].lower()
+    operands_str = parts[1] if len(parts) > 1 else ""
+    operands = [op.strip() for op in operands_str.split(",")]
+
+    return opcode, operands
 
 
 def log_execution(ws: Dict[str, Any], exec_type: str, source: str,
@@ -41,7 +140,7 @@ def find_gadget_by_address(ws: Dict[str, Any], addr: str) -> Optional[str]:
     Returns:
         Gadget instruction string or None if not found
     """
-    return ws.get("gadgets", {}).get(addr.lower(), None)
+    return ws.get("gadgets", {}).get(addr.lower())
 
 
 def process_gadget(
@@ -65,18 +164,6 @@ def process_gadget(
     Returns:
         List of successfully executed instruction strings
     """
-    # Import operations here to avoid circular dependency
-    from ..operations.asm_ops import (
-        cmd_add,
-        cmd_dec,
-        cmd_inc,
-        cmd_move,
-        cmd_neg,
-        cmd_xchg,
-        cmd_xor,
-    )
-    from ..operations.stack_ops import cmd_pop, cmd_push
-
     known_regs = ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"]
 
     # Set flag to prevent cmd functions from logging (we'll log here instead)
@@ -84,7 +171,6 @@ def process_gadget(
 
     # Split by semicolon
     instructions = [inst.strip() for inst in gadget_str.split(";")]
-
     executed = []
 
     for inst in instructions:
@@ -95,72 +181,20 @@ def process_gadget(
         if inst.lower() in ["ret", "retn"]:
             break
 
-        # Parse instruction: opcode operand1, operand2
-        parts = inst.split(None, 1)
-        if not parts:
+        # Parse instruction
+        parsed = _parse_instruction(inst)
+        if not parsed:
             continue
 
-        opcode = parts[0].lower()
-        operands_str = parts[1] if len(parts) > 1 else ""
+        opcode, operands = parsed
 
-        # Split operands by comma
-        operands = [op.strip() for op in operands_str.split(",")]
-
-        # Validate operands - must be known registers or hex values
-        valid = True
-        for op in operands:
-            if not op:
-                continue
-            # Check if it's a known register
-            if op.upper() in known_regs:
-                continue
-            # Check if it's a hex value
-            if re.match(r"^0x[0-9a-fA-F]+$", op, re.IGNORECASE):
-                continue
-            # Check if it's a stack reference like [esp+0x10]
-            if re.match(r"\[?ESP[+-]0x[0-9a-fA-F]+\]?", op, re.IGNORECASE):
-                continue
-            # Check if it's a dereferenced register like [eax], [ecx], etc.
-            if re.match(r"\[(" + "|".join(known_regs) + r")\]", op,
-                        re.IGNORECASE):
-                continue
-            # Unknown operand - skip this instruction
-            valid = False
-            break
-
-        if not valid:
+        # Validate operands
+        if not _validate_operands(operands, known_regs):
             continue
 
-        # Execute supported operations
-        success = False
-        error_msg = None
+        # Execute instruction
         try:
-            if opcode == "mov" and len(operands) == 2:
-                success, error_msg = cmd_move(ws, operands[0], operands[1])
-
-            elif opcode == "add" and len(operands) == 2:
-                success, error_msg = cmd_add(ws, operands[0], operands[1])
-
-            elif opcode == "xor" and len(operands) == 2:
-                success, error_msg = cmd_xor(ws, operands[0], operands[1])
-
-            elif opcode == "xchg" and len(operands) == 2:
-                success, error_msg = cmd_xchg(ws, operands[0], operands[1])
-
-            elif opcode == "inc" and len(operands) == 1:
-                success, error_msg = cmd_inc(ws, operands[0])
-
-            elif opcode == "dec" and len(operands) == 1:
-                success, error_msg = cmd_dec(ws, operands[0])
-
-            elif opcode == "neg" and len(operands) == 1:
-                success, error_msg = cmd_neg(ws, operands[0])
-
-            elif opcode == "pop" and len(operands) == 1:
-                success, error_msg = cmd_pop(ws, operands[0])
-
-            elif opcode == "push" and len(operands) == 1:
-                success, error_msg = cmd_push(ws, operands[0])
+            success, error_msg = _execute_instruction(ws, opcode, operands)
 
             if success:
                 executed.append(inst)

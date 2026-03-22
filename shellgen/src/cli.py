@@ -473,7 +473,7 @@ def run_cli():
             config["bad_chars"] = set(bad_chars)
             printer.print_text("ℹ ", "cyan", end="")
             printer.print_text(
-                f"Using bad_chars from CLI (overriding JSON): ", "dim white", end=""
+                "Using bad_chars from CLI (overriding JSON): ", "dim white", end=""
             )
             printer.print_text(
                 f"{{{', '.join(f'0x{b:02x}' for b in sorted(bad_chars))}}}\n", "yellow"
@@ -482,7 +482,7 @@ def run_cli():
             # Use bad_chars from JSON
             bad_chars = list(config.get("bad_chars", {0x00, 0x0A, 0x0D}))
             printer.print_text("ℹ ", "cyan", end="")
-            printer.print_text(f"Using bad_chars from JSON: ", "dim white", end="")
+            printer.print_text("Using bad_chars from JSON: ", "dim white", end="")
             printer.print_text(
                 f"{{{', '.join(f'0x{b:02x}' for b in sorted(bad_chars))}}}\n", "yellow"
             )
@@ -549,7 +549,7 @@ def run_cli():
     except Exception as e:
         # If assembly fails, just warn but don't stop (user may be using raw format)
         print(f"\n[!] Warning: Could not scan for bad characters: {str(e)}")
-        print(f"    (This is informational only - shellgen generation was successful)")
+        print("    (This is informational only - shellgen generation was successful)")
 
     # Debug shellgen opcodes if requested (run before verify so it always shows)
     if args.debug_shellcode:
@@ -570,7 +570,7 @@ def run_cli():
                 sys.exit(1)  # Exit with error code if bad chars found
 
         except Exception as e:
-            print(f"\n✗ Verification failed: Could not assemble shellgen")
+            print("\n✗ Verification failed: Could not assemble shellgen")
             print(f"   {str(e)}")
             sys.exit(1)
 

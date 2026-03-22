@@ -23,7 +23,7 @@ def _convert_asm_to_python_tuple(asm_code):
     Transforms:
         mov eax, ebx    ; this is a comment
     Into:
-        f"mov eax, ebx           ;"  # this is a comment
+        "mov eax, ebx           ;"  # this is a comment
 
     The assembly instructions include semicolons with padding.
     Comments are extracted as Python comments.
@@ -105,7 +105,7 @@ def format_python_bytes(shellcode_bytes, arch="x86", platform="windows"):
     if sys.stdout.isatty():
         # Build colored output
         output = []
-        output.append(printer.colorize(f"# Shellcode Generator Output", "bold green"))
+        output.append(printer.colorize("# Shellcode Generator Output", "bold green"))
         output.append(
             printer.colorize(f"# Length: {len(shellcode_bytes)} bytes", "dim white")
         )
@@ -140,7 +140,7 @@ def format_c_array(shellcode_bytes, arch="x86", platform="windows"):
     if sys.stdout.isatty():
         # Build colored output
         lines = []
-        lines.append(printer.colorize(f"// Shellcode Generator Output", "bold green"))
+        lines.append(printer.colorize("// Shellcode Generator Output", "bold green"))
         lines.append(
             printer.colorize(f"// Length: {len(shellcode_bytes)} bytes", "dim white")
         )
@@ -206,9 +206,9 @@ def format_pyasm(asm_code, arch="x86", platform="windows"):
     arch_const, mode_const = arch_const_map.get(arch, ("KS_ARCH_X86", "KS_MODE_32"))
 
     # Convert assembly with inline comments to Python tuple format
-    asm_tuple = _convert_asm_to_python_tuple(asm_code)
+    _convert_asm_to_python_tuple(asm_code)
 
-    pyasm_template = f'''#!/usr/bin/env python3
+    pyasm_template = '''#!/usr/bin/env python3
 """
 Shellcode Compiler - Keystone Engine
 Architecture: {arch.upper()}
@@ -354,10 +354,10 @@ def print_usage_instructions(output_file, output_format, payload_name, verify_en
         printer.print_text(
             f"  nasm -f bin -o shellgen.bin {output_file}\n", "dim white"
         )
-        printer.print_text(f"  xxd -i shellgen.bin\n", "dim white")
+        printer.print_text("  xxd -i shellgen.bin\n", "dim white")
         printer.print_text("\nTo extract bytes for Python:\n", "bold cyan")
         printer.print_text(
-            f"  python3 -c \"data=open('shellgen.bin','rb').read(); print(''.join(f'\\\\x{{b:02x}}' for b in data))\"\n",
+            "  python3 -c \"data=open('shellgen.bin','rb').read(); print(''.join(f'\\\\x{{b:02x}}' for b in data))\"\n",
             "dim white",
         )
         if not verify_enabled:
@@ -389,7 +389,7 @@ def print_usage_instructions(output_file, output_format, payload_name, verify_en
             f"  from {output_file.replace('.py', '')} import asm, assemble_shellcode\n",
             "dim white",
         )
-        printer.print_text(f"  shellgen = assemble_shellcode()\n", "dim white")
+        printer.print_text("  shellgen = assemble_shellcode()\n", "dim white")
 
     elif output_format == "python":
         printer.print_text("\nUsage in Python:\n", "bold cyan")

@@ -4,8 +4,6 @@ Tests for hash_generator.py
 Tests ROR13 hash calculation and various output formatters.
 """
 
-import io
-import sys
 import unittest
 from unittest.mock import mock_open, patch
 

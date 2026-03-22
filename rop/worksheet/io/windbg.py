@@ -5,7 +5,7 @@ This module handles importing register and stack values from WinDbg output forma
 """
 
 import re
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 
 def cmd_import_regs(ws: Dict[str, Any], text: str) -> Tuple[bool, str]:
@@ -42,6 +42,65 @@ def cmd_import_regs(ws: Dict[str, Any], text: str) -> Tuple[bool, str]:
         return False, "No valid registers found in input"
 
 
+def _parse_stack_address(addr_str: str) -> Optional[int]:
+    """
+    Parse stack address from WinDbg output.
+
+    Args:
+        addr_str: Address string (may have trailing colon)
+
+    Returns:
+        Parsed address or None if invalid
+    """
+    try:
+        addr_str = addr_str.rstrip(":")
+        return int(addr_str, 16)
+    except ValueError:
+        return None
+
+
+def _process_dword_values(
+        ws: Dict[str, Any], stack_addr: int, values: list, esp_val: int
+) -> int:
+    """
+    Process DWORD values from a WinDbg stack dump line.
+
+    Args:
+        ws: Worksheet dictionary
+        stack_addr: Base stack address for this line
+        values: List of DWORD value strings
+        esp_val: Current ESP value
+
+    Returns:
+        Number of values imported
+    """
+    imported = 0
+
+    for i, value_str in enumerate(values):
+        # Clean the value (remove any non-hex characters)
+        value_str = value_str.strip()
+        if not re.match(r"^[0-9a-fA-F]+$", value_str):
+            continue
+
+        # Calculate the address for this DWORD
+        dword_addr = stack_addr + (i * 4)
+
+        # Calculate offset from ESP
+        offset = dword_addr - esp_val
+
+        # Format offset as string
+        if offset < 0:
+            offset_str = f"-0x{abs(offset):02x}"
+        else:
+            offset_str = f"+0x{offset:02x}"
+
+        # Store the value
+        ws["stack"][offset_str] = f"0x{value_str}"
+        imported += 1
+
+    return imported
+
+
 def cmd_import_stack(ws: Dict[str, Any], text: str) -> Tuple[bool, str]:
     """
     Import stack dump from WinDbg output format.
@@ -67,7 +126,6 @@ def cmd_import_stack(ws: Dict[str, Any], text: str) -> Tuple[bool, str]:
     imported = 0
 
     # Parse each line: address followed by 1-4 DWORD values
-    # Pattern: address (8 hex digits) followed by 1-4 hex values
     lines = text.strip().split("\n")
 
     for line in lines:
@@ -81,40 +139,16 @@ def cmd_import_stack(ws: Dict[str, Any], text: str) -> Tuple[bool, str]:
             continue
 
         # First part should be the address
-        try:
-            addr_str = parts[0]
-            # Remove any trailing colons or extra characters
-            addr_str = addr_str.rstrip(":")
-            stack_addr = int(addr_str, 16)
-        except ValueError:
+        stack_addr = _parse_stack_address(parts[0])
+        if stack_addr is None:
             continue
 
         # Process each DWORD value in this line
-        for i, value_str in enumerate(parts[1:]):
-            try:
-                # Clean the value (remove any non-hex characters)
-                value_str = value_str.strip()
-                if not re.match(r"^[0-9a-fA-F]+$", value_str):
-                    continue
-
-                # Calculate the address for this DWORD
-                dword_addr = stack_addr + (i * 4)
-
-                # Calculate offset from ESP
-                offset = dword_addr - esp_val
-
-                # Format offset as string
-                if offset < 0:
-                    offset_str = f"-0x{abs(offset):02x}"
-                else:
-                    offset_str = f"+0x{offset:02x}"
-
-                # Store the value
-                ws["stack"][offset_str] = f"0x{value_str}"
-                imported += 1
-
-            except (ValueError, IndexError):
-                continue
+        try:
+            imported += _process_dword_values(ws, stack_addr, parts[1:],
+                                              esp_val)
+        except (ValueError, IndexError):
+            continue
 
     if imported > 0:
         return True, f"Imported {imported} stack value(s)"
