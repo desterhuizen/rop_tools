@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: pip install -r requirements-lint.txt
+
+    - name: flake8
+      run: flake8 lib/ rop/ shellgen/ code_snippets/ --statistics
+
+    - name: black
+      run: black --check --diff lib/ rop/ shellgen/ code_snippets/
+
+    - name: isort
+      run: isort --check-only --diff lib/ rop/ shellgen/ code_snippets/
+
+    - name: mypy
+      continue-on-error: true
+      run: mypy lib/ rop/ shellgen/ code_snippets/ || true
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Run tests
+      run: |
+        python -m unittest discover -s lib/tests -p "test_*.py" -t . -v
+        python -m unittest discover -s rop/tests -p "test_*.py" -t . -v
+        python -m unittest discover -s shellgen/tests -p "test_*.py" -t . -v
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install coverage
+
+    - name: Run tests with coverage
+      run: |
+        coverage run -m unittest discover -s lib/tests -p "test_*.py" -t .
+        coverage run -a -m unittest discover -s rop/tests -p "test_*.py" -t .
+        coverage run -a -m unittest discover -s shellgen/tests -p "test_*.py" -t .
+
+    - name: Coverage report
+      run: |
+        coverage report -m
+        coverage html
+
+    - name: Coverage summary
+      run: |
+        echo "### Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        coverage report >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v6
+      with:
+        name: coverage-report
+        path: htmlcov/
+        retention-days: 30

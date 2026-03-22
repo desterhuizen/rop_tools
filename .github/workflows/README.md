@@ -1,152 +1,69 @@
 # GitHub Actions Workflows
 
-This directory contains CI/CD workflows for automated testing and quality assurance.
+This directory contains a single unified CI workflow for automated testing, linting, and coverage.
 
-## Available Workflows
+## Workflow: `ci.yml`
 
-### 1. `tests.yml` - Test Suite
 **Triggers:** Push/PR to main or develop branches, manual dispatch
 
-Runs the complete test suite across multiple Python versions (3.8-3.12) to ensure compatibility.
+Three parallel jobs run under one workflow:
 
-**What it tests:**
+### Lint
+Runs flake8, black, isort, and mypy (optional) on Python 3.12.
+
+### Test (matrix)
+Runs the full test suite across Python 3.8-3.12:
 - `lib/` - Shared library tests (ColorPrinter)
 - `rop/` - ROP tools tests (21 test files)
 - `shellgen/` - Shellcode generator tests (4 test files)
 
-**Test command:**
+### Coverage
+Runs after tests pass (main branch and PRs only). Generates coverage reports and uploads HTML artifact (retained 30 days).
+
+## Running Locally
+
 ```bash
-python -m unittest discover -s <module>/tests -p "test_*.py" -t . -v
-```
-Note: `-t .` specifies the top-level directory for proper module imports
+# Using Makefile (recommended)
+make test          # Run all tests
+make test-verbose  # Verbose output
+make lint          # Check flake8, black, isort
+make lint-fix      # Auto-format with black and isort
+make coverage      # Run tests with coverage report
 
-### 2. `coverage.yml` - Test Coverage
-**Triggers:** Push/PR to main branch, manual dispatch
-
-Generates test coverage reports using Python 3.10 on Ubuntu.
-
-**Features:**
-- Runs all tests with coverage tracking
-- Generates coverage report
-- Uploads HTML coverage report as artifact (retained for 30 days)
-- Displays coverage summary in workflow summary
-
-**Manual coverage check:**
-```bash
-pip install coverage
-coverage run -m unittest discover -s lib/tests -p "test_*.py" -t .
-coverage run -a -m unittest discover -s rop/tests -p "test_*.py" -t .
-coverage run -a -m unittest discover -s shellgen/tests -p "test_*.py" -t .
-coverage report -m
-coverage html
-```
-
-## Badges
-
-The following badges are displayed in the main README.md:
-
-- **Tests**: ![Tests](https://github.com/desterhuizen/rop_tools/actions/workflows/tests.yml/badge.svg)
-- **Coverage**: ![Coverage](https://github.com/desterhuizen/rop_tools/actions/workflows/coverage.yml/badge.svg)
-
-**Note:** Replace `YOUR_USERNAME` with your actual GitHub username in both the badges and workflow files.
-
-## Running Tests Locally
-
-### Run all tests
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run all tests (from repository root)
+# Or manually
 python -m unittest discover -s lib/tests -p "test_*.py" -t . -v
 python -m unittest discover -s rop/tests -p "test_*.py" -t . -v
 python -m unittest discover -s shellgen/tests -p "test_*.py" -t . -v
-```
-
-### Run specific test file
-```bash
-python -m unittest lib/tests/test_color_printer.py -v
-python -m unittest rop/tests/test_repl_completer.py -v
-python -m unittest shellgen/tests/test_encoders.py -v
-```
-
-### Run with coverage
-```bash
-pip install coverage
-coverage run -m unittest discover -s lib/tests -p "test_*.py" -t .
-coverage run -a -m unittest discover -s rop/tests -p "test_*.py" -t .
-coverage run -a -m unittest discover -s shellgen/tests -p "test_*.py" -t .
-coverage report -m
-coverage html  # Generate HTML report in htmlcov/
 ```
 
 ## Test Statistics
 
 - **Total Test Files**: 26
   - `lib/tests/`: 1 file (40 test cases)
-  - `rop/tests/`: 21 files (extensive coverage)
+  - `rop/tests/`: 21 files
   - `shellgen/tests/`: 4 files (127 test cases)
-
 - **Test Framework**: Python `unittest` (standard library)
 - **Mocking**: `unittest.mock`
 - **Coverage Tool**: `coverage.py`
 
-## Workflow Configuration
+## Configuration
 
-### GitHub Actions Versions
-- **actions/checkout**: v4
-- **actions/setup-python**: v5
-- **actions/upload-artifact**: v4 (coverage.yml only)
-
-### Python Versions Tested
-- Python 3.8
-- Python 3.9
-- Python 3.10
-- Python 3.11
-- Python 3.12
-
-**Note:** Python 3.7 is not tested as it reached end-of-life on June 27, 2023 and is not available on Ubuntu 24.04 (ubuntu-latest).
-
-### Operating Systems
-- **tests.yml**: Ubuntu (Linux) - ubuntu-latest (currently 24.04)
-- **coverage.yml**: Ubuntu (Linux) - ubuntu-latest (currently 24.04)
-
-To test on additional platforms, add to the matrix in `tests.yml`:
-```yaml
-matrix:
-  os: [ubuntu-latest, windows-latest, macos-latest]
-  python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
-```
+- **Actions versions**: checkout@v6, setup-python@v6, upload-artifact@v6
+- **Python versions**: 3.8, 3.9, 3.10, 3.11, 3.12
+- **OS**: Ubuntu (ubuntu-latest)
 
 ## Troubleshooting
 
 ### ImportError: Start directory is not importable
-**Error message:**
-```
-ImportError: Start directory is not importable: 'lib/tests'
-```
-
-**Solution:** Add the `-t .` flag to specify the top-level directory:
+Add the `-t .` flag to specify the top-level directory:
 ```bash
-# Wrong (missing -t flag)
-python -m unittest discover -s lib/tests -p "test_*.py" -v
-
-# Correct (with -t flag)
 python -m unittest discover -s lib/tests -p "test_*.py" -t . -v
 ```
-
-The `-t .` flag tells unittest that the repository root (`.`) is the top-level directory, allowing proper module imports.
-
-### Workflow not triggering
-- Ensure you've pushed to `main` or `develop` branch
-- Check that workflow files are in `.github/workflows/`
-- Verify YAML syntax with `yamllint`
 
 ### Tests failing in CI but passing locally
 - Check Python version differences
 - Verify all dependencies are in `requirements.txt`
-- Check for platform-specific issues (Windows vs Linux)
-- Review workflow logs in GitHub Actions tab
+- Check for platform-specific issues
 - Ensure you're using `-t .` flag in test discovery commands
 
 ### Coverage artifacts not appearing
@@ -154,58 +71,19 @@ The `-t .` flag tells unittest that the repository root (`.`) is the top-level d
 - Check the "Artifacts" section at the bottom of the workflow run
 - Artifacts expire after 30 days
 
-### Python 3.7 not available on Ubuntu 24.04
-**Error message:**
-```
-Error: The version '3.7' with architecture 'x64' was not found for Ubuntu 24.04.
-```
-
-**Reason:** Python 3.7 reached end-of-life on June 27, 2023 and is no longer supported on Ubuntu 24.04 (ubuntu-latest).
-
-**Solution:**
-- Use Python 3.8 or newer (recommended)
-- Or use an older Ubuntu version like `ubuntu-22.04` or `ubuntu-20.04` (not recommended)
-
-Our workflows test Python 3.8-3.12 to ensure compatibility with actively supported versions.
-
-## Manual Workflow Dispatch
-
-Both workflows can be triggered manually:
-
-1. Go to the "Actions" tab in GitHub
-2. Select the workflow (Tests or Coverage)
-3. Click "Run workflow"
-4. Select the branch
-5. Click "Run workflow" button
-
 ## Adding New Tests
 
-When adding new test files:
-
-1. **Create test file**: `<module>/tests/test_*.py`
-2. **Use unittest framework**:
+1. Create test file: `<module>/tests/test_*.py`
+2. Use unittest framework:
    ```python
    import unittest
 
    class TestMyFeature(unittest.TestCase):
        def test_something(self):
            self.assertEqual(1, 1)
-
-   if __name__ == "__main__":
-       unittest.main()
    ```
-3. **Verify locally**: `python -m unittest <module>/tests/test_*.py -v`
-4. **Commit and push**: Workflows will run automatically
-
-## Future Enhancements
-
-Potential workflow additions:
-
-- **Linting**: Add `flake8`, `pylint`, or `black` for code quality
-- **Security**: Add `bandit` for security vulnerability scanning
-- **Documentation**: Auto-generate documentation with `sphinx`
-- **Release**: Auto-publish to PyPI on version tags
-- **Pre-commit**: Add pre-commit hooks for local validation
+3. Verify locally: `make test`
+4. Commit and push — workflow runs automatically
 
 ---
 
