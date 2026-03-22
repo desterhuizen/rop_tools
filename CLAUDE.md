@@ -336,4 +336,10 @@ pip install -r requirements-lint.txt
 
 ---
 
+## Future TODO
+
+- **Codecov integration**: Codecov account and GitHub App are set up, `CODECOV_TOKEN` secret is configured, and `ci.yml` uploads `coverage.xml`. However, Codecov reports "No coverage report uploaded for this branch head commit". Needs debugging — likely a commit SHA mismatch or branch configuration issue in Codecov settings. Badge in README is ready (`[![codecov](...)]`), just needs the upload to work.
+
+---
+
 *This file serves as the central guide for AI-assisted development across the entire ROP Tools Suite.*
