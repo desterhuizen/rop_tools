@@ -18,7 +18,9 @@ Runs the full test suite across Python 3.8-3.12:
 - `shellgen/` - Shellcode generator tests (4 test files)
 
 ### Coverage
-Runs after tests pass (main branch and PRs only). Generates coverage reports and uploads HTML artifact (retained 30 days).
+Runs after tests pass (main branch and PRs only). Generates coverage reports, uploads to Codecov, and saves HTML artifact (retained 30 days).
+
+**Codecov**: Coverage badge and history at [codecov.io/gh/desterhuizen/rop_tools](https://codecov.io/gh/desterhuizen/rop_tools). Requires `CODECOV_TOKEN` repo secret.
 
 ## Running Locally
 

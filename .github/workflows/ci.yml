@@ -78,10 +78,18 @@ jobs:
         coverage run -a -m unittest discover -s rop/tests -p "test_*.py" -t .
         coverage run -a -m unittest discover -s shellgen/tests -p "test_*.py" -t .
 
-    - name: Coverage report
+    - name: Generate coverage reports
       run: |
         coverage report -m
+        coverage xml
         coverage html
+
+    - name: Upload to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        files: coverage.xml
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: false
 
     - name: Coverage summary
       run: |
@@ -90,7 +98,7 @@ jobs:
         coverage report >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
 
-    - name: Upload coverage report
+    - name: Upload coverage HTML report
       uses: actions/upload-artifact@v6
       with:
         name: coverage-report

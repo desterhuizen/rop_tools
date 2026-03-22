@@ -81,9 +81,7 @@ rop_tools/
 │
 └── .github/                    # GitHub Actions
     └── workflows/
-        ├── tests.yml           # Test suite (Python 3.8-3.12)
-        ├── coverage.yml        # Coverage reporting
-        └── lint.yml            # Code quality checks
+        └── ci.yml              # Unified CI (lint, test matrix, coverage)
 ```
 
 ---
@@ -238,10 +236,11 @@ isort lib/ rop/ shellgen/ code_snippets/
 - `pyproject.toml` - black and isort configuration (88 char lines, Python 3.8+ target)
 
 ### GitHub Actions
-- **tests.yml**: Runs on Python 3.8, 3.9, 3.10, 3.11, 3.12
-- **coverage.yml**: Coverage reporting
-- **lint.yml**: Code quality checks (flake8, black, isort, mypy)
-- All workflows run on push/PR to main and develop branches
+- **ci.yml**: Unified workflow with three parallel jobs:
+  - **Lint**: flake8, black, isort, mypy (Python 3.12)
+  - **Test**: Matrix across Python 3.8, 3.9, 3.10, 3.11, 3.12
+  - **Coverage**: Runs after tests pass (main/PRs only)
+- Triggers on push/PR to main and develop branches
 
 ---
 
@@ -322,7 +321,7 @@ pip install -r requirements-lint.txt
   - Created `requirements-lint.txt` with 7 linting tools
   - Added `.flake8` configuration (88 char line length, sensible ignores)
   - Added `pyproject.toml` for black/isort/mypy (Python 3.8+ target)
-  - Created `.github/workflows/lint.yml` CI workflow
+  - Created `.github/workflows/ci.yml` unified CI workflow (lint, test, coverage)
   - Updated README.md and CLAUDE.md with linting documentation
 - **Created INSTALL.md**: Symlink installation guide for all 5 tools
 - **Removed wrapper scripts**: Deleted shellgen.sh, hashgen.sh (use direct Python execution)
