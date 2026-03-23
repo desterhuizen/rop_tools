@@ -16,7 +16,7 @@ from target_builder.src.config import (
 )
 from target_builder.src.templates import base, buffer_overflow
 from target_builder.src.templates import decoys as decoy_templates
-from target_builder.src.templates import egghunter, format_string, seh_overflow
+from target_builder.src.templates import egghunter, format_string, rop_dll, seh_overflow
 from target_builder.src.templates.protocols import http as http_proto
 from target_builder.src.templates.protocols import rpc as rpc_proto
 from target_builder.src.templates.protocols import tcp as tcp_proto
@@ -60,6 +60,15 @@ def render(config: ServerConfig) -> str:
     dep_code = base.generate_dep_api_usage(config)
     if dep_code:
         sections.append(dep_code)
+
+    # 6b. Embedded ROP gadgets
+    if config.embedded_gadgets.enabled:
+        sections.append(
+            rop_dll.generate_embedded_gadgets(
+                config.embedded_gadgets.gadget_density
+            )
+        )
+        sections.append("")
 
     # 7. Decoy functions
     decoy_specs = _resolve_decoy_specs(config)

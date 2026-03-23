@@ -8,6 +8,45 @@ x86 only — __asm blocks are MSVC x86 specific.
 from target_builder.src.config import GadgetDensity, RopDllConfig
 
 
+def generate_embedded_gadgets(density: GadgetDensity) -> str:
+    """Generate ROP gadget functions for embedding directly in the server source.
+
+    Unlike generate_rop_dll(), this produces only the gadget functions without
+    DLL boilerplate (no DllMain, no dllexport, no compile header).
+    Includes a volatile reference array to prevent the linker from stripping
+    unreferenced functions.
+
+    Args:
+        density: Gadget density level.
+
+    Returns:
+        C++ function blocks as a string.
+    """
+    gadgets = _generate_gadget_functions(density)
+
+    # Collect function names so we can create a linker anti-strip reference
+    func_names = []
+    for line in gadgets.split("\n"):
+        if "void " in line and "(" in line and "__declspec" in line:
+            # Extract function name from: __declspec(noinline) void FuncName() {
+            name = line.split("void ")[1].split("(")[0].strip()
+            func_names.append(name)
+
+    # Create a volatile pointer array that references each gadget function.
+    # This prevents MSVC from stripping the functions as unreferenced.
+    ref_lines = [
+        "// Prevent linker from stripping unreferenced gadget functions",
+        "volatile void* _gadget_refs[] = {",
+    ]
+    for name in func_names:
+        ref_lines.append(f"    (void*)&{name},")
+    ref_lines.append("};")
+
+    return "// --- Embedded ROP gadgets ---\n\n" + gadgets + "\n\n" + "\n".join(
+        ref_lines
+    )
+
+
 def generate_rop_dll(config: RopDllConfig) -> str:
     """Generate complete ROP companion DLL C++ source.
 

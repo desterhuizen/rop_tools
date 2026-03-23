@@ -25,6 +25,7 @@ class WorksheetCompleter:
             # ASM operations
             "mov",
             "add",
+            "sub",
             "xor",
             "xchg",
             "inc",

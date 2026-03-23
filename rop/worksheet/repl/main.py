@@ -30,6 +30,7 @@ from ..operations.asm_ops import (
     cmd_inc,
     cmd_move,
     cmd_neg,
+    cmd_sub,
     cmd_xchg,
     cmd_xor,
 )
@@ -475,6 +476,7 @@ def dispatch_asm_command(ws: Dict[str, Any], action: str, args: str) -> bool:
         "move": (handle_asm_two_operand, cmd_move, "mov", True),
         "m": (handle_asm_two_operand, cmd_move, "mov", True),
         "add": (handle_asm_two_operand, cmd_add, "add", False),
+        "sub": (handle_asm_two_operand, cmd_sub, "sub", False),
         "xor": (handle_asm_two_operand, cmd_xor, "xor", False),
         "xchg": (handle_asm_two_operand, cmd_xchg, "xchg", False),
     }

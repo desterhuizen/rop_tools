@@ -268,6 +268,14 @@ def find_safe_base_address(bad_chars: List[int], arch: "Architecture") -> int:
 
 
 @dataclass
+class EmbeddedGadgetsConfig:
+    """Configuration for embedding ROP gadgets directly in the server binary."""
+
+    enabled: bool = False
+    gadget_density: GadgetDensity = GadgetDensity.STANDARD
+
+
+@dataclass
 class RopDllConfig:
     """Configuration for the optional ROP companion DLL."""
 
@@ -349,6 +357,9 @@ class ServerConfig:
     # Sub-configs
     exploit: ExploitConfig = field(default_factory=ExploitConfig)
     rop_dll: RopDllConfig = field(default_factory=RopDllConfig)
+    embedded_gadgets: EmbeddedGadgetsConfig = field(
+        default_factory=EmbeddedGadgetsConfig
+    )
 
     def __post_init__(self):
         """Set defaults that depend on other fields."""
@@ -401,6 +412,18 @@ class ServerConfig:
                 f"--rop-dll-base 0x{self.rop_dll.base_address:08X} "
                 "contains bytes that conflict with --bad-chars"
             )
+
+        # Embedded gadgets constraints
+        if self.embedded_gadgets.enabled:
+            if self.arch != Architecture.X86:
+                raise ValueError(
+                    "--embedded-gadgets requires --arch x86 "
+                    "(MSVC __asm is x86 only)"
+                )
+            if self.rop_dll.enabled:
+                raise ValueError(
+                    "--embedded-gadgets and --rop-dll are mutually exclusive"
+                )
 
         # Port range
         if not (1 <= self.port <= 65535):

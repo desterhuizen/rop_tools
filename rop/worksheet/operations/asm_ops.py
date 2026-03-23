@@ -2,7 +2,7 @@
 ASM-like operations for the ROP worksheet.
 
 This module implements Intel-syntax assembly operations:
-mov, add, xor, xchg, inc, dec, neg
+mov, add, sub, xor, xchg, inc, dec, neg
 """
 
 from typing import Any, Dict, Optional, Tuple
@@ -211,6 +211,43 @@ def cmd_add(ws: Dict[str, Any], dst: str, src: str) -> Tuple[bool, Optional[str]
         return True, None
     except Exception:
         return False, "Invalid operands for add"
+
+
+def cmd_sub(ws: Dict[str, Any], dst: str, src: str) -> Tuple[bool, Optional[str]]:
+    """
+    Subtract: sub dst, src (dst = dst - src).
+
+    Args:
+        ws: Worksheet dictionary
+        dst: Destination
+        src: Source expression
+
+    Returns:
+        (success, error_message) tuple
+    """
+    dst_val = resolve_value(dst, ws)
+    src_val = resolve_value(src, ws)
+
+    if dst_val is None or src_val is None:
+        return False, "Cannot resolve operands"
+
+    try:
+        result = int(dst_val, 16) - int(src_val, 16)
+        result_hex = f"0x{result & 0xffffffff:08x}"  # Keep 32-bit
+
+        dst_type, dst_key = parse_target(dst)
+        if dst_type == "reg":
+            ws["registers"][dst_key] = result_hex
+        elif dst_type == "stack":
+            ws["stack"][dst_key] = result_hex
+
+        # Log manual operation if enabled (skip if in auto-gadget mode)
+        if ws.get("log_manual", True) and not ws.get("_in_auto_gadget", False):
+            log_execution(ws, "manual", "User", f"sub {dst}, {src}")
+
+        return True, None
+    except Exception:
+        return False, "Invalid operands for sub"
 
 
 def cmd_xor(ws: Dict[str, Any], dst: str, src: str) -> Tuple[bool, Optional[str]]:

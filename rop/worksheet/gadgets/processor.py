@@ -60,6 +60,7 @@ def _execute_instruction(
         cmd_inc,
         cmd_move,
         cmd_neg,
+        cmd_sub,
         cmd_xchg,
         cmd_xor,
     )
@@ -69,6 +70,8 @@ def _execute_instruction(
         return cmd_move(ws, operands[0], operands[1])
     elif opcode == "add" and len(operands) == 2:
         return cmd_add(ws, operands[0], operands[1])
+    elif opcode == "sub" and len(operands) == 2:
+        return cmd_sub(ws, operands[0], operands[1])
     elif opcode == "xor" and len(operands) == 2:
         return cmd_xor(ws, operands[0], operands[1])
     elif opcode == "xchg" and len(operands) == 2:

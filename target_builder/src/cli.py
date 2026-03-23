@@ -19,6 +19,7 @@ from target_builder.src.config import (
     DecoyType,
     DepBypassApi,
     Difficulty,
+    EmbeddedGadgetsConfig,
     ExploitConfig,
     ExploitLevel,
     GadgetDensity,
@@ -283,6 +284,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="Preferred DLL base address (default: 0x10000000)",
     )
 
+    # Embedded Gadgets
+    emb = parser.add_argument_group("Embedded Gadgets")
+    emb.add_argument(
+        "--embedded-gadgets",
+        action="store_true",
+        help="Embed ROP gadgets directly in the server binary (x86 only)",
+    )
+    emb.add_argument(
+        "--embedded-gadgets-density",
+        type=str,
+        choices=[g.value for g in GadgetDensity],
+        default="standard",
+        help="Gadget density (default: standard)",
+    )
+
     return parser
 
 
@@ -371,6 +387,10 @@ def _args_to_config(args: argparse.Namespace) -> ServerConfig:
             gadget_density=GadgetDensity(args.rop_dll_gadgets),
             no_aslr=args.rop_dll_no_aslr,
             base_address=dll_base,
+        ),
+        embedded_gadgets=EmbeddedGadgetsConfig(
+            enabled=args.embedded_gadgets,
+            gadget_density=GadgetDensity(args.embedded_gadgets_density),
         ),
     )
 
@@ -533,6 +553,10 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
             gadget_density=GadgetDensity(args.rop_dll_gadgets),
             no_aslr=args.rop_dll_no_aslr,
             base_address=dll_base,
+        ),
+        embedded_gadgets=EmbeddedGadgetsConfig(
+            enabled=args.embedded_gadgets,
+            gadget_density=GadgetDensity(args.embedded_gadgets_density),
         ),
     )
 
