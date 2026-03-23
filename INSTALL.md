@@ -157,6 +157,9 @@ get_base_address --help
 
 # Test ROP worksheet
 rop_worksheet --help
+
+# Test target builder
+target_builder --help
 ```
 
 ## Available Commands
@@ -198,6 +201,11 @@ get_base_address kernel32.dll -v
 ### Build ROP Chains
 ```bash
 rop_worksheet
+```
+
+### Generate Vulnerable Server
+```bash
+target_builder --vuln bof --protocol tcp --output server.cpp --build-script
 ```
 
 ## Uninstallation
@@ -249,6 +257,7 @@ chmod +x shellgen/hash_generator.py
 chmod +x rop/get_rop_gadgets.py
 chmod +x rop/get_base_address.py
 chmod +x rop/rop_worksheet.py
+chmod +x target_builder/target_builder_cli.py
 ```
 
 ### Import errors
@@ -293,6 +302,7 @@ sudo ln -sf "$(pwd)/shellgen/hash_generator.py" /usr/local/bin/hash_generator
 sudo ln -sf "$(pwd)/rop/get_rop_gadgets.py" /usr/local/bin/get_rop_gadgets
 sudo ln -sf "$(pwd)/rop/get_base_address.py" /usr/local/bin/get_base_address
 sudo ln -sf "$(pwd)/rop/rop_worksheet.py" /usr/local/bin/rop_worksheet
+sudo ln -sf "$(pwd)/target_builder/target_builder_cli.py" /usr/local/bin/target_builder
 ```
 
 ### Custom Installation Directory
@@ -307,6 +317,7 @@ ln -sf "$(pwd)/shellgen/hash_generator.py" "$INSTALL_DIR/hash_generator"
 ln -sf "$(pwd)/rop/get_rop_gadgets.py" "$INSTALL_DIR/get_rop_gadgets"
 ln -sf "$(pwd)/rop/get_base_address.py" "$INSTALL_DIR/get_base_address"
 ln -sf "$(pwd)/rop/rop_worksheet.py" "$INSTALL_DIR/rop_worksheet"
+ln -sf "$(pwd)/target_builder/target_builder_cli.py" "$INSTALL_DIR/target_builder"
 
 # Add to PATH
 export PATH="$INSTALL_DIR:$PATH"

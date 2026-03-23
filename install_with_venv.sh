@@ -65,6 +65,12 @@ cat > "$BIN_DIR/rop_worksheet" << EOF
 exec "$VENV_DIR/bin/python3" "$SCRIPT_DIR/rop/rop_worksheet.py" "\$@"
 EOF
 
+# Create wrapper script for target_builder
+cat > "$BIN_DIR/target_builder" << EOF
+#!/bin/bash
+exec "$VENV_DIR/bin/python3" "$SCRIPT_DIR/target_builder/target_builder_cli.py" "\$@"
+EOF
+
 # Make wrapper scripts executable
 chmod +x "$BIN_DIR"/*
 
@@ -76,6 +82,7 @@ ln -sf "$BIN_DIR/hash_generator" "$INSTALL_DIR/hash_generator"
 ln -sf "$BIN_DIR/get_rop_gadgets" "$INSTALL_DIR/get_rop_gadgets"
 ln -sf "$BIN_DIR/get_base_address" "$INSTALL_DIR/get_base_address"
 ln -sf "$BIN_DIR/rop_worksheet" "$INSTALL_DIR/rop_worksheet"
+ln -sf "$BIN_DIR/target_builder" "$INSTALL_DIR/target_builder"
 
 echo ""
 echo "========================================="
@@ -95,6 +102,7 @@ echo "  - hash_generator"
 echo "  - get_rop_gadgets"
 echo "  - get_base_address"
 echo "  - rop_worksheet"
+echo "  - target_builder"
 echo ""
 echo "Note: All commands will use the Python interpreter from:"
 echo "  $VENV_DIR/bin/python3"
