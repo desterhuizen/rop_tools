@@ -33,10 +33,10 @@ void vuln_function(char* {data_param}, int {len_param}) {{
 {filter_call}\
     char buffer[{buf_size}];
 
+    printf("[*] Received %d bytes into %d-byte buffer\\n", {len_param}, {buf_size});
+
     // Vulnerable: strcpy does not check bounds
     strcpy(buffer, {data_param});
-
-    printf("[*] Received %d bytes into %d-byte buffer\\n", {len_param}, {buf_size});
 }}"""
 
 

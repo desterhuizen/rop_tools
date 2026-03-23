@@ -72,13 +72,13 @@ void vuln_function(char* {data_param}, int {len_param}) {{
         }}
     }}
 
+    printf("[*] Processed %d bytes (stack buf: %d, heap stash: %d)\\n",
+           {len_param}, {vuln_buf_size}, g_heap_log_size);
+
     // Vulnerable: strcpy into small stack buffer
     // Only the first portion matters for the overflow,
     // but strcpy copies until null terminator
     strcpy(small_buffer, {data_param});
-
-    printf("[*] Processed %d bytes (stack buf: %d, heap stash: %d)\\n",
-           {len_param}, {vuln_buf_size}, g_heap_log_size);
 }}"""
 
 

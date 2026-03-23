@@ -34,10 +34,10 @@ void vuln_function(char* {data_param}, int {len_param}) {{
     __try {{
         char buffer[{buf_size}];
 
+        printf("[*] Received %d bytes into %d-byte buffer\\n", {len_param}, {buf_size});
+
         // Vulnerable: strcpy inside __try block overflows past SEH record
         strcpy(buffer, {data_param});
-
-        printf("[*] Received %d bytes into %d-byte buffer\\n", {len_param}, {buf_size});
 
         // Trigger exception if buffer was overflowed
         // (access violation from corrupted stack)
