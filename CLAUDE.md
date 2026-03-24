@@ -368,6 +368,21 @@ pip install -r requirements-lint.txt
   - Build script generation with correct cl.exe flags
   - 114 tests across 6 test files
 
+### March 24, 2026 — Cross-tool bug fixes and features
+- **shellgen**: Fixed socket payloads (reverse_shell, bind_shell x86/x64) — `custom_asm`
+  strings had unformatted `{ip_dword}`, `{port_word}`, `{sockaddr_qword}`, `{shell_asm}`
+  placeholders causing Keystone assembly failures. Fixed entry point `sys.path` ordering.
+  Renamed `--debug-shellgen` → `--debug-shellcode` to match code references.
+- **target_builder**: Fixed exploit skeleton byte encoding — TCP/HTTP payloads mangled
+  bytes >= 0x80 through string encode/decode round-trip. Fixed `cli.py` syntax errors.
+  Added `--embedded-gadgets` for standalone ROP gadgets in server binary (x86 only).
+  Added `EmbeddedGadgetsConfig` with density levels and mutual exclusion with `--rop-dll`.
+- **rop/get_base_address.py**: Added DEP bypass candidate detection — `--iat` now shows
+  a summary of 8 DEP bypass APIs found in the IAT with addresses and argument reference.
+- **rop/worksheet**: Added `sub dst, src` instruction. Refactored gadget processor
+  dispatch from if/elif chain to table lookup (fixes C901 complexity). Created
+  `TODO_INSTRUCTIONS.md` planning sub-register support and 15+ additional instructions.
+
 ### Earlier
 - **Shared ColorPrinter**: Migrated to `lib/color_printer.py` for consistent output
 - **Modular architecture**: Separated core logic from display logic

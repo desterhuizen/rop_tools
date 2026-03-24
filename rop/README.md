@@ -831,9 +831,16 @@ Total Imports: 245
 ./get_base_address.py target.exe --iat --dll msvcrt
 ```
 
+When viewing the full IAT (without `--dll` filter), a **DEP Bypass Candidates**
+section automatically appears showing any DEP bypass APIs found in the IAT
+(VirtualProtect, VirtualAlloc, WriteProcessMemory, HeapCreate, etc.) with their
+IAT addresses, bypass technique descriptions, and argument reference for building
+ROP chains.
+
 This is useful for:
 
 - Finding API function addresses for ROP chains
+- Identifying DEP bypass candidates with argument reference
 - Identifying imported functions for exploit development
 - Calculating absolute addresses at preferred base
 - Locating specific DLL functions quickly
@@ -944,7 +951,7 @@ for planning and testing ROP exploits with real-time state tracking.
     - Named value matching shown in fourth column for stack values
 - **Named Values**: Create symbolic names for addresses (e.g., "shellcode", "
   base_address")
-- **ASM Operations**: Execute assembly-like operations (mov, add, xor, xchg,
+- **ASM Operations**: Execute assembly-like operations (mov, add, sub, xor, xchg,
   inc, dec, neg, push, pop)
 - **ROP Chain Building**: Build and visualize your ROP chain with addresses,
   gadgets, and effects

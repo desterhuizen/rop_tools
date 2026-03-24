@@ -67,9 +67,9 @@ cd rop && ./get_rop_gadgets.py -f gadgets.txt -i pop -b "\x00\x0a" -m 3
 - ✅ 18 gadget categories (stack, arithmetic, memory, etc.)
 - ✅ Advanced filtering (instruction, register, regex, bad chars)
 - ✅ Multi-level grouping (category → register drill-down)
-- ✅ PE analysis (sections, IAT, base address)
+- ✅ PE analysis (sections, IAT, base address, DEP bypass candidate detection)
 - ✅ WinDbg integration for register/stack import
-- ✅ Interactive worksheet with save/load
+- ✅ Interactive worksheet with save/load (11 ASM operations)
 
 **[📖 Full Documentation →](rop/README.md)**
 
@@ -100,8 +100,8 @@ cd target_builder && ./target_builder_cli.py --vuln bof --output server.cpp
 - 3 protocols: raw TCP, HTTP/1.1, binary RPC
 - Configurable mitigations: DEP (6 bypass APIs), ASLR (with info leak), /GS, SafeSEH
 - Randomized challenges with seeds and difficulty presets
-- Exploit skeleton generation (connect/interact/crash)
-- ROP companion DLL with gadgets at 3 density levels
+- Exploit skeleton generation (connect/interact/crash) with raw bytes support
+- ROP gadgets: embedded in server binary (`--embedded-gadgets`) or companion DLL
 - Decoy commands to force proper fuzzing
 - Build script generation with correct cl.exe flags
 
@@ -294,7 +294,7 @@ pip install rich           # Colored terminal output (optional but recommended)
 #### Shellcode Generator
 ```bash
 pip install keystone-engine    # Assembly
-pip install capstone           # Disassembly (for --debug-shellgen)
+pip install capstone           # Disassembly (for --debug-shellcode)
 ```
 
 #### ROP Tools

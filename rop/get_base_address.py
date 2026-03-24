@@ -194,6 +194,128 @@ def print_iat_info(filepath: str, image_base: int, filter_dll: str = None):
         _print_iat_plain(dll_groups, image_base)
 
 
+# DEP bypass APIs grouped by technique
+DEP_BYPASS_APIS = {
+    "VirtualProtect": {
+        "dll": "kernel32.dll",
+        "technique": "Mark stack as executable (RWX)",
+        "args": "lpAddress, dwSize, flNewProtect (0x40=RWX), lpflOldProtect",
+    },
+    "VirtualAlloc": {
+        "dll": "kernel32.dll",
+        "technique": "Allocate executable memory",
+        "args": "lpAddress, dwSize, flAllocationType (0x1000), flProtect (0x40=RWX)",
+    },
+    "WriteProcessMemory": {
+        "dll": "kernel32.dll",
+        "technique": "Copy shellcode to executable region",
+        "args": "hProcess (-1), lpBaseAddress, lpBuffer, nSize, lpNumberOfBytesWritten",
+    },
+    "HeapCreate": {
+        "dll": "kernel32.dll",
+        "technique": "Create executable heap (HEAP_CREATE_ENABLE_EXECUTE)",
+        "args": "flOptions (0x00040000), dwInitialSize, dwMaximumSize",
+    },
+    "SetProcessDEPPolicy": {
+        "dll": "kernel32.dll",
+        "technique": "Disable DEP for the process (Vista/XP)",
+        "args": "dwFlags (0 = disable)",
+    },
+    "NtAllocateVirtualMemory": {
+        "dll": "ntdll.dll",
+        "technique": "Low-level executable allocation",
+        "args": "ProcessHandle (-1), BaseAddress, ZeroBits, RegionSize, AllocType, Protect (0x40)",
+    },
+    "VirtualProtectEx": {
+        "dll": "kernel32.dll",
+        "technique": "Mark memory RWX in remote/current process",
+        "args": "hProcess (-1), lpAddress, dwSize, flNewProtect (0x40), lpflOldProtect",
+    },
+    "NtProtectVirtualMemory": {
+        "dll": "ntdll.dll",
+        "technique": "Low-level memory protection change",
+        "args": "ProcessHandle, BaseAddress, RegionSize, NewProtect, OldProtect",
+    },
+}
+
+
+def print_dep_bypass_info(filepath: str, image_base: int):
+    """
+    Scan IAT for DEP bypass candidate functions and print a summary.
+
+    Args:
+        filepath: Path to the PE file
+        image_base: ImageBase address for calculating absolute addresses
+    """
+    iat_entries = PEAnalyzer.get_iat_entries(filepath)
+    if not iat_entries:
+        return
+
+    # Find matches
+    found = []
+    for entry in iat_entries:
+        if entry.function in DEP_BYPASS_APIS:
+            info = DEP_BYPASS_APIS[entry.function]
+            abs_addr = entry.get_absolute_address(image_base)
+            found.append((entry, info, abs_addr))
+
+    if not found:
+        return
+
+    printer.print_header(
+        "\n=== DEP Bypass Candidates ===", "bold green"
+    )
+    printer.print_labeled(
+        "Found",
+        f"{len(found)} usable API(s) in IAT",
+        label_style="cyan",
+        value_style="white",
+    )
+
+    if printer.enabled:
+        from rich.table import Table
+
+        table = Table(
+            show_header=True,
+            header_style="bold yellow",
+            box=None,
+            padding=(0, 1),
+        )
+        table.add_column("API", style="bold white", overflow="fold")
+        table.add_column("DLL", style="cyan", width=16)
+        table.add_column("IAT Address", style="green", width=12, justify="right")
+        table.add_column("Technique", style="yellow", overflow="fold")
+
+        for entry, info, abs_addr in found:
+            table.add_row(
+                entry.function,
+                entry.dll,
+                f"0x{abs_addr:08x}",
+                info["technique"],
+            )
+
+        printer.console.print(table)
+
+        # Print argument reference
+        printer.print_text("\nArgument Reference:", "bold cyan")
+        for entry, info, abs_addr in found:
+            printer.print_text(
+                f"  {entry.function}({info['args']})",
+                "dim white",
+            )
+    else:
+        for entry, info, abs_addr in found:
+            print(
+                f"  {entry.function:<30} "
+                f"[{entry.dll}]  "
+                f"IAT: 0x{abs_addr:08x}  "
+                f"- {info['technique']}"
+            )
+        print("\nArgument Reference:")
+        for entry, info, abs_addr in found:
+            print(f"  {entry.function}({info['args']})")
+
+
 def main():
     """Main entry point for get_base_address tool"""
     parser = argparse.ArgumentParser(
@@ -246,6 +368,9 @@ def main():
             # Print IAT if requested
             if args.iat:
                 print_iat_info(args.file, pe_info.image_base, filter_dll=args.dll)
+                # Show DEP bypass candidates (only when showing full IAT)
+                if not args.dll:
+                    print_dep_bypass_info(args.file, pe_info.image_base)
 
     except FileNotFoundError:
         printer.print_text(f"[!] Error: File '{args.file}' not found", "bold red")

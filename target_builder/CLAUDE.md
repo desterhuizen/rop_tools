@@ -40,7 +40,7 @@ src/
     ├── egghunter.py       # Small stack buffer + heap stash for remainder (x86 only)
     ├── format_string.py   # printf(user_data) — no format specifier
     ├── decoys.py          # Safe-looking commands (strncpy, bounded memcpy, etc.)
-    └── rop_dll.py         # DLL with __asm gadget blocks
+    └── rop_dll.py         # DLL or embedded __asm gadget blocks
 ```
 
 ### Data Flow
@@ -225,3 +225,18 @@ Each decoy gets a randomizable command name that sounds plausible (e.g. `PROCESS
   - `cli.py` — Full argparse, randomization with seed/difficulty, challenge summary output
   - `target_builder_cli.py` — Entry point
 - **114 tests** across 6 test files (test_config, test_bad_chars, test_templates, test_renderer, test_exploit_skeleton, test_integration)
+
+### March 24, 2026 — Bug Fixes and Embedded Gadgets
+- **fix: exploit skeleton byte encoding** — TCP and HTTP exploit skeletons were
+  mangling bytes >= 0x80 through a `str.encode()`/`decode(errors='replace')` round-trip.
+  Fixed `send_cmd()` to accept raw bytes and `send_request()` to send binary bodies
+  separately from headers. RPC exploit was already correct.
+- **fix: cli.py syntax error** — `--bad-chars` help string had unterminated string
+  literal (broke all integration test imports)
+- **feat: `--embedded-gadgets`** — Embed ROP gadgets directly in the server binary
+  (x86 only, MSVC `__asm` blocks). Alternative to `--rop-dll` for standalone binaries.
+  Supports `--embedded-gadgets-density` (minimal/standard/full). Mutually exclusive
+  with `--rop-dll`. Volatile pointer array prevents MSVC from stripping unreferenced
+  gadget functions.
+- **New config**: `EmbeddedGadgetsConfig` dataclass, validation for x86-only and
+  mutual exclusion with ROP DLL

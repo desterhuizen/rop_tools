@@ -40,6 +40,37 @@ def _validate_operands(operands: List[str], known_regs: List[str]) -> bool:
     return True
 
 
+def _build_dispatch_table():
+    """Build opcode → (operand_count, handler) dispatch table."""
+    from ..operations.asm_ops import (
+        cmd_add,
+        cmd_dec,
+        cmd_inc,
+        cmd_move,
+        cmd_neg,
+        cmd_sub,
+        cmd_xchg,
+        cmd_xor,
+    )
+    from ..operations.stack_ops import cmd_pop, cmd_push
+
+    return {
+        "mov": (2, cmd_move),
+        "add": (2, cmd_add),
+        "sub": (2, cmd_sub),
+        "xor": (2, cmd_xor),
+        "xchg": (2, cmd_xchg),
+        "inc": (1, cmd_inc),
+        "dec": (1, cmd_dec),
+        "neg": (1, cmd_neg),
+        "pop": (1, cmd_pop),
+        "push": (1, cmd_push),
+    }
+
+
+_dispatch_table = None
+
+
 def _execute_instruction(
     ws: Dict[str, Any], opcode: str, operands: List[str]
 ) -> Tuple[bool, Optional[str]]:
@@ -54,38 +85,13 @@ def _execute_instruction(
     Returns:
         (success, error_message) tuple
     """
-    from ..operations.asm_ops import (
-        cmd_add,
-        cmd_dec,
-        cmd_inc,
-        cmd_move,
-        cmd_neg,
-        cmd_sub,
-        cmd_xchg,
-        cmd_xor,
-    )
-    from ..operations.stack_ops import cmd_pop, cmd_push
+    global _dispatch_table
+    if _dispatch_table is None:
+        _dispatch_table = _build_dispatch_table()
 
-    if opcode == "mov" and len(operands) == 2:
-        return cmd_move(ws, operands[0], operands[1])
-    elif opcode == "add" and len(operands) == 2:
-        return cmd_add(ws, operands[0], operands[1])
-    elif opcode == "sub" and len(operands) == 2:
-        return cmd_sub(ws, operands[0], operands[1])
-    elif opcode == "xor" and len(operands) == 2:
-        return cmd_xor(ws, operands[0], operands[1])
-    elif opcode == "xchg" and len(operands) == 2:
-        return cmd_xchg(ws, operands[0], operands[1])
-    elif opcode == "inc" and len(operands) == 1:
-        return cmd_inc(ws, operands[0])
-    elif opcode == "dec" and len(operands) == 1:
-        return cmd_dec(ws, operands[0])
-    elif opcode == "neg" and len(operands) == 1:
-        return cmd_neg(ws, operands[0])
-    elif opcode == "pop" and len(operands) == 1:
-        return cmd_pop(ws, operands[0])
-    elif opcode == "push" and len(operands) == 1:
-        return cmd_push(ws, operands[0])
+    entry = _dispatch_table.get(opcode)
+    if entry and len(operands) == entry[0]:
+        return entry[1](ws, *operands)
 
     return False, None
 

@@ -47,6 +47,22 @@ library independence
 
 ## Recent Features
 
+### DEP Bypass Candidate Detection (March 24, 2026)
+
+- `--iat` now shows a **DEP Bypass Candidates** section after the full IAT
+- Scans for 8 DEP bypass APIs: VirtualProtect, VirtualAlloc, WriteProcessMemory,
+  HeapCreate, SetProcessDEPPolicy, NtAllocateVirtualMemory, VirtualProtectEx,
+  NtProtectVirtualMemory
+- Shows API, DLL, IAT address, bypass technique, and argument reference
+- Only shown when matching APIs are found and not filtering by `--dll`
+
+### Worksheet: sub instruction + dispatch refactor (March 24, 2026)
+
+- Added `sub dst, src` operation to the ROP worksheet
+- Refactored `_execute_instruction()` from 11-branch if/elif chain to dispatch
+  table lookup (fixes C901 complexity warning, easier to extend)
+- See `rop/worksheet/TODO_INSTRUCTIONS.md` for planned instruction additions
+
 ### Bad Instruction Filtering (March 20, 2026)
 
 - Auto-filters 44 harmful instructions (privileged, I/O, control flow,
@@ -105,8 +121,8 @@ library independence
   matching
 - **Stack Management**: ESP-relative offsets, absolute addresses, register-based
   addressing
-- **ASM Operations**: mov, add, xor, xchg, inc, dec, neg, push/pop (auto ESP
-  tracking)
+- **ASM Operations**: mov, add, sub, xor, xchg, inc, dec, neg, push/pop (auto
+  ESP tracking)
 - **WinDbg Integration**: `importregs`, `importstack` (multi-line paste)
 - **ROP Chains**: Add gadgets, delete entries, visual display
 - **Workflow**: Save/load JSON, command history, tab completion

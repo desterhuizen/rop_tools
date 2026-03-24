@@ -201,6 +201,7 @@ Converts machine code → assembly (required for `--debug-shellcode`)
 
 | Version | Key Changes |
 |---------|-------------|
+| **v3.8.1** | Bug fixes: socket payload assembly (unformatted IP/port/shell placeholders in custom_asm), `--debug-shellcode` CLI flag name, sys.path ordering in shellgen_cli.py entry point |
 | **v3.8** | x64 fixes: RIP-relative addressing, gen_push_string arch-aware, stack allocation bugs fixed, bind_shell_x64 payload added |
 | **v3.7.1** | Bug fix: `--bad-chars` CLI override for JSON, Rich lib added to requirements |
 | **v3.7** | ColorPrinter integration (lib/color_printer), visual enhancements (panels, hex preview, tables), enhanced payload listing |
