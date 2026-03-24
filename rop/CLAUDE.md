@@ -56,12 +56,22 @@ library independence
 - Shows API, DLL, IAT address, bypass technique, and argument reference
 - Only shown when matching APIs are found and not filtering by `--dll`
 
-### Worksheet: sub instruction + dispatch refactor (March 24, 2026)
+### Worksheet: Full instruction set expansion (March 24, 2026)
 
-- Added `sub dst, src` operation to the ROP worksheet
-- Refactored `_execute_instruction()` from 11-branch if/elif chain to dispatch
-  table lookup (fixes C901 complexity warning, easier to extend)
-- See `rop/worksheet/TODO_INSTRUCTIONS.md` for planned instruction additions
+- **Phase 1 — Sub-register support**: AL/AH/AX, BL/BH/BX, CL/CH/CX, DL/DH/DX,
+  SI, DI, BP, SP. Read via masking, write via merge into parent 32-bit register.
+  Gadgets with sub-register operands are now auto-executed instead of skipped.
+- **Phase 2 — Bitwise/shift ops**: `and`, `or`, `shl`, `shr`, `ror`, `rol`
+- **Phase 3 — Bitwise complement**: `not`
+- **Phase 4 — Zero-operand**: `cdq` (sign-extend EAX→EDX), `lodsd` (EAX=[ESI];
+  ESI+=4), `stosd` ([EDI]=EAX; EDI+=4), `nop`
+- **Phase 5 — Data movement**: `movzx` (zero-extend), `movsxd` (sign-extend)
+- **Phase 6 — LEA**: `lea dst, [reg+reg*scale+offset]` with full bracket
+  expression parser supporting all x86 addressing modes
+- Refactored dispatch table, added zero-operand dispatch category in REPL
+- Added `sub dst, src` operation
+- Refactored `_execute_instruction()` from if/elif chain to dispatch table lookup
+- Refactored `cmd_move` and arithmetic ops to use shared `_write_to_target` helper
 
 ### Bad Instruction Filtering (March 20, 2026)
 
@@ -117,12 +127,13 @@ library independence
 
 ### Features
 
-- **Register Tracking**: All x86 32-bit regs (EAX-ESP, EIP), named value
-  matching
+- **Register Tracking**: All x86 32-bit regs (EAX-ESP, EIP) plus 8/16-bit
+  sub-registers (AL/AH/AX, etc.), named value matching
 - **Stack Management**: ESP-relative offsets, absolute addresses, register-based
   addressing
-- **ASM Operations**: mov, add, sub, xor, xchg, inc, dec, neg, push/pop (auto
-  ESP tracking)
+- **ASM Operations**: mov, add, sub, xor, xchg, and, or, shl, shr, ror, rol,
+  inc, dec, neg, not, cdq, lodsd, stosd, nop, movzx, movsxd, lea, push/pop
+  (auto ESP tracking)
 - **WinDbg Integration**: `importregs`, `importstack` (multi-line paste)
 - **ROP Chains**: Add gadgets, delete entries, visual display
 - **Workflow**: Save/load JSON, command history, tab completion

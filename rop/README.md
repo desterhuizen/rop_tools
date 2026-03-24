@@ -940,7 +940,9 @@ for planning and testing ROP exploits with real-time state tracking.
 ## Features
 
 - **Register Tracking**: Monitor all 32-bit x86 registers (EAX, EBX, ECX, EDX,
-  ESI, EDI, EBP, ESP, EIP)
+  ESI, EDI, EBP, ESP, EIP) plus 8/16-bit sub-registers (AL/AH/AX, BL/BH/BX,
+  CL/CH/CX, DL/DH/DX, SI, DI, BP, SP)
+    - Sub-register reads mask the parent; writes merge back into the parent
     - EIP displayed separately with bold green highlighting for gadget addresses
     - Named value matching shown in third column when registers match symbolic
       names
@@ -951,8 +953,12 @@ for planning and testing ROP exploits with real-time state tracking.
     - Named value matching shown in fourth column for stack values
 - **Named Values**: Create symbolic names for addresses (e.g., "shellcode", "
   base_address")
-- **ASM Operations**: Execute assembly-like operations (mov, add, sub, xor, xchg,
-  inc, dec, neg, push, pop)
+- **ASM Operations**: Execute assembly-like operations with full sub-register support
+    - **Data movement**: mov, movzx, movsxd, lea, push, pop
+    - **Arithmetic**: add, sub, inc, dec, neg
+    - **Bitwise**: and, or, xor, not, shl, shr, ror, rol
+    - **Exchange**: xchg
+    - **Zero-operand**: cdq, lodsd, stosd, nop
 - **ROP Chain Building**: Build and visualize your ROP chain with addresses,
   gadgets, and effects
 - **Value Resolution**: Automatic resolution of register names, stack offsets,
@@ -986,15 +992,38 @@ pip install rich
 # Move operations
 mov EAX, 0xdeadbeef          # Set EAX to value
 mov EAX, EBX                 # Copy EBX to EAX
+mov AL, 0x41                 # Write to sub-register (merges into EAX)
 mov EAX, ESP+0x10            # Move stack value to EAX
-mov EAX, shellgen           # Use named value
+movzx EAX, CL               # Zero-extend 8-bit CL into EAX
+movsxd EAX, AL               # Sign-extend 8-bit AL into EAX
 
 # Arithmetic
 add EAX, 0x100               # EAX = EAX + 0x100
+sub EAX, 0x10                # EAX = EAX - 0x10
 xor EAX, EAX                 # Zero out EAX
 inc EAX                      # EAX++
 dec EAX                      # EAX--
 neg EAX                      # Two's complement negation
+
+# Bitwise
+and ESP, 0xfffffff0          # Align stack to 16-byte boundary
+or EAX, 0x40                 # Set bit 6
+not EAX                      # Bitwise complement
+shl EAX, 0x04                # Shift left by 4 (multiply by 16)
+shr EAX, 0x08                # Logical shift right by 8
+ror EAX, 0x0d                # Rotate right (e.g., ROR13 hash)
+rol EAX, 0x08                # Rotate left
+
+# LEA (address computation without memory access)
+lea EAX, [ECX+0x10]          # EAX = ECX + 0x10
+lea EAX, [ECX+EDX*4]         # EAX = ECX + EDX*4
+lea EAX, [ECX+EDX*4+0x08]   # EAX = ECX + EDX*4 + 0x08
+
+# Zero-operand
+cdq                          # Sign-extend EAX into EDX (zeros EDX if EAX < 0x80000000)
+lodsd                        # EAX = [ESI]; ESI += 4
+stosd                        # [EDI] = EAX; EDI += 4
+nop                          # No operation
 
 # Stack operations
 push EAX                     # Push EAX onto stack (ESP -= 4, [ESP] = EAX)

@@ -379,9 +379,13 @@ pip install -r requirements-lint.txt
   Added `EmbeddedGadgetsConfig` with density levels and mutual exclusion with `--rop-dll`.
 - **rop/get_base_address.py**: Added DEP bypass candidate detection — `--iat` now shows
   a summary of 8 DEP bypass APIs found in the IAT with addresses and argument reference.
-- **rop/worksheet**: Added `sub dst, src` instruction. Refactored gadget processor
-  dispatch from if/elif chain to table lookup (fixes C901 complexity). Created
-  `TODO_INSTRUCTIONS.md` planning sub-register support and 15+ additional instructions.
+- **rop/worksheet**: Completed all 6 instruction phases from `TODO_INSTRUCTIONS.md`:
+  Phase 1: sub-register support (AL/AH/AX, etc. — read via mask, write via merge).
+  Phase 2: `and`, `or`, `shl`, `shr`, `ror`, `rol`. Phase 3: `not`.
+  Phase 4: `cdq`, `lodsd`, `stosd`, `nop` (zero-operand with new dispatch category).
+  Phase 5: `movzx`, `movsxd`. Phase 6: `lea` with full bracket expression parser
+  (`[reg+reg*scale+offset]`). Also added `sub dst, src`, refactored dispatch table,
+  and introduced `_write_to_target` helper for all target types including sub-registers.
 
 ### Earlier
 - **Shared ColorPrinter**: Migrated to `lib/color_printer.py` for consistent output
