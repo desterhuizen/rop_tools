@@ -64,9 +64,7 @@ def render(config: ServerConfig) -> str:
     # 6b. Embedded ROP gadgets
     if config.embedded_gadgets.enabled:
         sections.append(
-            rop_dll.generate_embedded_gadgets(
-                config.embedded_gadgets.gadget_density
-            )
+            rop_dll.generate_embedded_gadgets(config.embedded_gadgets.gadget_density)
         )
         sections.append("")
 

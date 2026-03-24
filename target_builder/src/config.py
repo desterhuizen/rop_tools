@@ -417,8 +417,7 @@ class ServerConfig:
         if self.embedded_gadgets.enabled:
             if self.arch != Architecture.X86:
                 raise ValueError(
-                    "--embedded-gadgets requires --arch x86 "
-                    "(MSVC __asm is x86 only)"
+                    "--embedded-gadgets requires --arch x86 " "(MSVC __asm is x86 only)"
                 )
             if self.rop_dll.enabled:
                 raise ValueError(

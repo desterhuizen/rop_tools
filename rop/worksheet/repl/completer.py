@@ -28,9 +28,23 @@ class WorksheetCompleter:
             "sub",
             "xor",
             "xchg",
+            "and",
+            "or",
+            "shl",
+            "shr",
+            "ror",
+            "rol",
+            "movzx",
+            "movsxd",
+            "lea",
             "inc",
             "dec",
             "neg",
+            "not",
+            "cdq",
+            "lodsd",
+            "stosd",
+            "nop",
             "push",
             "pop",
             # Quick ops
@@ -56,7 +70,36 @@ class WorksheetCompleter:
             "auto",
             "logmanual",
         ]
-        self.registers = ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"]
+        self.registers = [
+            "EAX",
+            "EBX",
+            "ECX",
+            "EDX",
+            "ESI",
+            "EDI",
+            "EBP",
+            "ESP",
+            "EIP",
+            # 16-bit
+            "AX",
+            "BX",
+            "CX",
+            "DX",
+            "SI",
+            "DI",
+            "BP",
+            "SP",
+            # 8-bit high
+            "AH",
+            "BH",
+            "CH",
+            "DH",
+            # 8-bit low
+            "AL",
+            "BL",
+            "CL",
+            "DL",
+        ]
         self.common_stack_offsets = [
             "ESP+0x00",
             "ESP+0x04",
@@ -166,7 +209,30 @@ class WorksheetCompleter:
         command = tokens[0].lower()
 
         # After register/value commands - complete with registers, offsets, named values
-        if command in ["mov", "move", "m", "xchg", "set", "s", "clr", "clear", "stack"]:
+        if command in [
+            "mov",
+            "move",
+            "m",
+            "xchg",
+            "set",
+            "s",
+            "clr",
+            "clear",
+            "stack",
+            "add",
+            "sub",
+            "xor",
+            "and",
+            "or",
+            "shl",
+            "shr",
+            "ror",
+            "rol",
+            "inc",
+            "dec",
+            "neg",
+            "not",
+        ]:
             return self._complete_register_context(text)
 
         # After 'del' - complete with chain indices

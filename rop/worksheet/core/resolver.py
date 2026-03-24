@@ -8,6 +8,106 @@ arithmetic) and parsing target destinations for operations.
 import re
 from typing import Any, Dict, Optional, Tuple
 
+# Sub-register mappings: sub_reg -> (parent_32bit_reg, bit_mask, bit_shift)
+SUB_REGISTER_MAP = {
+    # 16-bit low
+    "AX": ("EAX", 0xFFFF, 0),
+    "BX": ("EBX", 0xFFFF, 0),
+    "CX": ("ECX", 0xFFFF, 0),
+    "DX": ("EDX", 0xFFFF, 0),
+    "SI": ("ESI", 0xFFFF, 0),
+    "DI": ("EDI", 0xFFFF, 0),
+    "BP": ("EBP", 0xFFFF, 0),
+    "SP": ("ESP", 0xFFFF, 0),
+    # 8-bit high
+    "AH": ("EAX", 0xFF, 8),
+    "BH": ("EBX", 0xFF, 8),
+    "CH": ("ECX", 0xFF, 8),
+    "DH": ("EDX", 0xFF, 8),
+    # 8-bit low
+    "AL": ("EAX", 0xFF, 0),
+    "BL": ("EBX", 0xFF, 0),
+    "CL": ("ECX", 0xFF, 0),
+    "DL": ("EDX", 0xFF, 0),
+}
+
+# All known registers (32-bit + sub-registers)
+ALL_REGISTERS = [
+    "EAX",
+    "EBX",
+    "ECX",
+    "EDX",
+    "ESI",
+    "EDI",
+    "EBP",
+    "ESP",
+    "EIP",
+] + list(SUB_REGISTER_MAP.keys())
+
+
+def read_sub_register(reg_name: str, ws: Dict[str, Any]) -> Optional[str]:
+    """
+    Read a sub-register value by masking the parent 32-bit register.
+
+    Args:
+        reg_name: Sub-register name (e.g., "AL", "AX", "AH")
+        ws: Worksheet dictionary
+
+    Returns:
+        Hex value string or None
+    """
+    reg_upper = reg_name.upper()
+    if reg_upper not in SUB_REGISTER_MAP:
+        return None
+
+    parent, mask, shift = SUB_REGISTER_MAP[reg_upper]
+    parent_val = ws["registers"].get(parent, "0x00000000")
+    if not parent_val:
+        return None
+
+    try:
+        val = int(parent_val, 16)
+        result = (val >> shift) & mask
+        # Format based on size
+        if mask == 0xFF:
+            return f"0x{result:02x}"
+        elif mask == 0xFFFF:
+            return f"0x{result:04x}"
+        return f"0x{result:08x}"
+    except (ValueError, TypeError):
+        return None
+
+
+def write_sub_register(reg_name: str, value: str, ws: Dict[str, Any]) -> bool:
+    """
+    Write a value to a sub-register by merging into the parent 32-bit register.
+
+    Args:
+        reg_name: Sub-register name (e.g., "AL", "AX", "AH")
+        value: Hex value to write
+        ws: Worksheet dictionary
+
+    Returns:
+        True if successful, False otherwise
+    """
+    reg_upper = reg_name.upper()
+    if reg_upper not in SUB_REGISTER_MAP:
+        return False
+
+    parent, mask, shift = SUB_REGISTER_MAP[reg_upper]
+    parent_val = ws["registers"].get(parent, "0x00000000")
+
+    try:
+        current = int(parent_val, 16)
+        new_val = int(value, 16) & mask
+        # Clear the bits we're writing to, then set them
+        cleared = current & ~(mask << shift)
+        merged = cleared | (new_val << shift)
+        ws["registers"][parent] = f"0x{merged & 0xFFFFFFFF:08x}"
+        return True
+    except (ValueError, TypeError):
+        return False
+
 
 def _resolve_stack_reference(expr: str, ws: Dict[str, Any]) -> Optional[str]:
     """
@@ -139,9 +239,13 @@ def resolve_value(expr: str, ws: Dict[str, Any]) -> Optional[str]:
     if result is not None:
         return result
 
-    # Register
+    # 32-bit register
     if expr.upper() in ws["registers"]:
         return ws["registers"][expr.upper()]
+
+    # Sub-register (16-bit / 8-bit)
+    if expr.upper() in SUB_REGISTER_MAP:
+        return read_sub_register(expr, ws)
 
     # Named value
     if expr in ws["named"]:
@@ -153,6 +257,99 @@ def resolve_value(expr: str, ws: Dict[str, Any]) -> Optional[str]:
         return result
 
     return None
+
+
+def _resolve_lea_token(token: str, ws: Dict[str, Any], all_regs: set) -> Optional[int]:
+    """
+    Resolve a single LEA expression token to an integer value.
+
+    Handles: reg*scale, hex immediates, decimal immediates, registers.
+
+    Args:
+        token: Token string (without sign prefix)
+        ws: Worksheet dictionary
+        all_regs: Set of known register names
+
+    Returns:
+        Integer value or None if unresolvable
+    """
+    # reg*scale
+    scale_match = re.match(r"^([A-Za-z]{2,3})\*(\d+)$", token)
+    if scale_match:
+        reg_val = resolve_value(scale_match.group(1), ws)
+        if reg_val is None:
+            return None
+        return int(reg_val, 16) * int(scale_match.group(2))
+
+    # Hex immediate
+    if re.match(r"^0x[0-9a-fA-F]+$", token, re.IGNORECASE):
+        return int(token, 16)
+
+    # Decimal immediate
+    if re.match(r"^\d+$", token):
+        return int(token)
+
+    # Register
+    if token.upper() in all_regs:
+        reg_val = resolve_value(token, ws)
+        if reg_val is None:
+            return None
+        return int(reg_val, 16)
+
+    return None
+
+
+def resolve_lea_expression(expr: str, ws: Dict[str, Any]) -> Optional[str]:
+    """
+    Resolve a LEA bracket expression to a computed address.
+
+    Supported forms:
+    - [ecx]              — reg
+    - [ecx+0x10]         — reg + offset
+    - [ecx-0x10]         — reg - offset
+    - [ecx+edx]          — reg + reg
+    - [ecx+edx*4]        — reg + reg*scale
+    - [ecx+edx*4+0x10]   — reg + reg*scale + offset
+    - [ecx+edx+0x10]     — reg + reg + offset
+
+    Args:
+        expr: Bracket expression (with or without surrounding brackets)
+        ws: Worksheet dictionary
+
+    Returns:
+        Hex value string or None if unparseable
+    """
+    expr = expr.strip()
+    if expr.startswith("[") and expr.endswith("]"):
+        expr = expr[1:-1].strip()
+
+    if not expr:
+        return None
+
+    all_regs = set(ws["registers"].keys()) | set(SUB_REGISTER_MAP.keys())
+
+    # Tokenize: split on +/- keeping operators as prefix
+    tokens = re.split(r"(?=[+-])", expr)
+    tokens = [t.strip() for t in tokens if t.strip()]
+
+    total = 0
+    for token in tokens:
+        sign = 1
+        if token.startswith("+"):
+            token = token[1:].strip()
+        elif token.startswith("-"):
+            sign = -1
+            token = token[1:].strip()
+
+        if not token:
+            continue
+
+        val = _resolve_lea_token(token, ws, all_regs)
+        if val is None:
+            return None
+        total += sign * val
+
+    return f"0x{total & 0xFFFFFFFF:08x}"
 
 
 def parse_target(target: str) -> Tuple[str, str]:
@@ -176,13 +373,17 @@ def parse_target(target: str) -> Tuple[str, str]:
     original = target.strip()
     target_upper = original.upper()
 
-    # Register
+    # 32-bit register
     regs = ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "EBP", "ESP", "EIP"]
     if target_upper in regs:
         return ("reg", target_upper)
 
+    # Sub-register (16-bit / 8-bit)
+    if target_upper in SUB_REGISTER_MAP:
+        return ("subreg", target_upper)
+
     # Dereferenced register: [EAX], [ECX], etc.
-    m = re.match(r"\[([A-Z]{3}|EIP)\]", original, re.IGNORECASE)
+    m = re.match(r"\[([A-Z]{2,3}|EIP)\]", original, re.IGNORECASE)
     if m:
         reg_name = m.group(1).upper()
         if reg_name in regs:

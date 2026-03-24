@@ -262,9 +262,7 @@ def print_dep_bypass_info(filepath: str, image_base: int):
     if not found:
         return
 
-    printer.print_header(
-        "\n=== DEP Bypass Candidates ===", "bold green"
-    )
+    printer.print_header("\n=== DEP Bypass Candidates ===", "bold green")
     printer.print_labeled(
         "Found",
         f"{len(found)} usable API(s) in IAT",
@@ -298,7 +296,7 @@ def print_dep_bypass_info(filepath: str, image_base: int):
 
         # Print argument reference
         printer.print_text("\nArgument Reference:", "bold cyan")
-        for entry, info, abs_addr in found:
+        for entry, info, _abs_addr in found:
             printer.print_text(
                 f"  {entry.function}({info['args']})",
                 "dim white",
@@ -312,7 +310,7 @@ def print_dep_bypass_info(filepath: str, image_base: int):
                 f"- {info['technique']}"
             )
         print("\nArgument Reference:")
-        for entry, info, abs_addr in found:
+        for entry, info, _abs_addr in found:
             print(f"  {entry.function}({info['args']})")
 
 
@@ -367,10 +365,10 @@ def main():
 
             # Print IAT if requested
             if args.iat:
-                print_iat_info(args.file, pe_info.image_base, filter_dll=args.dll)
                 # Show DEP bypass candidates (only when showing full IAT)
                 if not args.dll:
                     print_dep_bypass_info(args.file, pe_info.image_base)
+                print_iat_info(args.file, pe_info.image_base, filter_dll=args.dll)
 
     except FileNotFoundError:
         printer.print_text(f"[!] Error: File '{args.file}' not found", "bold red")

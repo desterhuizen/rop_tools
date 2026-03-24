@@ -26,10 +26,24 @@ from ..gadgets.library import cmd_gadget_add, cmd_gadget_clear, cmd_gadget_del
 from ..io.windbg import cmd_import_regs, cmd_import_stack
 from ..operations.asm_ops import (
     cmd_add,
+    cmd_and,
+    cmd_cdq,
     cmd_dec,
     cmd_inc,
+    cmd_lea,
+    cmd_lodsd,
     cmd_move,
+    cmd_movsxd,
+    cmd_movzx,
     cmd_neg,
+    cmd_nop,
+    cmd_not,
+    cmd_or,
+    cmd_rol,
+    cmd_ror,
+    cmd_shl,
+    cmd_shr,
+    cmd_stosd,
     cmd_sub,
     cmd_xchg,
     cmd_xor,
@@ -172,6 +186,24 @@ def handle_asm_single_operand(
             show_error(msg)
     else:
         show_usage(f"{cmd_name} <dst>")
+
+
+def handle_asm_zero_operand(
+    ws: Dict[str, Any], cmd_func: Callable, cmd_name: str
+) -> None:
+    """
+    Handle ASM operations with zero operands (cdq, lodsd, stosd, nop).
+
+    Args:
+        ws: Worksheet dictionary
+        cmd_func: Command function to call
+        cmd_name: Command name for error display
+    """
+    success, msg = cmd_func(ws)
+    if success:
+        display_worksheet(ws)
+    else:
+        show_error(msg)
 
 
 def handle_pop(ws: Dict[str, Any], args: str) -> None:
@@ -479,12 +511,29 @@ def dispatch_asm_command(ws: Dict[str, Any], action: str, args: str) -> bool:
         "sub": (handle_asm_two_operand, cmd_sub, "sub", False),
         "xor": (handle_asm_two_operand, cmd_xor, "xor", False),
         "xchg": (handle_asm_two_operand, cmd_xchg, "xchg", False),
+        "and": (handle_asm_two_operand, cmd_and, "and", False),
+        "or": (handle_asm_two_operand, cmd_or, "or", False),
+        "shl": (handle_asm_two_operand, cmd_shl, "shl", False),
+        "shr": (handle_asm_two_operand, cmd_shr, "shr", False),
+        "ror": (handle_asm_two_operand, cmd_ror, "ror", False),
+        "rol": (handle_asm_two_operand, cmd_rol, "rol", False),
+        "movzx": (handle_asm_two_operand, cmd_movzx, "movzx", False),
+        "movsxd": (handle_asm_two_operand, cmd_movsxd, "movsxd", False),
+        "lea": (handle_asm_two_operand, cmd_lea, "lea", False),
     }
 
     asm_single_operand = {
         "inc": (handle_asm_single_operand, cmd_inc, "inc"),
         "dec": (handle_asm_single_operand, cmd_dec, "dec"),
         "neg": (handle_asm_single_operand, cmd_neg, "neg"),
+        "not": (handle_asm_single_operand, cmd_not, "not"),
+    }
+
+    asm_zero_operand = {
+        "cdq": (cmd_cdq, "cdq"),
+        "lodsd": (cmd_lodsd, "lodsd"),
+        "stosd": (cmd_stosd, "stosd"),
+        "nop": (cmd_nop, "nop"),
     }
 
     if action in asm_two_operand:
@@ -494,6 +543,10 @@ def dispatch_asm_command(ws: Dict[str, Any], action: str, args: str) -> bool:
     elif action in asm_single_operand:
         handler, cmd_func, cmd_name = asm_single_operand[action]
         handler(ws, args, cmd_func, cmd_name)
+        return True
+    elif action in asm_zero_operand:
+        cmd_func, cmd_name = asm_zero_operand[action]
+        handle_asm_zero_operand(ws, cmd_func, cmd_name)
         return True
     return False
 

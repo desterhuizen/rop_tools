@@ -42,8 +42,8 @@ def generate_embedded_gadgets(density: GadgetDensity) -> str:
         ref_lines.append(f"    (void*)&{name},")
     ref_lines.append("};")
 
-    return "// --- Embedded ROP gadgets ---\n\n" + gadgets + "\n\n" + "\n".join(
-        ref_lines
+    return (
+        "// --- Embedded ROP gadgets ---\n\n" + gadgets + "\n\n" + "\n".join(ref_lines)
     )
 
 
