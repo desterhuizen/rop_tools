@@ -23,9 +23,11 @@ from target_builder.src.config import (
     ExploitConfig,
     ExploitLevel,
     GadgetDensity,
+    PaddingStyle,
     Protocol,
     RopDllConfig,
     ServerConfig,
+    StackLayoutConfig,
     VulnType,
     find_safe_base_address,
 )
@@ -158,6 +160,31 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Bytes before SEH handler overwrite (default: auto)",
+    )
+
+    # Stack layout
+    stk = parser.add_argument_group("Stack Layout")
+    stk.add_argument(
+        "--pre-padding",
+        type=int,
+        default=0,
+        help="Bytes of padding between buffer and saved EBP (default: 0)",
+    )
+    stk.add_argument(
+        "--landing-pad",
+        type=int,
+        default=0,
+        help=(
+            "Max shellcode bytes after EIP overwrite; "
+            "0=unlimited (default: 0). Small values force short jumps."
+        ),
+    )
+    stk.add_argument(
+        "--padding-style",
+        type=str,
+        choices=[s.value for s in PaddingStyle],
+        default="none",
+        help="Style of stack padding variables (default: none)",
     )
 
     # Mitigations
@@ -392,6 +419,11 @@ def _args_to_config(args: argparse.Namespace) -> ServerConfig:
             enabled=args.embedded_gadgets,
             gadget_density=GadgetDensity(args.embedded_gadgets_density),
         ),
+        stack_layout=StackLayoutConfig(
+            pre_padding_size=args.pre_padding,
+            landing_pad_size=args.landing_pad,
+            padding_style=PaddingStyle(args.padding_style),
+        ),
     )
 
     return config
@@ -490,6 +522,42 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
     rng.shuffle(available_names)
     decoy_names = available_names[:decoy_count]
 
+    # Stack layout
+    if args.pre_padding > 0:
+        pre_padding = args.pre_padding
+    elif difficulty:
+        preset = DIFFICULTY_PRESETS[difficulty]
+        lo, hi = preset["pre_padding_range"]
+        pre_padding = rng.randint(lo, hi)
+    else:
+        pre_padding = rng.choice([0, 0, 32, 64, 96, 128])
+
+    if args.landing_pad > 0:
+        landing_pad = args.landing_pad
+    elif difficulty:
+        preset = DIFFICULTY_PRESETS[difficulty]
+        lo, hi = preset["landing_pad_range"]
+        landing_pad = rng.randint(lo, hi)
+    else:
+        landing_pad = rng.choice([0, 0, 0, 16, 32, 64, 128, 256])
+
+    if args.padding_style != "none":
+        padding_style = PaddingStyle(args.padding_style)
+    elif pre_padding > 0:
+        if difficulty:
+            preset = DIFFICULTY_PRESETS[difficulty]
+            padding_style = rng.choice(preset["padding_styles"])
+        else:
+            padding_style = rng.choice(list(PaddingStyle))
+            # Re-roll NONE if we have padding to show
+            if padding_style == PaddingStyle.NONE:
+                padding_style = rng.choice(
+                    [PaddingStyle.ARRAY, PaddingStyle.MIXED,
+                     PaddingStyle.STRUCT, PaddingStyle.MULTI]
+                )
+    else:
+        padding_style = PaddingStyle.NONE
+
     # Banner
     banner = args.banner if args.banner else rng.choice(BANNER_POOL)
 
@@ -559,6 +627,11 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
             enabled=args.embedded_gadgets,
             gadget_density=GadgetDensity(args.embedded_gadgets_density),
             seed=seed,
+        ),
+        stack_layout=StackLayoutConfig(
+            pre_padding_size=pre_padding,
+            landing_pad_size=landing_pad,
+            padding_style=padding_style,
         ),
     )
 
@@ -648,6 +721,23 @@ def _print_challenge_summary(config: ServerConfig) -> None:
     if config.safe_seh:
         mitigations.append("SafeSEH")
 
+    # Stack layout info
+    layout = config.stack_layout
+    if layout.pre_padding_size > 0 or layout.landing_pad_size > 0:
+        stack_info = []
+        if layout.pre_padding_size > 0:
+            stack_info.append(
+                f"padding={layout.pre_padding_size}B "
+                f"({layout.padding_style.value})"
+            )
+        if layout.landing_pad_size > 0:
+            stack_info.append(f"landing_pad={layout.landing_pad_size}B")
+            if layout.landing_pad_size <= 32:
+                stack_info.append("(short jump likely needed)")
+        stack_desc = ", ".join(stack_info)
+    else:
+        stack_desc = "standard (no extra padding)"
+
     lines = [
         "",
         "=" * 50,
@@ -657,6 +747,7 @@ def _print_challenge_summary(config: ServerConfig) -> None:
         f"  Architecture:   {config.arch.value}",
         f"  Protocol:       {config.protocol.value}",
         f"  Buffer size:    {config.buffer_size}",
+        f"  Stack layout:   {stack_desc}",
         f"  Bad chars:      {bad_hex if bad_hex else 'none (0x00 implicit)'}",
         f"  Bad char mode:  {config.bad_char_action.value}",
         f"  Mitigations:    {', '.join(mitigations) if mitigations else 'none'}",

@@ -5,12 +5,17 @@ stack-allocated char buffer. Works on x86 and x64.
 """
 
 from target_builder.src.config import Protocol, ServerConfig
+from target_builder.src.templates.stack_padding import (
+    generate_landing_pad_truncation,
+    generate_padding_vars,
+)
 
 
 def generate_vuln_function(config: ServerConfig) -> str:
     """Generate the vulnerable function with strcpy into a stack buffer."""
     buf_size = config.buffer_size
     has_bad_chars = len(config.bad_chars) > 0
+    layout = config.stack_layout
 
     filter_call = ""
     if has_bad_chars:
@@ -26,15 +31,22 @@ def generate_vuln_function(config: ServerConfig) -> str:
         data_param = "data"
         len_param = "data_len"
 
+    padding_vars = generate_padding_vars(layout)
+    truncation = generate_landing_pad_truncation(
+        layout, data_param, len_param, buf_size
+    )
+
     return f"""\
 // VULNERABLE FUNCTION - Classic stack buffer overflow
 // Buffer is {buf_size} bytes, recv allows up to {RECV_BUF_SIZE} bytes
 void vuln_function(char* {data_param}, int {len_param}) {{
 {filter_call}\
+{padding_vars}\
     char buffer[{buf_size}];
 
     printf("[*] Received %d bytes into %d-byte buffer\\n", {len_param}, {buf_size});
 
+{truncation}\
     // Vulnerable: strcpy does not check bounds
     strcpy(buffer, {data_param});
 }}"""

@@ -7,8 +7,10 @@ import unittest
 
 from target_builder.src.config import (
     DecoyType,
+    PaddingStyle,
     Protocol,
     ServerConfig,
+    StackLayoutConfig,
     VulnType,
 )
 from target_builder.src.templates import (
@@ -160,6 +162,127 @@ class TestDecoys(unittest.TestCase):
         result = decoys.generate_decoy_functions(config, specs)
         self.assertIn("handle_cmd1", result)
         self.assertIn("handle_cmd2", result)
+
+
+class TestStackPadding(unittest.TestCase):
+    """Test stack padding generation in vulnerability templates."""
+
+    def test_bof_with_array_padding(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            buffer_size=512,
+            stack_layout=StackLayoutConfig(
+                pre_padding_size=64,
+                padding_style=PaddingStyle.ARRAY,
+            ),
+        )
+        result = buffer_overflow.generate_vuln_function(config)
+        self.assertIn("audit_trail[64]", result)
+        self.assertIn("memset(audit_trail", result)
+        self.assertIn("strcpy", result)
+
+    def test_bof_with_mixed_padding(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            buffer_size=256,
+            stack_layout=StackLayoutConfig(
+                pre_padding_size=48,
+                padding_style=PaddingStyle.MIXED,
+            ),
+        )
+        result = buffer_overflow.generate_vuln_function(config)
+        self.assertIn("session_id", result)
+        self.assertIn("strcpy", result)
+
+    def test_bof_with_struct_padding(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            buffer_size=256,
+            stack_layout=StackLayoutConfig(
+                pre_padding_size=64,
+                padding_style=PaddingStyle.STRUCT,
+            ),
+        )
+        result = buffer_overflow.generate_vuln_function(config)
+        self.assertIn("req_meta", result)
+        self.assertIn("request_type", result)
+
+    def test_bof_with_multi_padding(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            buffer_size=256,
+            stack_layout=StackLayoutConfig(
+                pre_padding_size=96,
+                padding_style=PaddingStyle.MULTI,
+            ),
+        )
+        result = buffer_overflow.generate_vuln_function(config)
+        self.assertIn("cmd_history", result)
+        self.assertIn("auth_nonce", result)
+
+    def test_bof_no_padding_when_none(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            buffer_size=256,
+            stack_layout=StackLayoutConfig(
+                pre_padding_size=0,
+                padding_style=PaddingStyle.NONE,
+            ),
+        )
+        result = buffer_overflow.generate_vuln_function(config)
+        self.assertNotIn("audit_trail", result)
+        self.assertNotIn("req_meta", result)
+
+    def test_bof_landing_pad_truncation(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            buffer_size=256,
+            stack_layout=StackLayoutConfig(
+                landing_pad_size=16,
+            ),
+        )
+        result = buffer_overflow.generate_vuln_function(config)
+        self.assertIn("max_process_len", result)
+        # 256 + 0 (padding) + 8 (frame) + 16 (landing) = 280
+        self.assertIn("280", result)
+
+    def test_seh_with_padding(self):
+        config = ServerConfig(
+            vuln_type=VulnType.SEH,
+            buffer_size=300,
+            stack_layout=StackLayoutConfig(
+                pre_padding_size=32,
+                padding_style=PaddingStyle.ARRAY,
+            ),
+        )
+        result = seh_overflow.generate_vuln_function(config)
+        self.assertIn("audit_trail[32]", result)
+        self.assertIn("__try", result)
+        self.assertIn("strcpy", result)
+
+    def test_egghunter_with_padding(self):
+        config = ServerConfig(
+            vuln_type=VulnType.EGGHUNTER,
+            buffer_size=2048,
+            vuln_buffer_size=128,
+            stack_layout=StackLayoutConfig(
+                pre_padding_size=48,
+                padding_style=PaddingStyle.ARRAY,
+            ),
+        )
+        result = egghunter.generate_vuln_function(config)
+        self.assertIn("audit_trail[48]", result)
+        self.assertIn("small_buffer[128]", result)
+        self.assertIn("g_heap_log", result)
+
+    def test_no_truncation_when_landing_pad_zero(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            buffer_size=256,
+            stack_layout=StackLayoutConfig(landing_pad_size=0),
+        )
+        result = buffer_overflow.generate_vuln_function(config)
+        self.assertNotIn("max_process_len", result)
 
 
 class TestTCPProtocol(unittest.TestCase):

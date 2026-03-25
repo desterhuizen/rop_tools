@@ -11,9 +11,11 @@ from target_builder.src.cli import parse_args, run
 from target_builder.src.config import (
     Architecture,
     GadgetDensity,
+    PaddingStyle,
     Protocol,
     RopDllConfig,
     ServerConfig,
+    StackLayoutConfig,
     VulnType,
 )
 from target_builder.src.renderer import render
@@ -127,6 +129,60 @@ class TestRandomization(unittest.TestCase):
         self.assertTrue(config.dep)
         self.assertTrue(config.aslr)
         self.assertTrue(config.stack_canary)
+
+
+class TestStackLayoutCLI(unittest.TestCase):
+    """Test stack layout CLI arguments."""
+
+    def test_pre_padding_arg(self):
+        config = parse_args(
+            ["--vuln", "bof", "--pre-padding", "64", "--padding-style", "array"]
+        )
+        self.assertEqual(config.stack_layout.pre_padding_size, 64)
+        self.assertEqual(config.stack_layout.padding_style, PaddingStyle.ARRAY)
+
+    def test_landing_pad_arg(self):
+        config = parse_args(["--vuln", "bof", "--landing-pad", "16"])
+        self.assertEqual(config.stack_layout.landing_pad_size, 16)
+
+    def test_default_stack_layout(self):
+        config = parse_args(["--vuln", "bof"])
+        self.assertEqual(config.stack_layout.pre_padding_size, 0)
+        self.assertEqual(config.stack_layout.landing_pad_size, 0)
+        self.assertEqual(config.stack_layout.padding_style, PaddingStyle.NONE)
+
+    def test_random_hard_has_stack_layout(self):
+        config = parse_args(
+            ["--random", "--random-seed", "100", "--difficulty", "hard"]
+        )
+        # Hard difficulty should produce some padding
+        layout = config.stack_layout
+        self.assertGreaterEqual(layout.pre_padding_size, 64)
+        self.assertLessEqual(layout.pre_padding_size, 256)
+        self.assertGreaterEqual(layout.landing_pad_size, 8)
+        self.assertLessEqual(layout.landing_pad_size, 32)
+
+    def test_random_easy_no_padding(self):
+        config = parse_args(
+            ["--random", "--random-seed", "100", "--difficulty", "easy"]
+        )
+        self.assertEqual(config.stack_layout.pre_padding_size, 0)
+        self.assertEqual(config.stack_layout.landing_pad_size, 0)
+
+    def test_stack_layout_in_rendered_output(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            protocol=Protocol.TCP,
+            banner="Test",
+            stack_layout=StackLayoutConfig(
+                pre_padding_size=64,
+                landing_pad_size=32,
+                padding_style=PaddingStyle.ARRAY,
+            ),
+        )
+        result = render(config)
+        self.assertIn("audit_trail[64]", result)
+        self.assertIn("max_process_len", result)
 
 
 class TestFullRender(unittest.TestCase):

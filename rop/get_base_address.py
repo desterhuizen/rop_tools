@@ -281,6 +281,7 @@ def print_dep_bypass_info(filepath: str, image_base: int):
         )
         table.add_column("API", style="bold white", overflow="fold")
         table.add_column("DLL", style="cyan", width=16)
+        table.add_column("RVA", style="yellow", width=12, justify="right")
         table.add_column("IAT Address", style="green", width=12, justify="right")
         table.add_column("Technique", style="yellow", overflow="fold")
 
@@ -288,6 +289,7 @@ def print_dep_bypass_info(filepath: str, image_base: int):
             table.add_row(
                 entry.function,
                 entry.dll,
+                f"0x{entry.address:08x}",
                 f"0x{abs_addr:08x}",
                 info["technique"],
             )
@@ -306,6 +308,7 @@ def print_dep_bypass_info(filepath: str, image_base: int):
             print(
                 f"  {entry.function:<30} "
                 f"[{entry.dll}]  "
+                f"RVA: 0x{entry.address:08x}  "
                 f"IAT: 0x{abs_addr:08x}  "
                 f"- {info['technique']}"
             )

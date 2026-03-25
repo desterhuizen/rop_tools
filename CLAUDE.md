@@ -368,6 +368,14 @@ pip install -r requirements-lint.txt
   - Build script generation with correct cl.exe flags
   - 114 tests across 6 test files
 
+### March 25, 2026 — Target builder stack layout variation
+- **target_builder**: Added randomized stack layouts for more realistic challenges.
+  `--pre-padding` adds local variables between buffer and saved EBP (changes EIP offset).
+  `--landing-pad` limits post-EIP space (forces short jumps when tight).
+  `--padding-style` controls variable types (array/mixed/struct/multi).
+  Integrated into difficulty presets: easy=none, medium=moderate, hard=tight.
+  Exploit skeleton now includes layout-aware hints. 164 tests (was 137).
+
 ### March 24, 2026 — Cross-tool bug fixes and features
 - **shellgen**: Fixed socket payloads (reverse_shell, bind_shell x86/x64) — `custom_asm`
   strings had unformatted `{ip_dword}`, `{port_word}`, `{sockaddr_qword}`, `{shell_asm}`

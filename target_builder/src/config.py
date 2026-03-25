@@ -76,6 +76,16 @@ class GadgetDensity(Enum):
     FULL = "full"
 
 
+class PaddingStyle(Enum):
+    """Style of stack padding variables generated between buffer and saved EBP."""
+
+    NONE = "none"
+    ARRAY = "array"  # Single char array: char pad[N]
+    MIXED = "mixed"  # Mix of ints, chars, doubles
+    STRUCT = "struct"  # A struct with named fields
+    MULTI = "multi"  # Multiple smaller arrays
+
+
 class DecoyType(Enum):
     """Types of non-exploitable decoy commands."""
 
@@ -141,6 +151,9 @@ DIFFICULTY_PRESETS = {
         "decoy_count_range": (0, 0),
         "mitigations": [],
         "vuln_types": [VulnType.BOF],
+        "pre_padding_range": (0, 0),
+        "landing_pad_range": (0, 0),  # 0 = unlimited
+        "padding_styles": [PaddingStyle.NONE],
     },
     Difficulty.MEDIUM: {
         "buffer_size_range": (256, 512),
@@ -148,6 +161,13 @@ DIFFICULTY_PRESETS = {
         "decoy_count_range": (1, 2),
         "mitigations": ["dep"],
         "vuln_types": [VulnType.BOF, VulnType.SEH, VulnType.FMTSTR],
+        "pre_padding_range": (32, 128),
+        "landing_pad_range": (64, 256),
+        "padding_styles": [
+            PaddingStyle.NONE,
+            PaddingStyle.ARRAY,
+            PaddingStyle.MIXED,
+        ],
     },
     Difficulty.HARD: {
         "buffer_size_range": (64, 128),
@@ -159,6 +179,14 @@ DIFFICULTY_PRESETS = {
             VulnType.SEH,
             VulnType.EGGHUNTER,
             VulnType.FMTSTR,
+        ],
+        "pre_padding_range": (64, 256),
+        "landing_pad_range": (8, 32),  # tight — short jump needed
+        "padding_styles": [
+            PaddingStyle.ARRAY,
+            PaddingStyle.MIXED,
+            PaddingStyle.STRUCT,
+            PaddingStyle.MULTI,
         ],
     },
 }
@@ -268,6 +296,29 @@ def find_safe_base_address(bad_chars: List[int], arch: "Architecture") -> int:
 
 
 @dataclass
+class StackLayoutConfig:
+    """Configuration for stack layout variation in the vulnerable function.
+
+    Controls padding between the buffer and saved EBP/EIP (affects offset),
+    landing pad size after EIP (forces short jumps when tight), and the
+    visual style of padding variables on the stack.
+    """
+
+    pre_padding_size: int = 0
+    """Bytes of local variables declared before the vulnerable buffer.
+    These sit between the buffer and saved EBP, increasing the offset
+    to EIP that the attacker must calculate."""
+
+    landing_pad_size: int = 0
+    """Max bytes of controlled data after EIP overwrite. 0 = unlimited.
+    When small (8-32), the attacker must use a short jump backward
+    to reach shellcode placed before the return address."""
+
+    padding_style: PaddingStyle = PaddingStyle.NONE
+    """Style of padding variables generated in C++ code."""
+
+
+@dataclass
 class EmbeddedGadgetsConfig:
     """Configuration for embedding ROP gadgets directly in the server binary."""
 
@@ -362,6 +413,7 @@ class ServerConfig:
     embedded_gadgets: EmbeddedGadgetsConfig = field(
         default_factory=EmbeddedGadgetsConfig
     )
+    stack_layout: StackLayoutConfig = field(default_factory=StackLayoutConfig)
 
     def __post_init__(self):
         """Set defaults that depend on other fields."""
@@ -425,6 +477,12 @@ class ServerConfig:
                 raise ValueError(
                     "--embedded-gadgets and --rop-dll are mutually exclusive"
                 )
+
+        # Stack layout validation
+        if self.stack_layout.pre_padding_size < 0:
+            raise ValueError("--pre-padding must be non-negative")
+        if self.stack_layout.landing_pad_size < 0:
+            raise ValueError("--landing-pad must be non-negative")
 
         # Port range
         if not (1 <= self.port <= 65535):

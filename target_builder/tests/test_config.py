@@ -14,9 +14,11 @@ from target_builder.src.config import (
     Difficulty,
     ExploitLevel,
     GadgetDensity,
+    PaddingStyle,
     Protocol,
     RopDllConfig,
     ServerConfig,
+    StackLayoutConfig,
     VulnType,
     address_base_bytes,
     address_conflicts_with_bad_chars,
@@ -61,6 +63,14 @@ class TestEnums(unittest.TestCase):
 
     def test_decoy_type_values(self):
         self.assertEqual(len(DecoyType), 4)
+
+    def test_padding_style_values(self):
+        self.assertEqual(PaddingStyle.NONE.value, "none")
+        self.assertEqual(PaddingStyle.ARRAY.value, "array")
+        self.assertEqual(PaddingStyle.MIXED.value, "mixed")
+        self.assertEqual(PaddingStyle.STRUCT.value, "struct")
+        self.assertEqual(PaddingStyle.MULTI.value, "multi")
+        self.assertEqual(len(PaddingStyle), 5)
 
 
 class TestServerConfigDefaults(unittest.TestCase):
@@ -199,6 +209,9 @@ class TestConstants(unittest.TestCase):
             self.assertIn("buffer_size_range", preset)
             self.assertIn("bad_char_count_range", preset)
             self.assertIn("mitigations", preset)
+            self.assertIn("pre_padding_range", preset)
+            self.assertIn("landing_pad_range", preset)
+            self.assertIn("padding_styles", preset)
 
 
 class TestRopDllConfig(unittest.TestCase):
@@ -317,6 +330,47 @@ class TestBaseAddressValidation(unittest.TestCase):
         config = ServerConfig()
         self.assertEqual(config.base_address, 0x11110000)
         config.validate()  # Should not raise
+
+
+class TestStackLayoutConfig(unittest.TestCase):
+    """Test StackLayoutConfig defaults and validation."""
+
+    def test_defaults(self):
+        layout = StackLayoutConfig()
+        self.assertEqual(layout.pre_padding_size, 0)
+        self.assertEqual(layout.landing_pad_size, 0)
+        self.assertEqual(layout.padding_style, PaddingStyle.NONE)
+
+    def test_server_config_default_stack_layout(self):
+        config = ServerConfig()
+        self.assertEqual(config.stack_layout.pre_padding_size, 0)
+        self.assertEqual(config.stack_layout.landing_pad_size, 0)
+        self.assertEqual(config.stack_layout.padding_style, PaddingStyle.NONE)
+        config.validate()  # Should not raise
+
+    def test_valid_stack_layout(self):
+        config = ServerConfig(
+            stack_layout=StackLayoutConfig(
+                pre_padding_size=64,
+                landing_pad_size=16,
+                padding_style=PaddingStyle.MIXED,
+            )
+        )
+        config.validate()  # Should not raise
+
+    def test_negative_pre_padding_rejected(self):
+        config = ServerConfig(
+            stack_layout=StackLayoutConfig(pre_padding_size=-1)
+        )
+        with self.assertRaises(ValueError):
+            config.validate()
+
+    def test_negative_landing_pad_rejected(self):
+        config = ServerConfig(
+            stack_layout=StackLayoutConfig(landing_pad_size=-1)
+        )
+        with self.assertRaises(ValueError):
+            config.validate()
 
 
 if __name__ == "__main__":

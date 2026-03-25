@@ -185,13 +185,45 @@ target_builder --random --random-seed 42 --output server.cpp
 target_builder --random --difficulty hard --output server.cpp
 ```
 
-Randomizes: vuln type, arch, protocol, buffer size, bad chars, mitigations, DEP API, banner, decoys.
+Randomizes: vuln type, arch, protocol, buffer size, bad chars, mitigations, DEP API, banner, decoys, stack layout.
 
-| Difficulty | Buffer  | Bad Chars | Mitigations             | Decoys |
-|------------|---------|-----------|-------------------------|--------|
-| `easy`     | 1024-2048 | none    | none                    | 0      |
-| `medium`   | 256-512 | 3-6       | DEP                     | 1-2    |
-| `hard`     | 64-128  | 8-12      | DEP + ASLR + canary     | 3-5    |
+| Difficulty | Buffer  | Bad Chars | Mitigations         | Decoys | Stack Padding | Landing Pad |
+|------------|---------|-----------|---------------------|--------|---------------|-------------|
+| `easy`     | 1024-2048 | none    | none                | 0      | none          | unlimited   |
+| `medium`   | 256-512 | 3-6       | DEP                 | 1-2    | 32-128 bytes  | 64-256 bytes |
+| `hard`     | 64-128  | 8-12      | DEP + ASLR + canary | 3-5    | 64-256 bytes  | 8-32 bytes  |
+
+---
+
+## Stack Layout
+
+Control the stack layout complexity to create more realistic exploit challenges:
+
+```bash
+# Add 64 bytes of padding between buffer and saved EBP (increases EIP offset)
+target_builder --vuln bof --pre-padding 64 --padding-style mixed --output server.cpp
+
+# Tight landing pad — only 16 bytes after EIP (forces short jump)
+target_builder --vuln bof --landing-pad 16 --output server.cpp
+
+# Both: offset padding + tight landing pad
+target_builder --vuln bof --pre-padding 96 --landing-pad 24 \
+  --padding-style struct --output server.cpp
+```
+
+### Pre-buffer Padding
+Local variables placed between the vulnerable buffer and the saved EBP/EIP on the stack. Increases the offset the attacker must calculate.
+
+| Style    | Description                                     |
+|----------|-------------------------------------------------|
+| `none`   | No padding (default)                            |
+| `array`  | Single `char` array                             |
+| `mixed`  | Mix of ints, chars, doubles — realistic locals  |
+| `struct` | A struct with named fields                      |
+| `multi`  | Multiple smaller arrays                         |
+
+### Landing Pad
+Limits how many bytes of controlled data can follow the EIP overwrite. When small (8-32 bytes), the attacker must use a short jump backward to reach shellcode placed before EIP — a common OSED/OSCP technique.
 
 ---
 
@@ -218,6 +250,11 @@ Bad Characters:
   --bad-chars HEXBYTES     e.g. "00,0a,0d,25"
   --bad-char-count N       Generate N random bad chars
   --bad-char-action {drop,replace,terminate}
+
+Stack Layout:
+  --pre-padding SIZE       Bytes of padding before buffer (default: 0)
+  --landing-pad SIZE       Max bytes after EIP overwrite; 0=unlimited
+  --padding-style STYLE    {none,array,mixed,struct,multi} (default: none)
 
 Mitigations:
   --dep                    Enable DEP

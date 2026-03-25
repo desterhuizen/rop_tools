@@ -39,6 +39,7 @@ src/
     ├── seh_overflow.py    # __try/__except with overwritable SEH chain (x86 only)
     ├── egghunter.py       # Small stack buffer + heap stash for remainder (x86 only)
     ├── format_string.py   # printf(user_data) — no format specifier
+    ├── stack_padding.py   # Stack layout variation (padding vars + landing pad)
     ├── decoys.py          # Safe-looking commands (strncpy, bounded memcpy, etc.)
     └── rop_dll.py         # DLL or embedded __asm gadget blocks
 ```
@@ -109,6 +110,44 @@ When `--aslr` is set, a safe command/endpoint inadvertently leaks an address:
 
 ---
 
+## Stack Layout Variation
+
+Controls the stack frame complexity of the vulnerable function to create more
+realistic and varied exploit challenges.
+
+### Components
+- **Pre-buffer padding** (`--pre-padding`): Local variables declared before the
+  vulnerable buffer. On MSVC /Od, these sit between the buffer and saved EBP/EIP,
+  increasing the offset the attacker must calculate.
+- **Landing pad** (`--landing-pad`): Caps how many bytes of controlled data follow
+  the EIP overwrite via server-side truncation. When small (8-32 bytes), the
+  attacker must use a short jump backward to reach shellcode in the buffer body.
+- **Padding style** (`--padding-style`): Controls what the padding variables look
+  like in the generated C++ — affects what the attacker sees in the debugger.
+
+### Padding Styles
+| Style   | C++ Code Generated                                  |
+|---------|-----------------------------------------------------|
+| `none`  | No extra variables                                  |
+| `array` | `char audit_trail[N]; memset(...)` — single array   |
+| `mixed` | Mix of `int`, `char[]`, `double` — realistic locals |
+| `struct`| Named struct with typed fields                      |
+| `multi` | Multiple smaller named arrays                       |
+
+### Config / Dataclass
+- `StackLayoutConfig` in `config.py` — `pre_padding_size`, `landing_pad_size`, `padding_style`
+- `ServerConfig.stack_layout` field (default: all zeros / NONE)
+- Difficulty presets set per-tier ranges; randomizer selects from them
+
+### Template Integration
+- `templates/stack_padding.py` — shared generator functions used by all vuln templates
+  - `generate_padding_vars(layout)` → C++ local variable declarations
+  - `generate_landing_pad_truncation(layout, data_param, len_param, buf_size)` → truncation code
+- `buffer_overflow.py`, `seh_overflow.py`, `egghunter.py` all call these generators
+- Exploit skeleton adds padding-aware offset hints and short-jump guidance
+
+---
+
 ## Decoy Commands
 
 Decoy command types and their "near-miss" patterns:
@@ -162,6 +201,7 @@ Each decoy gets a randomizable command name that sounds plausible (e.g. `PROCESS
 - Architecture (x86 / x64)
 - Protocol (tcp / http / rpc)
 - Buffer size (per vuln type range)
+- **Stack layout**: pre-padding size, landing pad size, padding style (per difficulty)
 - Bad characters (count + selection)
 - Bad char action (drop / replace / terminate)
 - Mitigations (which are enabled)
@@ -249,3 +289,23 @@ Each decoy gets a randomizable command name that sounds plausible (e.g. `PROCESS
   gadget functions.
 - **New config**: `EmbeddedGadgetsConfig` dataclass, validation for x86-only and
   mutual exclusion with ROP DLL
+
+### March 25, 2026 — Stack Layout Variation
+- **feat: randomized stack layouts** — Three new challenge dimensions:
+  - `--pre-padding N` — local variables between buffer and saved EBP/EIP
+    (increases offset to EIP, makes exploit dev more realistic)
+  - `--landing-pad N` — caps post-EIP controlled space via server-side truncation
+    (small values force short jumps, a classic OSED/OSCP technique)
+  - `--padding-style {none,array,mixed,struct,multi}` — varied local variable
+    types that change what the attacker sees in the debugger
+- **New config**: `PaddingStyle` enum (5 styles), `StackLayoutConfig` dataclass,
+  `ServerConfig.stack_layout` field
+- **New template module**: `templates/stack_padding.py` — shared padding generation
+  used by `buffer_overflow.py`, `seh_overflow.py`, `egghunter.py`
+- **Difficulty presets updated**: easy=no padding, medium=32-128B padding + 64-256B
+  landing pad, hard=64-256B padding + 8-32B landing pad (short jump territory)
+- **Exploit skeleton updated**: layout-aware offset hints, short-jump guidance in
+  comments when landing pad is tight
+- **Challenge summary updated**: shows stack layout info
+- **164 tests** (was 137) — 27 new tests for stack layout across config, templates,
+  exploit skeleton, and integration

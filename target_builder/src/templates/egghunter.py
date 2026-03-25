@@ -7,6 +7,10 @@ x86 only.
 """
 
 from target_builder.src.config import Protocol, ServerConfig
+from target_builder.src.templates.stack_padding import (
+    generate_landing_pad_truncation,
+    generate_padding_vars,
+)
 
 
 def generate_vuln_function(config: ServerConfig) -> str:
@@ -14,6 +18,7 @@ def generate_vuln_function(config: ServerConfig) -> str:
     vuln_buf_size = config.vuln_buffer_size
     has_bad_chars = len(config.bad_chars) > 0
     egg_tag = config.egg_tag
+    layout = config.stack_layout
 
     filter_call = ""
     if has_bad_chars:
@@ -28,6 +33,11 @@ def generate_vuln_function(config: ServerConfig) -> str:
     else:
         data_param = "data"
         len_param = "data_len"
+
+    padding_vars = generate_padding_vars(layout)
+    truncation = generate_landing_pad_truncation(
+        layout, data_param, len_param, vuln_buf_size
+    )
 
     return f"""\
 // Persistent heap buffer for "logging" received data
@@ -52,11 +62,13 @@ void init_heap_log() {{
 // Egg tag: "{egg_tag}"
 void vuln_function(char* {data_param}, int {len_param}) {{
 {filter_call}\
+{padding_vars}\
     char small_buffer[{vuln_buf_size}];
 
     // Initialize heap log on first call
     init_heap_log();
 
+{truncation}\
     if ({len_param} > {vuln_buf_size}) {{
         // Stash the overflow portion in the heap "log"
         int overflow_start = {vuln_buf_size};
