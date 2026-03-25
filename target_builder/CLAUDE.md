@@ -125,23 +125,30 @@ Each decoy gets a randomizable command name that sounds plausible (e.g. `PROCESS
 
 ### Gadget Categories by Density
 
-**minimal**: The bare essentials
+**minimal**: The bare essentials (hardest — no ESP capture gadgets)
 - `pop eax; ret` / `pop ecx; ret` / `pop edx; ret`
 - `jmp esp`
 - `push esp; ret`
+- No ESP realignment gadgets — students must find creative paths
 
-**standard**: Working exploit set
+**standard**: Working exploit set (medium — dirty ESP gadgets)
 - All of minimal, plus:
 - `pop pop ret` (for SEH)
 - `xchg eax, esp; ret` (stack pivot)
 - `mov [eax], ecx; ret` (write-what-where)
 - `add esp, N; ret` (stack adjustment)
 - `inc/dec` register gadgets
+- **Randomized dirty ESP capture routes** (seed-based selection from pool):
+  - Each route provides a multi-step path to capture ESP (e.g. ESP→EBP→EAX)
+  - Gadgets have side effects (clobber registers, extra pops) requiring creative chaining
+  - 1-2 routes selected per generation, guaranteeing at least one solvable DEP bypass path
+  - Dirty adjust gadgets with side effects (`add eax, 0x20; pop ecx; ret`)
 
-**full**: Rich surface
+**full**: Rich surface (easiest — clean ESP gadgets)
 - All of standard, plus:
+- **Clean ESP capture/adjust**: `push esp; pop eax; ret`, `mov eax, esp; ret`,
+  `add eax, N; ret`, `sub eax, N; ret` — straightforward DEP bypass
 - Multiple stack pivot variants
-- Conditional moves (`cmov`)
 - Gadgets ending in `ret N`, `call reg`, `jmp reg`
 - Memory read gadgets (`mov eax, [ecx]; ret`)
 - Arithmetic chains
@@ -162,10 +169,12 @@ Each decoy gets a randomizable command name that sounds plausible (e.g. `PROCESS
 - Vulnerable command name
 - Server banner (from pool)
 - Decoy count and types
+- **ESP realignment gadget routes** (standard density ROP DLL / embedded gadgets)
 
 ### Seed Behavior
 - `--random-seed SEED` makes everything deterministic
-- Same seed → identical C++ output, identical exploit skeleton
+- Same seed → identical C++ output, identical exploit skeleton, identical gadget selection
+- Seed is propagated to `RopDllConfig.seed` and `EmbeddedGadgetsConfig.seed`
 - Seed is printed to stderr so it can be recorded/shared
 
 ---

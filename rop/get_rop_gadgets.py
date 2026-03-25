@@ -44,58 +44,13 @@ sys.path.insert(0, str(REPO_ROOT))
 
 # Import core classes and functions
 from rop.core import ROPGadgetParser, get_category_style  # noqa: E402
+from rop.core import get_flat_bad_instructions  # noqa: E402
 
 # Import display functions
 from rop.display import print_gadgets, print_statistics, printer  # noqa: E402
 
-# List of instructions that make gadgets useless for ROP chains
-# These instructions can cause crashes, unpredictable behavior, or break exploit chains
-BAD_INSTRUCTIONS = [
-    "clts",
-    "hlt",
-    "lmsw",
-    "ltr",
-    "lgdt",
-    "lidt",
-    "lldt",
-    "mov cr",
-    "mov dr",
-    "mov tr",
-    "in ",
-    "ins",
-    "invlpg",
-    "invd",
-    "out",
-    "outs",
-    "cli",
-    "sti",
-    "popf",
-    "pushf",
-    "int",
-    "iret",
-    "iretd",
-    "swapgs",
-    "wbinvd",
-    "call",
-    "jmp",
-    "leave",
-    "ja",
-    "jb",
-    "jc",
-    "je",
-    "jr",
-    "jg",
-    "jl",
-    "jn",
-    "jo",
-    "jp",
-    "js",
-    "jz",
-    "lock",
-    "enter",
-    "wait",
-    "???",
-]
+# Bad instruction list for substring matching (shared with worksheet)
+BAD_INSTRUCTIONS = get_flat_bad_instructions()
 
 
 def _contains_bad_instruction(gadget):

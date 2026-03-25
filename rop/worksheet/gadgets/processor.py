@@ -248,15 +248,23 @@ def process_gadget(
         # Execute instruction
         try:
             success, error_msg = _execute_instruction(ws, opcode, operands)
+            source = gadget_addr if gadget_addr else "Auto"
 
             if success:
                 executed.append(inst)
-                # Log the auto-executed instruction
-                source = gadget_addr if gadget_addr else "Auto"
                 log_execution(ws, "auto", source, inst)
             elif error_msg:
                 # Log failed instruction with error message
                 executed.append(f"[FAILED: {error_msg}] {inst}")
+            else:
+                # Unknown opcode — check if it's a known-bad instruction
+                from ...core.instructions import classify_bad_instruction
+
+                category = classify_bad_instruction(opcode, operands)
+                if category:
+                    warning = f"[WARNING: {category}] {inst}"
+                    executed.append(warning)
+                    log_execution(ws, "auto", source, warning)
         except Exception as e:
             # Log exception
             executed.append(f"[ERROR: {e}] {inst}")
@@ -265,3 +273,20 @@ def process_gadget(
     ws["_in_auto_gadget"] = False
 
     return executed
+
+
+def format_executed_list(executed: List[str]) -> str:
+    """
+    Format a list of executed instructions for Rich console display.
+
+    Warnings are shown in yellow, errors/failures in red.
+    """
+    parts = []
+    for entry in executed:
+        if entry.startswith("[WARNING:"):
+            parts.append(f"[yellow]{entry}[/yellow]")
+        elif entry.startswith(("[FAILED:", "[ERROR:")):
+            parts.append(f"[red]{entry}[/red]")
+        else:
+            parts.append(entry)
+    return " ; ".join(parts)

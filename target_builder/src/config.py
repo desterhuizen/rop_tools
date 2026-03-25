@@ -273,6 +273,7 @@ class EmbeddedGadgetsConfig:
 
     enabled: bool = False
     gadget_density: GadgetDensity = GadgetDensity.STANDARD
+    seed: Optional[int] = None
 
 
 @dataclass
@@ -284,6 +285,7 @@ class RopDllConfig:
     gadget_density: GadgetDensity = GadgetDensity.STANDARD
     no_aslr: bool = True
     base_address: int = 0x10000000
+    seed: Optional[int] = None
 
 
 @dataclass

@@ -7,6 +7,7 @@ import unittest
 from rop.worksheet.core.data import blank_worksheet
 from rop.worksheet.gadgets.processor import (
     find_gadget_by_address,
+    format_executed_list,
     log_execution,
     process_gadget,
 )
@@ -332,3 +333,104 @@ class TestProcessGadgetNewInstructions(unittest.TestCase):
         assert len(executed) == 1
         assert ws["stack"]["+0x08"] == "0x41424344"
         assert ws["registers"]["EDI"] == "0x0019ff0c"
+
+
+class TestBadInstructionWarnings(unittest.TestCase):
+    """Test that bad instructions produce warnings in process_gadget."""
+
+    def test_privileged_instruction_warning(self):
+        """Privileged instructions should produce a WARNING entry."""
+        ws = blank_worksheet()
+        executed = process_gadget(ws, "hlt ; ret")
+        assert len(executed) == 1
+        assert "[WARNING: PRIVILEGED]" in executed[0]
+        assert "hlt" in executed[0]
+
+    def test_io_instruction_warning(self):
+        ws = blank_worksheet()
+        executed = process_gadget(ws, "cli ; ret")
+        assert len(executed) == 1
+        assert "[WARNING:" in executed[0]
+
+    def test_control_flow_warning(self):
+        ws = blank_worksheet()
+        executed = process_gadget(ws, "jmp eax ; ret")
+        assert len(executed) == 1
+        assert "[WARNING: CONTROL FLOW]" in executed[0]
+
+    def test_bad_instruction_does_not_abort_chain(self):
+        """Bad instruction should warn but not stop subsequent instructions."""
+        ws = blank_worksheet()
+        ws["registers"]["EAX"] = "0x00000000"
+        executed = process_gadget(ws, "cli ; mov eax, 0xdeadbeef ; ret")
+        assert len(executed) == 2
+        assert "[WARNING:" in executed[0]
+        assert "mov eax" in executed[1]
+        assert ws["registers"]["EAX"] == "0xdeadbeef"
+
+    def test_unknown_non_bad_instruction_is_skipped(self):
+        """Unknown instructions that are NOT bad should still be silently skipped."""
+        ws = blank_worksheet()
+        ws["registers"]["EAX"] = "0x00000000"
+        executed = process_gadget(ws, "foobar ; mov eax, 0x41414141 ; ret")
+        # foobar is unknown and not bad — silently skipped
+        assert len(executed) == 1
+        assert "mov eax" in executed[0]
+
+    def test_bad_instruction_logged(self):
+        """Bad instruction warnings should appear in the execution log."""
+        ws = blank_worksheet()
+        process_gadget(ws, "hlt ; ret", "0x10001234")
+        assert len(ws["execution_log"]) == 1
+        assert "[WARNING:" in ws["execution_log"][0]["operation"]
+
+    def test_leave_warning(self):
+        ws = blank_worksheet()
+        executed = process_gadget(ws, "leave ; ret")
+        assert len(executed) == 1
+        assert "[WARNING: STACK FRAME]" in executed[0]
+
+    def test_pushf_warning(self):
+        ws = blank_worksheet()
+        executed = process_gadget(ws, "pushf ; ret")
+        assert len(executed) == 1
+        assert "[WARNING: FLAGS]" in executed[0]
+
+    def test_lock_warning(self):
+        ws = blank_worksheet()
+        executed = process_gadget(ws, "lock ; ret")
+        assert len(executed) == 1
+        assert "[WARNING: SYNC/PREFIX]" in executed[0]
+
+
+class TestFormatExecutedList(unittest.TestCase):
+    """Test the format_executed_list helper."""
+
+    def test_normal_entries(self):
+        result = format_executed_list(["pop eax", "mov ebx, ecx"])
+        assert result == "pop eax ; mov ebx, ecx"
+        assert "[yellow]" not in result
+
+    def test_warning_entries_get_yellow(self):
+        result = format_executed_list(["[WARNING: PRIVILEGED] hlt"])
+        assert "[yellow]" in result
+        assert "[/yellow]" in result
+
+    def test_error_entries_get_red(self):
+        result = format_executed_list(["[ERROR: bad] foo"])
+        assert "[red]" in result
+
+    def test_failed_entries_get_red(self):
+        result = format_executed_list(["[FAILED: oops] bar"])
+        assert "[red]" in result
+
+    def test_mixed_entries(self):
+        entries = [
+            "pop eax",
+            "[WARNING: I/O] in",
+            "mov ebx, ecx",
+        ]
+        result = format_executed_list(entries)
+        assert "pop eax" in result
+        assert "[yellow]" in result
+        assert "mov ebx, ecx" in result

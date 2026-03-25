@@ -62,7 +62,11 @@ def _handle_eip_auto_gadget(
     Returns:
         (gadget_executed, message) tuple
     """
-    from ..gadgets.processor import find_gadget_by_address, process_gadget
+    from ..gadgets.processor import (
+        find_gadget_by_address,
+        format_executed_list,
+        process_gadget,
+    )
 
     if not value or not ws.get("auto_gadget", True):
         return False, None
@@ -73,7 +77,7 @@ def _handle_eip_auto_gadget(
 
     executed = process_gadget(ws, gadget_str, value)
     if executed:
-        return True, f"Executed gadget: {' ; '.join(executed)}"
+        return True, f"Executed gadget: {format_executed_list(executed)}"
 
     return False, None
 

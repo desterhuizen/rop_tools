@@ -69,14 +69,18 @@ def _process_auto_gadget(
     Returns:
         (success, message) tuple or (False, None) if not applicable
     """
-    from ..gadgets.processor import find_gadget_by_address, process_gadget
+    from ..gadgets.processor import (
+        find_gadget_by_address,
+        format_executed_list,
+        process_gadget,
+    )
 
     if dst_key == "EIP" and stack_val and ws.get("auto_gadget", True):
         gadget_str = find_gadget_by_address(ws, stack_val)
         if gadget_str:
             executed = process_gadget(ws, gadget_str, stack_val)
             if executed:
-                return True, f"Executed gadget: {' ; '.join(executed)}"
+                return True, f"Executed gadget: {format_executed_list(executed)}"
     return False, None
 
 

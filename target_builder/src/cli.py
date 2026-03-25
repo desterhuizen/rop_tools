@@ -553,10 +553,12 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
             gadget_density=GadgetDensity(args.rop_dll_gadgets),
             no_aslr=args.rop_dll_no_aslr,
             base_address=dll_base,
+            seed=seed,
         ),
         embedded_gadgets=EmbeddedGadgetsConfig(
             enabled=args.embedded_gadgets,
             gadget_density=GadgetDensity(args.embedded_gadgets_density),
+            seed=seed,
         ),
     )
 

@@ -3,12 +3,128 @@
 Generates a C++ DLL source with inline assembly (__asm) blocks containing
 useful ROP gadgets at three density levels (minimal, standard, full).
 x86 only — __asm blocks are MSVC x86 specific.
+
+Gadget density philosophy:
+  - minimal: Bare essentials + one indirect ESP capture path (hard)
+  - standard: Working set + randomly selected dirty ESP gadgets (medium)
+  - full: Everything including clean ESP capture/adjust (easy)
+
+Each level guarantees at least one solvable DEP bypass path, but lower
+densities require creative chaining through "dirty" gadgets with side effects.
 """
+
+import random as _random_mod
+from typing import Optional
 
 from target_builder.src.config import GadgetDensity, RopDllConfig
 
 
-def generate_embedded_gadgets(density: GadgetDensity) -> str:
+# ── Dirty ESP gadget pools ───────────────────────────────────────────
+#
+# Each "route" is a coherent pair: a CAPTURE gadget that gets ESP into
+# some register, and a RECOVERY gadget that moves it into EAX (so the
+# existing `xchg eax, esp; ret` can pivot).  Routes are designed to
+# require 2-3 gadgets where the clean version needs 1.
+
+_ESP_CAPTURE_ROUTES = [
+    # Route A: ESP → EBP → EAX  (clobbers EBX on recovery)
+    {
+        "name": "RouteEBP",
+        "capture": """\
+        // mov ebp, esp; pop ebx; ret  — ESP into EBP (clobbers EBX)
+        mov ebp, esp
+        pop ebx
+        ret""",
+        "recovery": """\
+        // mov eax, ebp; pop ebx; ret  — recover EBP into EAX (clobbers EBX)
+        mov eax, ebp
+        pop ebx
+        ret""",
+    },
+    # Route B: ESP → ESI → EAX  (clobbers ECX on capture)
+    {
+        "name": "RouteESI",
+        "capture": """\
+        // push esp; pop esi; inc ecx; ret  — ESP into ESI (clobbers ECX)
+        push esp
+        pop esi
+        inc ecx
+        ret""",
+        "recovery": """\
+        // push esi; pop eax; ret  — recover ESI into EAX
+        push esi
+        pop eax
+        ret""",
+    },
+    # Route C: ESP → EAX directly but with side effects
+    {
+        "name": "RouteDirectDirty",
+        "capture": """\
+        // mov eax, esp; pop ebp; ret  — ESP into EAX but pops garbage into EBP
+        mov eax, esp
+        pop ebp
+        ret""",
+        "recovery": None,  # No recovery needed — already in EAX
+    },
+    # Route D: ESP → EDI → EAX  (clobbers ESI on recovery)
+    {
+        "name": "RouteEDI",
+        "capture": """\
+        // push esp; pop edi; pop esi; ret  — ESP into EDI (clobbers ESI, pops)
+        push esp
+        pop edi
+        pop esi
+        ret""",
+        "recovery": """\
+        // xchg eax, edi; ret  — swap EDI into EAX
+        xchg eax, edi
+        ret""",
+    },
+    # Route E: ESP → EBX → EAX  (clobbers EDX on capture)
+    {
+        "name": "RouteEBX",
+        "capture": """\
+        // mov ebx, esp; xor edx, edx; ret  — ESP into EBX (zeros EDX)
+        mov ebx, esp
+        xor edx, edx
+        ret""",
+        "recovery": """\
+        // push ebx; pop eax; pop ecx; ret  — recover EBX into EAX (pops ECX)
+        push ebx
+        pop eax
+        pop ecx
+        ret""",
+    },
+]
+
+# Dirty adjust gadgets — each adjusts EAX with side effects
+_DIRTY_ADJUST_GADGETS = [
+    """\
+        // add eax, 0x20; pop ecx; ret  — adjust +0x20 (clobbers ECX)
+        add eax, 0x20
+        pop ecx
+        ret""",
+    """\
+        // add eax, 0x10; pop ebx; ret  — adjust +0x10 (clobbers EBX)
+        add eax, 0x10
+        pop ebx
+        ret""",
+    """\
+        // sub eax, 0x10; inc ecx; ret  — adjust -0x10 (clobbers ECX)
+        sub eax, 0x10
+        inc ecx
+        ret""",
+    """\
+        // add eax, 0x3c; pop edx; ret  — adjust +0x3c past pushad (clobbers EDX)
+        add eax, 0x3c
+        pop edx
+        ret""",
+]
+
+
+def generate_embedded_gadgets(
+    density: GadgetDensity, seed: Optional[int] = None
+) -> str:
     """Generate ROP gadget functions for embedding directly in the server source.
 
     Unlike generate_rop_dll(), this produces only the gadget functions without
@@ -18,11 +134,12 @@ def generate_embedded_gadgets(density: GadgetDensity) -> str:
 
     Args:
         density: Gadget density level.
+        seed: Optional RNG seed for reproducible gadget selection.
 
     Returns:
         C++ function blocks as a string.
     """
-    gadgets = _generate_gadget_functions(density)
+    gadgets = _generate_gadget_functions(density, seed)
 
     # Collect function names so we can create a linker anti-strip reference
     func_names = []
@@ -60,7 +177,7 @@ def generate_rop_dll(config: RopDllConfig) -> str:
 
     parts = [
         _generate_header(base_hex),
-        _generate_gadget_functions(config.gadget_density),
+        _generate_gadget_functions(config.gadget_density, config.seed),
         _generate_dllmain(),
         _generate_init_export(),
     ]
@@ -101,8 +218,16 @@ def _generate_header(base_hex: str) -> str:
 #include <stdio.h>"""
 
 
-def _generate_gadget_functions(density: GadgetDensity) -> str:
-    """Generate functions containing inline assembly gadgets."""
+def _generate_gadget_functions(
+    density: GadgetDensity, seed: Optional[int] = None
+) -> str:
+    """Generate functions containing inline assembly gadgets.
+
+    Args:
+        density: Gadget density level.
+        seed: Optional RNG seed for reproducible route selection at
+              standard density.
+    """
     functions = []
 
     # Minimal gadgets — always included
@@ -110,9 +235,11 @@ def _generate_gadget_functions(density: GadgetDensity) -> str:
 
     if density in (GadgetDensity.STANDARD, GadgetDensity.FULL):
         functions.append(_gadgets_standard())
+        functions.append(_gadgets_esp_dirty(seed))
 
     if density == GadgetDensity.FULL:
         functions.append(_gadgets_full())
+        functions.append(_gadgets_esp_clean())
 
     return "\n\n".join(functions)
 
@@ -245,6 +372,95 @@ __declspec(noinline) void TransformBuffer() {
         // push eax; pop ecx; ret
         push eax
         pop ecx
+        ret
+    }
+}"""
+
+
+def _gadgets_esp_dirty(seed: Optional[int] = None) -> str:
+    """Randomly selected dirty ESP capture/adjust gadgets for DEP bypass.
+
+    Always includes at least one complete capture→recovery route and one
+    adjust gadget, but the specific gadgets vary per seed.  This forces
+    students to adapt their chain to the available gadgets rather than
+    memorizing a fixed recipe.
+    """
+    rng = _random_mod.Random(seed)
+
+    # Pick 1-2 routes (always at least 1)
+    num_routes = rng.randint(1, 2)
+    routes = rng.sample(_ESP_CAPTURE_ROUTES, num_routes)
+
+    # Pick 1-2 adjust gadgets
+    num_adjust = rng.randint(1, 2)
+    adjusts = rng.sample(_DIRTY_ADJUST_GADGETS, num_adjust)
+
+    # Build the asm block
+    asm_lines = []
+    for route in routes:
+        asm_lines.append(f"        // --- ESP capture: {route['name']} ---")
+        asm_lines.append(route["capture"])
+        if route["recovery"]:
+            asm_lines.append("")
+            asm_lines.append(route["recovery"])
+        asm_lines.append("")
+
+    asm_lines.append("        // --- ESP adjustment ---")
+    for adj in adjusts:
+        asm_lines.append(adj)
+        asm_lines.append("")
+
+    body = "\n".join(asm_lines).rstrip()
+
+    return f"""\
+// --- ESP realignment gadgets (dirty — require creative chaining) ---
+
+__declspec(noinline) void AlignBuffer() {{
+    __asm {{
+{body}
+    }}
+}}"""
+
+
+def _gadgets_esp_clean() -> str:
+    """Clean ESP capture/adjust gadgets — full density only (easy mode)."""
+    return """\
+// --- Clean ESP realignment gadgets ---
+
+__declspec(noinline) void ResolveAddress() {
+    __asm {
+        // push esp; pop eax; ret  — capture ESP into EAX
+        push esp
+        pop eax
+        ret
+
+        // mov eax, esp; ret  — capture ESP into EAX (alternate)
+        mov eax, esp
+        ret
+
+        // push esp; pop esi; ret  — capture ESP into ESI
+        push esp
+        pop esi
+        ret
+
+        // add eax, 0x10; ret  — adjust captured ESP forward
+        add eax, 0x10
+        ret
+
+        // add eax, 0x20; ret
+        add eax, 0x20
+        ret
+
+        // add eax, 0x3c; ret  — common offset to reach past pushad frame
+        add eax, 0x3c
+        ret
+
+        // sub eax, 0x10; ret  — adjust captured ESP backward
+        sub eax, 0x10
+        ret
+
+        // sub eax, 0x20; ret
+        sub eax, 0x20
         ret
     }
 }"""
