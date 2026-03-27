@@ -494,7 +494,7 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
             count = args.bad_char_count
         else:
             count = rng.randint(0, 8)
-        bad_chars = _generate_random_bad_chars(count, rng)
+        bad_chars = _generate_random_bad_chars(count, rng, vuln_type)
 
     bad_char_action = rng.choice(list(BadCharAction))
 
@@ -674,10 +674,18 @@ def _parse_bad_chars(hex_str: str) -> List[int]:
     return sorted(set(result))
 
 
-def _generate_random_bad_chars(count: int, rng: random.Random) -> List[int]:
+def _generate_random_bad_chars(
+    count: int,
+    rng: random.Random,
+    vuln_type: Optional[VulnType] = None,
+) -> List[int]:
     """Generate a list of random bad character byte values."""
     # Common bad chars that are likely in real scenarios
     common = [0x00, 0x0A, 0x0D, 0x20, 0x25, 0x26, 0x2B, 0x3D]
+    # 0x25 ('%') must not be a bad char for format string vulns — it would
+    # make the vulnerability unexploitable.
+    if vuln_type == VulnType.FMTSTR:
+        common = [b for b in common if b != 0x25]
     # All possible (excluding 0x00 which is implicit)
     all_bytes = list(range(1, 256))
 
@@ -693,6 +701,8 @@ def _generate_random_bad_chars(count: int, rng: random.Random) -> List[int]:
 
     while len(selected) < count:
         b = rng.choice(all_bytes)
+        if vuln_type == VulnType.FMTSTR and b == 0x25:
+            continue
         selected.add(b)
 
     return sorted(selected)
