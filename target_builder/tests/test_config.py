@@ -348,6 +348,19 @@ class TestStackLayoutConfig(unittest.TestCase):
         self.assertEqual(config.stack_layout.padding_style, PaddingStyle.NONE)
         config.validate()  # Should not raise
 
+    def test_fmtstr_leak_default_false(self):
+        config = ServerConfig()
+        self.assertFalse(config.fmtstr_leak)
+
+    def test_fmtstr_leak_validates_without_aslr(self):
+        """fmtstr_leak without aslr should validate (warning only, not error)."""
+        config = ServerConfig(fmtstr_leak=True)
+        config.validate()  # Should not raise
+
+    def test_fmtstr_leak_with_aslr_valid(self):
+        config = ServerConfig(fmtstr_leak=True, aslr=True)
+        config.validate()  # Should not raise
+
     def test_valid_stack_layout(self):
         config = ServerConfig(
             stack_layout=StackLayoutConfig(

@@ -217,6 +217,66 @@ class TestRendererDecoys(unittest.TestCase):
         self.assertIn("strncpy", result)
 
 
+class TestRendererFmtstrLeak(unittest.TestCase):
+    """Test format string leak in full render pipeline."""
+
+    def test_fmtstr_leak_tcp(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            protocol=Protocol.TCP,
+            fmtstr_leak=True,
+            banner="Test",
+        )
+        result = render(config)
+        self.assertIn("ECHO", result)
+        self.assertIn("_snprintf(echo_buf", result)
+
+    def test_fmtstr_leak_http(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            protocol=Protocol.HTTP,
+            fmtstr_leak=True,
+            banner="Test",
+        )
+        result = render(config)
+        self.assertIn("/echo", result)
+        self.assertIn("_snprintf(echo_buf", result)
+
+    def test_fmtstr_leak_rpc(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            protocol=Protocol.RPC,
+            fmtstr_leak=True,
+            banner="Test",
+        )
+        result = render(config)
+        self.assertIn("254", result)
+        self.assertIn("_snprintf(echo_buf", result)
+
+    def test_fmtstr_leak_coexists_with_aslr_leak(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            protocol=Protocol.TCP,
+            aslr=True,
+            fmtstr_leak=True,
+            banner="Test",
+        )
+        result = render(config)
+        # Both should be present
+        self.assertIn("ECHO", result)
+        self.assertIn("DEBUG", result)
+
+    def test_no_fmtstr_leak_when_disabled(self):
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            protocol=Protocol.TCP,
+            fmtstr_leak=False,
+            banner="Test",
+        )
+        result = render(config)
+        self.assertNotIn("_snprintf(echo_buf", result)
+
+
 class TestRendererArchitecture(unittest.TestCase):
     """Test architecture-specific output."""
 

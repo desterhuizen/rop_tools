@@ -121,6 +121,7 @@ def generate_command_dispatcher(
     safe_handler_calls: str,
     decoy_handler_calls: str,
     info_leak_call: str,
+    fmtstr_leak_call: str = "",
 ) -> str:
     """Generate the HTTP request dispatcher."""
     vuln_path = config.command
@@ -159,6 +160,10 @@ void dispatch_http(SOCKET client, http_request_t* req) {{
     if info_leak_call:
         parts.append(info_leak_call)
 
+    # Format string leak
+    if fmtstr_leak_call:
+        parts.append(fmtstr_leak_call)
+
     # Safe endpoints
     parts.append(safe_handler_calls)
 
@@ -194,16 +199,21 @@ def generate_safe_commands(config: ServerConfig) -> str:
         return;
     }""")
 
-    branches.append("""\
+    endpoints = "Endpoints: GET /, GET /status, GET /help, POST /vulnerable"
+    if config.aslr:
+        endpoints += ", GET /info"
+    if config.fmtstr_leak:
+        endpoints += ", POST /echo"
+
+    branches.append(f"""\
 
     // GET /help
     if (_stricmp(req->method, "GET") == 0 &&
-        _stricmp(req->path, "/help") == 0) {
+        _stricmp(req->path, "/help") == 0) {{
         send_http_response(client, 200, "OK", "text/plain",
-                         "Endpoints: GET /, GET /status, GET /help, "
-                         "POST /vulnerable\\n");
+                         "{endpoints}\\n");
         return;
-    }""")
+    }}""")
 
     return "\n".join(branches)
 
@@ -228,6 +238,30 @@ def generate_info_leak(config: ServerConfig) -> str:
                  &local_var, GetTickCount() / 1000);
         send_http_response(client, 200, "OK",
                          "application/json", info_buf);
+        return;
+    }"""
+
+
+def generate_fmtstr_leak(config: ServerConfig) -> str:
+    """Generate POST /echo endpoint that passes body to printf (format string leak)."""
+    if not config.fmtstr_leak:
+        return ""
+
+    return """\
+
+    // POST /echo - passes body directly to printf (format string leak)
+    if (_stricmp(req->method, "POST") == 0 &&
+        _stricmp(req->path, "/echo") == 0) {
+        if (req->body_len > 0) {
+            char echo_buf[512];
+            memset(echo_buf, 0, sizeof(echo_buf));
+            _snprintf(echo_buf, sizeof(echo_buf) - 1, req->body);
+            send_http_response(client, 200, "OK",
+                             "text/plain", echo_buf);
+        } else {
+            send_http_response(client, 400, "Bad Request",
+                             "text/plain", "Missing body\\n");
+        }
         return;
     }"""
 

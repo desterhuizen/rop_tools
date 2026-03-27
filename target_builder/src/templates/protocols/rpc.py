@@ -97,6 +97,7 @@ def generate_command_dispatcher(
     safe_handler_calls: str,
     decoy_handler_calls: str,
     info_leak_call: str,
+    fmtstr_leak_call: str = "",
 ) -> str:
     """Generate the RPC opcode dispatcher."""
     try:
@@ -131,6 +132,10 @@ void dispatch_rpc(SOCKET client, unsigned short opcode,
     # Info leak (ASLR)
     if info_leak_call:
         parts.append(info_leak_call)
+
+    # Format string leak
+    if fmtstr_leak_call:
+        parts.append(fmtstr_leak_call)
 
     # Safe opcodes
     parts.append(safe_handler_calls)
@@ -191,6 +196,28 @@ def generate_info_leak(config: ServerConfig) -> str:
         info_resp.internal_handle = &local_var;
         send_rpc_response(client, INFO_OPCODE,
                          (char*)&info_resp, sizeof(info_resp));
+        return;
+    }"""
+
+
+def generate_fmtstr_leak(config: ServerConfig) -> str:
+    """Generate opcode 254 handler that passes payload to printf (format string leak)."""
+    if not config.fmtstr_leak:
+        return ""
+
+    return """\
+
+    // Opcode 254: Echo - passes payload directly to printf (format string leak)
+    if (opcode == 254) {
+        if (payload_len > 0) {
+            char echo_buf[512];
+            memset(echo_buf, 0, sizeof(echo_buf));
+            _snprintf(echo_buf, sizeof(echo_buf) - 1, payload);
+            send_rpc_response(client, 254, echo_buf,
+                             (int)strlen(echo_buf));
+        } else {
+            send_rpc_response(client, 254, "ERR:NO_DATA", 11);
+        }
         return;
     }"""
 

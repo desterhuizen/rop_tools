@@ -21,6 +21,46 @@ AI-assisted development tracking for the ROP Tools Suite.
 
 ---
 
+## Tech Stack
+
+- **Language:** Python 3.8+
+- **Dependencies:** `rich` (terminal formatting), `pefile` (PE parsing)
+- **Testing:** `unittest` (stdlib)
+- **Linting:** flake8, black, isort, mypy (config in root `.flake8` / `pyproject.toml`)
+
+### Running the Tools
+```bash
+# Gadget analyzer (requires ROPgadget output file)
+./rop/get_rop_gadgets.py <gadget_file> [options]
+
+# PE base address extractor (requires PE file)
+./rop/get_base_address.py <pe_file> [options]
+
+# Interactive ROP worksheet
+./rop/rop_worksheet.py
+```
+
+### Running Tests
+```bash
+# All rop tests
+python3 -m unittest discover -s rop/tests
+
+# Specific test file
+python3 -m unittest rop/tests/test_operations_asm.py
+
+# Shared lib tests
+python3 -m unittest discover -s lib/tests
+```
+
+### Linting
+```bash
+flake8 rop/ lib/
+black --check rop/ lib/
+isort --check-only rop/ lib/
+```
+
+---
+
 ## Architecture (March 2026)
 
 ```

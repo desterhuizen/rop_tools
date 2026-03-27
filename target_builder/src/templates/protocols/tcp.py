@@ -53,6 +53,7 @@ def generate_command_dispatcher(
     safe_handler_calls: str,
     decoy_handler_calls: str,
     info_leak_call: str,
+    fmtstr_leak_call: str = "",
 ) -> str:
     """Generate the TCP command dispatcher.
 
@@ -62,6 +63,7 @@ def generate_command_dispatcher(
         safe_handler_calls: C++ code for safe command branches.
         decoy_handler_calls: C++ code for decoy command branches.
         info_leak_call: C++ code for ASLR info leak command (or empty).
+        fmtstr_leak_call: C++ code for format string leak command (or empty).
     """
     cmd_name = config.command
 
@@ -97,6 +99,10 @@ void dispatch_command(SOCKET client, char* buf, int len) {{
     # Info leak (ASLR)
     if info_leak_call:
         parts.append(info_leak_call)
+
+    # Format string leak
+    if fmtstr_leak_call:
+        parts.append(fmtstr_leak_call)
 
     # Decoy commands
     if decoy_handler_calls:
@@ -153,12 +159,37 @@ def generate_info_leak(config: ServerConfig) -> str:
     }"""
 
 
+def generate_fmtstr_leak(config: ServerConfig) -> str:
+    """Generate ECHO command that passes input to printf (format string leak)."""
+    if not config.fmtstr_leak:
+        return ""
+
+    return """\
+
+    // ECHO command - passes input directly to printf (format string leak)
+    if (_stricmp(cmd, "ECHO") == 0) {
+        if (data && data_len > 0) {
+            char echo_buf[512];
+            memset(echo_buf, 0, sizeof(echo_buf));
+            _snprintf(echo_buf, sizeof(echo_buf) - 1, data);
+            send(client, echo_buf, (int)strlen(echo_buf), 0);
+            send(client, "\\n", 1, 0);
+        } else {
+            const char* msg = "ECHO: missing argument\\n";
+            send(client, msg, (int)strlen(msg), 0);
+        }
+        return;
+    }"""
+
+
 def _generate_help_branch(config: ServerConfig) -> str:
     """Generate HELP command response listing all commands."""
     all_cmds = [config.command] + config.additional_commands
     cmd_list = "\\n".join(f"  {c}" for c in all_cmds)
     if config.aslr:
         cmd_list += "\\n  DEBUG"
+    if config.fmtstr_leak:
+        cmd_list += "\\n  ECHO"
 
     return f"""\
 

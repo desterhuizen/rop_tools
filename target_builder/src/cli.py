@@ -216,6 +216,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Enable SafeSEH (--vuln seh only)",
     )
+    mit.add_argument(
+        "--fmtstr-leak",
+        action="store_true",
+        help="Add a format string leak command for ASLR bypass practice",
+    )
 
     # Randomization
     rand = parser.add_argument_group("Randomization")
@@ -350,6 +355,7 @@ def parse_args(argv: Optional[List[str]] = None) -> ServerConfig:
         parser.error("--vuln is required (or use --random)")
 
     config = _args_to_config(args)
+    _warn_fmtstr_leak_no_aslr(config)
     config.validate()
     return config
 
@@ -395,6 +401,7 @@ def _args_to_config(args: argparse.Namespace) -> ServerConfig:
         aslr=args.aslr,
         stack_canary=args.stack_canary,
         safe_seh=args.safeSEH,
+        fmtstr_leak=args.fmtstr_leak,
         decoy_count=args.decoy_commands,
         difficulty=(Difficulty(args.difficulty) if args.difficulty else None),
         output_file=args.output,
@@ -504,6 +511,11 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
 
     safe_seh = args.safeSEH or (vuln_type == VulnType.SEH and rng.random() > 0.5)
 
+    # Format string leak — only for hard difficulty
+    fmtstr_leak = args.fmtstr_leak
+    if not fmtstr_leak and difficulty == Difficulty.HARD and aslr:
+        fmtstr_leak = rng.random() > 0.5
+
     # DEP API
     dep_api = rng.choice(list(DepBypassApi)) if dep else DepBypassApi.VIRTUALPROTECT
 
@@ -602,6 +614,7 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
         aslr=aslr,
         stack_canary=stack_canary,
         safe_seh=safe_seh,
+        fmtstr_leak=fmtstr_leak,
         decoy_count=decoy_count,
         decoy_types=decoy_types,
         decoy_names=decoy_names,
@@ -642,6 +655,7 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
     # Print challenge summary
     _print_challenge_summary(config)
 
+    _warn_fmtstr_leak_no_aslr(config)
     config.validate()
     return config
 
@@ -706,6 +720,17 @@ def _resolve_base_address_arg(
     return int(arg_value, 0)
 
 
+def _warn_fmtstr_leak_no_aslr(config: ServerConfig) -> None:
+    """Print a warning if --fmtstr-leak is used without --aslr."""
+    if config.fmtstr_leak and not config.aslr:
+        print(
+            "[!] --fmtstr-leak without --aslr: the format string leak "
+            "command will be generated but ASLR is not enabled. "
+            "Useful for experimentation, but not needed for exploitation.",
+            file=sys.stderr,
+        )
+
+
 def _default_banner() -> str:
     """Return a default banner."""
     return "Target Server v1.0 - Type HELP for commands"
@@ -724,6 +749,8 @@ def _print_challenge_summary(config: ServerConfig) -> None:
         mitigations.append("Stack Canary")
     if config.safe_seh:
         mitigations.append("SafeSEH")
+    if config.fmtstr_leak:
+        mitigations.append("FmtStr Leak")
 
     # Stack layout info
     layout = config.stack_layout

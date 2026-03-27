@@ -89,6 +89,7 @@ def render(config: ServerConfig) -> str:
     vuln_call = _get_vuln_handler_call(config)
     safe_calls = proto_module.generate_safe_commands(config)
     info_leak = proto_module.generate_info_leak(config)
+    fmtstr_leak = proto_module.generate_fmtstr_leak(config)
     decoy_calls = ""
     if decoy_specs:
         decoy_calls = decoy_templates.generate_decoy_dispatcher_branches(
@@ -97,7 +98,7 @@ def render(config: ServerConfig) -> str:
 
     # Command dispatcher
     dispatcher = proto_module.generate_command_dispatcher(
-        config, vuln_call, safe_calls, decoy_calls, info_leak
+        config, vuln_call, safe_calls, decoy_calls, info_leak, fmtstr_leak
     )
     sections.append(dispatcher)
     sections.append("")

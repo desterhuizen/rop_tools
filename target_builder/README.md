@@ -27,6 +27,9 @@ target_builder --vuln bof --output server.cpp --build-script
 # SEH overflow with mitigations (HTTP)
 target_builder --vuln seh --dep --aslr --protocol http --output server.cpp
 
+# BOF with ASLR + format string leak for bypass practice
+target_builder --vuln bof --dep --aslr --fmtstr-leak --output server.cpp
+
 # Randomized challenge
 target_builder --random --random-seed 42 --difficulty hard \
   --output server.cpp --exploit crash --rop-dll
@@ -54,11 +57,11 @@ target_builder --vuln fmtstr --protocol rpc --output server.cpp
 
 ## Protocols
 
-| Protocol | Format                              | Vuln Trigger          | Info Leak (ASLR) |
-|----------|-------------------------------------|-----------------------|-------------------|
-| `tcp`    | `COMMAND <data>\n`                  | Vulnerable command    | `DEBUG` command   |
-| `http`   | Standard HTTP/1.1 requests          | `POST /vulnerable`    | `GET /info`       |
-| `rpc`    | 4-byte len + 2-byte opcode + data  | Vulnerable opcode     | Opcode 255        |
+| Protocol | Format                              | Vuln Trigger          | Info Leak (ASLR) | FmtStr Leak        |
+|----------|-------------------------------------|-----------------------|-------------------|---------------------|
+| `tcp`    | `COMMAND <data>\n`                  | Vulnerable command    | `DEBUG` command   | `ECHO` command      |
+| `http`   | Standard HTTP/1.1 requests          | `POST /vulnerable`    | `GET /info`       | `POST /echo`        |
+| `rpc`    | 4-byte len + 2-byte opcode + data  | Vulnerable opcode     | Opcode 255        | Opcode 254          |
 
 ---
 
@@ -68,6 +71,7 @@ target_builder --vuln fmtstr --protocol rpc --output server.cpp
 |----------------|--------------------|-----------------------------------------|
 | `--dep`        | `/NXCOMPAT`        | Must build ROP chain to bypass DEP     |
 | `--aslr`       | `/DYNAMICBASE`     | Must leak address via info leak        |
+| `--fmtstr-leak`| (no compile flag)  | Adds printf leak command for ASLR bypass practice |
 | `--stack-canary`| `/GS`             | Must leak or bypass stack cookie       |
 | `--safeSEH`    | `/SAFESEH`         | Must use gadget from non-SafeSEH module|
 
@@ -260,6 +264,7 @@ Mitigations:
   --dep                    Enable DEP
   --dep-api API            DEP bypass API selection
   --aslr                   Enable ASLR (adds info leak)
+  --fmtstr-leak            Add format string leak command for ASLR bypass
   --stack-canary           Enable /GS stack cookies
   --safeSEH                Enable SafeSEH (seh vuln only)
 

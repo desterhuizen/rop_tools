@@ -11,6 +11,46 @@ IMPORTANT NOTES on the TOOL:
 
 ---
 
+## Tech Stack
+
+- **Language:** Python 3.8+ (generates C++ source code)
+- **Dependencies:** `rich` (terminal formatting via `lib/color_printer`)
+- **Testing:** `unittest` (stdlib) — 189 tests across 6 test files
+- **Linting:** flake8, black, isort, mypy (config in root `.flake8` / `pyproject.toml`)
+
+### Running the Tool
+```bash
+# Basic usage
+./target_builder/target_builder_cli.py --vuln bof --output server.cpp --build-script
+
+# With mitigations and format string leak
+./target_builder/target_builder_cli.py --vuln bof --dep --aslr --fmtstr-leak --output server.cpp
+
+# Randomized hard challenge
+./target_builder/target_builder_cli.py --random --difficulty hard --output server.cpp --exploit crash --rop-dll
+```
+
+### Running Tests
+```bash
+# All target_builder tests
+python3 -m unittest discover -s target_builder/tests
+
+# Specific test file
+python3 -m unittest target_builder/tests/test_templates.py
+
+# Quick count
+python3 -m unittest discover -s target_builder/tests -q
+```
+
+### Linting
+```bash
+flake8 target_builder/
+black --check target_builder/
+isort --check-only target_builder/
+```
+
+---
+
 ## Architecture Overview
 
 ### Design Principles
@@ -76,11 +116,11 @@ Each protocol template provides:
 - `generate_command_dispatcher(config)` → C++ command routing logic
 - `generate_banner_send(config)` → C++ code to send banner on connect
 
-| Protocol | Recv Pattern            | Command Routing            | Info Leak Endpoint     |
-|----------|-------------------------|----------------------------|------------------------|
-| `tcp`    | `recv` + string parse   | `strncmp(buf, "CMD", N)`   | `DEBUG` command        |
-| `http`   | `recv` + HTTP parse     | Method + path matching     | `GET /info`            |
-| `rpc`    | `recv` + length/opcode  | Opcode switch              | Opcode 255             |
+| Protocol | Recv Pattern            | Command Routing            | Info Leak Endpoint     | FmtStr Leak Endpoint   |
+|----------|-------------------------|----------------------------|------------------------|------------------------|
+| `tcp`    | `recv` + string parse   | `strncmp(buf, "CMD", N)`   | `DEBUG` command        | `ECHO` command         |
+| `http`   | `recv` + HTTP parse     | Method + path matching     | `GET /info`            | `POST /echo`           |
+| `rpc`    | `recv` + length/opcode  | Opcode switch              | Opcode 255             | Opcode 254             |
 
 ---
 
@@ -107,6 +147,18 @@ When `--aslr` is set, a safe command/endpoint inadvertently leaks an address:
 - TCP: `DEBUG` command prints internal state including a stack/heap pointer
 - HTTP: `GET /info` returns JSON with a "debug_handle" field containing an address
 - RPC: Opcode 255 response includes a pointer in the binary response struct
+
+### Format String Info Leak (`--fmtstr-leak`)
+Optional command/endpoint that passes user input directly to `_snprintf()` as the
+format string. The attacker can use `%p`/`%x` specifiers to walk the stack and
+leak module base addresses for ASLR bypass.
+- TCP: `ECHO <data>` — output sent back to client
+- HTTP: `POST /echo` with body — output in HTTP response
+- RPC: Opcode 254 — output in RPC response payload
+- Works with any `--vuln` type (not just `--vuln fmtstr`)
+- Prints a warning (not error) if used without `--aslr`
+- Coexists with the `--aslr` info leak (both commands are generated)
+- Randomization: only enabled for hard difficulty when ASLR is active
 
 ---
 
@@ -209,6 +261,7 @@ Each decoy gets a randomizable command name that sounds plausible (e.g. `PROCESS
 - Vulnerable command name
 - Server banner (from pool)
 - Decoy count and types
+- **Format string leak** (hard difficulty only, when ASLR is active)
 - **ESP realignment gadget routes** (standard density ROP DLL / embedded gadgets)
 
 ### Seed Behavior
@@ -274,6 +327,20 @@ Each decoy gets a randomizable command name that sounds plausible (e.g. `PROCESS
   - `cli.py` — Full argparse, randomization with seed/difficulty, challenge summary output
   - `target_builder_cli.py` — Entry point
 - **114 tests** across 6 test files (test_config, test_bad_chars, test_templates, test_renderer, test_exploit_skeleton, test_integration)
+
+### March 27, 2026 — Format String Info Leak
+- **feat: `--fmtstr-leak`** — Optional command/endpoint that passes user input
+  directly to `_snprintf()` as the format string, allowing `%p`/`%x` stack reads
+  for ASLR bypass practice.
+  - TCP: `ECHO <data>` command, HTTP: `POST /echo`, RPC: Opcode 254
+  - Works with any `--vuln` type (independent of `--vuln fmtstr`)
+  - Prints warning (not error) when used without `--aslr`
+  - Coexists with existing `--aslr` info leak (DEBUG/GET /info/opcode 255)
+  - Randomization: 50% chance on hard difficulty when ASLR is active
+  - HELP output updated to list new commands when enabled
+  - Exploit skeleton includes `%p` leak payloads when enabled
+  - **189 tests** (was 164) — 25 new tests across templates, renderer, config,
+    integration, and exploit skeleton
 
 ### March 24, 2026 — Bug Fixes and Embedded Gadgets
 - **fix: exploit skeleton byte encoding** — TCP and HTTP exploit skeletons were

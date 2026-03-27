@@ -395,5 +395,41 @@ class TestBaseAddress(unittest.TestCase):
             self.assertNotIn(byte, [0x00, 0x0A, 0x0D])
 
 
+class TestFmtstrLeakIntegration(unittest.TestCase):
+    """Integration tests for --fmtstr-leak flag."""
+
+    def test_cli_fmtstr_leak_flag(self):
+        config = parse_args(["--vuln", "bof", "--fmtstr-leak"])
+        self.assertTrue(config.fmtstr_leak)
+
+    def test_cli_fmtstr_leak_default_off(self):
+        config = parse_args(["--vuln", "bof"])
+        self.assertFalse(config.fmtstr_leak)
+
+    def test_fmtstr_leak_in_rendered_output(self):
+        config = parse_args(["--vuln", "bof", "--fmtstr-leak"])
+        from target_builder.src.renderer import render
+
+        result = render(config)
+        self.assertIn("ECHO", result)
+        self.assertIn("_snprintf(echo_buf", result)
+
+    def test_random_hard_may_enable_fmtstr_leak(self):
+        """Hard difficulty with ASLR can randomly enable fmtstr_leak."""
+        # Use a seed that produces aslr=True for hard difficulty
+        config = parse_args(
+            ["--random", "--random-seed", "100", "--difficulty", "hard"]
+        )
+        # Hard always has aslr, so fmtstr_leak is possible
+        self.assertTrue(config.aslr)
+        # fmtstr_leak is random (50%) — just check the field exists
+        self.assertIsInstance(config.fmtstr_leak, bool)
+
+    def test_random_easy_no_fmtstr_leak(self):
+        """Easy difficulty should never enable fmtstr_leak."""
+        config = parse_args(["--random", "--random-seed", "42", "--difficulty", "easy"])
+        self.assertFalse(config.fmtstr_leak)
+
+
 if __name__ == "__main__":
     unittest.main()

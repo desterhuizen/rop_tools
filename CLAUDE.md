@@ -368,7 +368,12 @@ pip install -r requirements-lint.txt
   - Build script generation with correct cl.exe flags
   - 114 tests across 6 test files
 
-### March 27, 2026 — Worksheet `next` command + SEH overflow fix
+### March 27, 2026 — Format string info leak + Worksheet `next` command + SEH overflow fix
+- **target_builder**: Added `--fmtstr-leak` flag — optional format string leak
+  command/endpoint for ASLR bypass practice. User input passed directly to
+  `_snprintf()` as format string, allowing `%p`/`%x` stack reads. TCP: `ECHO`,
+  HTTP: `POST /echo`, RPC: opcode 254. Works with any vuln type, coexists with
+  existing `--aslr` info leak. Randomized for hard difficulty. 189 tests (was 164).
 - **rop/worksheet**: Added `next` command (alias `n`, Ctrl+N keybind) — pops EIP
   from the stack, stepping to the next gadget. Auto-executes the gadget if
   auto-gadget is enabled.

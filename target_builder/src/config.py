@@ -390,6 +390,7 @@ class ServerConfig:
     aslr: bool = False
     stack_canary: bool = False
     safe_seh: bool = False
+    fmtstr_leak: bool = False
 
     # Decoys
     decoy_count: int = 0

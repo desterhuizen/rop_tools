@@ -21,6 +21,43 @@
 
 ---
 
+## Tech Stack
+
+- **Language:** Python 3.8+
+- **Dependencies:** `keystone-engine` (assembly), `capstone` (disassembly), `rich` (terminal formatting)
+- **Testing:** `unittest` (stdlib)
+- **Linting:** flake8, black, isort, mypy (config in root `.flake8` / `pyproject.toml`)
+
+### Running the Tools
+```bash
+# Shellcode generator
+./shellgen/shellgen_cli.py --platform windows --payload messagebox --title "Test" --message "Hello"
+
+# List available payloads
+./shellgen/shellgen_cli.py --list-payloads
+
+# ROR13 hash generator
+./shellgen/hash_generator.py LoadLibraryA GetProcAddress
+```
+
+### Running Tests
+```bash
+# All shellgen tests
+python3 -m unittest discover -s shellgen/tests
+
+# Specific test file
+python3 -m unittest shellgen/tests/test_encoders.py
+```
+
+### Linting
+```bash
+flake8 shellgen/
+black --check shellgen/
+isort --check-only shellgen/
+```
+
+---
+
 ## Architecture
 
 ```
