@@ -45,6 +45,13 @@ def render(config: ServerConfig) -> str:
     # 3. Defines and globals
     sections.append(base.generate_globals(config))
 
+    # 3b. Protocol-specific type definitions and macros
+    proto_module = _get_protocol_module(config)
+    proto_defs = proto_module.generate_protocol_definitions(config)
+    if proto_defs:
+        sections.append(proto_defs)
+        sections.append("")
+
     # 4. Forward declarations
     sections.append(_generate_forward_declarations(config))
     sections.append("")
@@ -83,7 +90,9 @@ def render(config: ServerConfig) -> str:
     sections.append("")
 
     # 9. Protocol-specific handler and dispatcher
-    proto_module = _get_protocol_module(config)
+    # Connection handler first (defines helper functions used by dispatcher)
+    sections.append(proto_module.generate_connection_handler(config))
+    sections.append("")
 
     # Build dispatcher components
     vuln_call = _get_vuln_handler_call(config)
@@ -101,10 +110,6 @@ def render(config: ServerConfig) -> str:
         config, vuln_call, safe_calls, decoy_calls, info_leak, fmtstr_leak
     )
     sections.append(dispatcher)
-    sections.append("")
-
-    # Connection handler
-    sections.append(proto_module.generate_connection_handler(config))
     sections.append("")
 
     # 10. Winsock init

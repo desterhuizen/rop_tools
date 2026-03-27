@@ -24,15 +24,10 @@ def generate_vuln_function(config: ServerConfig) -> str:
     if has_bad_chars:
         filter_call = "    filter_bad_chars(data, data_len);\n"
 
-    if config.protocol == Protocol.HTTP:
-        data_param = "req->body"
-        len_param = "req->body_len"
-    elif config.protocol == Protocol.RPC:
-        data_param = "payload"
-        len_param = "payload_len"
-    else:
-        data_param = "data"
-        len_param = "data_len"
+    # Always use simple parameter names; the caller passes the right
+    # expressions via generate_vuln_handler_call().
+    data_param = "data"
+    len_param = "data_len"
 
     padding_vars = generate_padding_vars(layout)
     truncation = generate_landing_pad_truncation(

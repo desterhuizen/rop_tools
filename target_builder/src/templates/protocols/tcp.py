@@ -7,6 +7,11 @@ Generates raw TCP text-based command dispatcher:
 from target_builder.src.config import ServerConfig
 
 
+def generate_protocol_definitions(config: ServerConfig) -> str:
+    """Generate TCP protocol definitions (none needed)."""
+    return ""
+
+
 def generate_connection_handler(config: ServerConfig) -> str:
     """Generate the TCP connection handler function."""
     return """\

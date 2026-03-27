@@ -7,21 +7,26 @@ triggered via a specific HTTP method + path (e.g. POST /vulnerable).
 from target_builder.src.config import ServerConfig
 
 
-def generate_connection_handler(config: ServerConfig) -> str:
-    """Generate the HTTP connection handler function."""
-    banner_escaped = config.banner.replace("\\", "\\\\").replace('"', '\\"')
-
-    return f"""\
-// HTTP request parser — extracts method, path, headers, body
-typedef struct {{
+def generate_protocol_definitions(config: ServerConfig) -> str:
+    """Generate HTTP type definitions (must precede dispatcher)."""
+    return """\
+// HTTP request structure
+typedef struct {
     char method[16];
     char path[256];
     char headers[4096];
     char body[RECV_BUF_SIZE];
     int body_len;
     int content_length;
-}} http_request_t;
+} http_request_t;"""
 
+
+def generate_connection_handler(config: ServerConfig) -> str:
+    """Generate the HTTP connection handler function."""
+    banner_escaped = config.banner.replace("\\", "\\\\").replace('"', '\\"')
+
+    return f"""\
+// HTTP request parser — extracts method, path, headers, body
 int parse_http_request(char* raw, int raw_len, http_request_t* req) {{
     memset(req, 0, sizeof(http_request_t));
 

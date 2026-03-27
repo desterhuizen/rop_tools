@@ -342,7 +342,7 @@ class TestRPCProtocol(unittest.TestCase):
 
     def test_custom_opcode(self):
         config = ServerConfig(protocol=Protocol.RPC, command="5")
-        result = rpc_proto.generate_connection_handler(config)
+        result = rpc_proto.generate_protocol_definitions(config)
         self.assertIn("VULN_OPCODE 5", result)
 
 
