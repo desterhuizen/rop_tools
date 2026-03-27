@@ -116,6 +116,9 @@ def _build_stack_table(
     """
     Build the stack display table.
 
+    Shows at most 10 items before ESP+0x00 and 10 items after (inclusive).
+    When items are hidden, a "..." indicator row is shown.
+
     Args:
         ws: Worksheet dictionary
         value_to_names: Reverse lookup of values to names
@@ -139,26 +142,62 @@ def _build_stack_table(
         # Sort stack by offset
         sorted_stack = sorted(
             ws["stack"].items(),
-            key=lambda x: (
-                int(x[0], 16)
-                if x[0].startswith("+") or x[0].startswith("-")
-                else int(x[0], 16)
-            ),
+            key=lambda x: int(x[0], 16),
         )
-        for offset, val in sorted_stack:
-            # Calculate actual address
+
+        # Apply scroll offset: shift the visible window
+        # stack_view_offset is in number of slots (each slot = 1 sorted entry)
+        view_offset = ws.get("stack_view_offset", 0)
+
+        # Find the index of ESP+0x00 (first non-negative offset) as the center
+        center_idx = 0
+        for i, (o, _) in enumerate(sorted_stack):
+            if int(o, 16) >= 0:
+                center_idx = i
+                break
+        else:
+            # All negative — center at end
+            center_idx = len(sorted_stack)
+
+        # Window: 10 items above center, 10 items at/below center
+        max_visible = 10
+        window_start = max(0, center_idx - max_visible + view_offset)
+        window_end = min(len(sorted_stack), center_idx + max_visible + view_offset)
+
+        hidden_above = window_start
+        hidden_below = len(sorted_stack) - window_end
+
+        # Show "..." if items hidden above
+        if hidden_above > 0:
+            stack_table.add_row(
+                "[dim]...[/dim]",
+                f"[dim]({hidden_above} more)[/dim]",
+                "",
+                "",
+            )
+
+        # Render visible rows
+        for offset, val in sorted_stack[window_start:window_end]:
             offset_val = int(offset, 16)
             actual_addr = (esp_val + offset_val) & 0xFFFFFFFF
             addr_str = f"0x{actual_addr:08x}"
 
             display_val = f"[yellow]{val}[/yellow]" if val else "[dim]—[/dim]"
 
-            # Check if this value matches any named value
             name_match = ""
             if val in value_to_names:
                 name_match = f"[dim green]{', '.join(value_to_names[val])}[/dim green]"
 
             stack_table.add_row(addr_str, f"ESP{offset}", display_val, name_match)
+
+        # Show "..." if items hidden below
+        if hidden_below > 0:
+            stack_table.add_row(
+                "[dim]...[/dim]",
+                f"[dim]({hidden_below} more)[/dim]",
+                "",
+                "",
+            )
     else:
         stack_table.add_row("[dim]—[/dim]", "[dim]empty[/dim]", "", "")
 

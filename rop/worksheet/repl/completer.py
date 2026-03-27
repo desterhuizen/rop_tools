@@ -70,6 +70,7 @@ class WorksheetCompleter:
             "quit",
             "auto",
             "logmanual",
+            "scroll",
         ]
         self.registers = [
             "EAX",
@@ -239,6 +240,11 @@ class WorksheetCompleter:
         # After 'del' - complete with chain indices
         if command in ["del", "delete", "rm"]:
             return self._complete_chain_indices(text)
+
+        # After 'scroll' - complete with directions
+        if command == "scroll":
+            directions = ["up", "down", "reset"]
+            return [d for d in directions if d.startswith(text.lower())]
 
         # After 'save' or 'load' - complete with .json files
         if command in ["save", "load"]:

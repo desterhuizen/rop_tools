@@ -37,4 +37,5 @@ def blank_worksheet() -> Dict[str, Any]:
         "auto_gadget": True,  # Auto-execute gadgets when EIP is set
         "execution_log": [],  # Rolling log of executed operations
         "log_manual": True,  # Log manual operations (mov, add, etc.)
+        "stack_view_offset": 0,  # Scroll offset for stack window (in slots)
     }

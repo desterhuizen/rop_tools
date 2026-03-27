@@ -45,6 +45,9 @@ HELP = """[bold cyan]COMMANDS[/bold cyan]
 
 [yellow]Display & File:[/yellow]
   v                        View worksheet (aliases: view, show, r, refresh)
+  scroll up [N]            Scroll stack view up by N slots (default: 1)
+  scroll down [N]          Scroll stack view down by N slots (default: 1)
+  scroll reset             Reset stack view to center on ESP+0x00
   save [file]              Save worksheet (default: rop.json)
   load [file]              Load worksheet
   new                      New blank worksheet

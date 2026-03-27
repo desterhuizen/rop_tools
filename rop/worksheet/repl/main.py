@@ -131,6 +131,39 @@ def read_multiline_input(prompt: str) -> str:
 # ============================================================================
 
 
+def handle_scroll(ws: Dict[str, Any], args: str) -> None:
+    """Handle scroll command — shift the stack view window.
+
+    Usage: scroll up [N] / scroll down [N] / scroll reset
+    Aliases: scroll u / scroll d
+    """
+    parts = args.strip().lower().split()
+    if not parts:
+        show_usage("scroll up [N] | scroll down [N] | scroll reset")
+        return
+
+    direction = parts[0]
+    amount = 1
+    if len(parts) > 1:
+        try:
+            amount = int(parts[1])
+        except ValueError:
+            show_error(f"Invalid amount: {parts[1]}")
+            return
+
+    if direction in ("up", "u"):
+        ws["stack_view_offset"] = ws.get("stack_view_offset", 0) - amount
+    elif direction in ("down", "d"):
+        ws["stack_view_offset"] = ws.get("stack_view_offset", 0) + amount
+    elif direction in ("reset", "r", "0"):
+        ws["stack_view_offset"] = 0
+    else:
+        show_usage("scroll up [N] | scroll down [N] | scroll reset")
+        return
+
+    display_worksheet(ws)
+
+
 def handle_view(ws: Dict[str, Any], args: str) -> None:
     """Handle view/refresh commands."""
     display_worksheet(ws)
@@ -607,6 +640,8 @@ COMMAND_REGISTRY: Dict[str, Callable] = {
     "show": handle_view,
     "r": handle_view,
     "refresh": handle_view,
+    # Scroll stack view
+    "scroll": handle_scroll,
     # ASM operations - handled specially due to cmd_func parameter
     # Stack operations
     "pop": handle_pop,
