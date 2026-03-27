@@ -18,7 +18,6 @@ from typing import Optional
 
 from target_builder.src.config import GadgetDensity, RopDllConfig
 
-
 # ── Dirty ESP gadget pools ───────────────────────────────────────────
 #
 # Each "route" is a coherent pair: a CAPTURE gadget that gets ESP into

@@ -33,7 +33,7 @@ def generate_vuln_function(config: ServerConfig) -> str:
 
     padding_vars = generate_padding_vars(layout)
     truncation = generate_landing_pad_truncation(
-        layout, data_param, len_param, buf_size
+        layout, data_param, len_param, buf_size, seh=True
     )
 
     return f"""\
@@ -51,9 +51,12 @@ void vuln_function(char* {data_param}, int {len_param}) {{
         // Vulnerable: strcpy inside __try block overflows past SEH record
         strcpy(buffer, {data_param});
 
-        // Trigger exception if buffer was overflowed
-        // (access violation from corrupted stack)
-        int check = buffer[0];
+        // Stack integrity check — if the overflow reached past the buffer,
+        // the bytes beyond it are attacker-controlled. Interpreting them as
+        // a pointer and dereferencing triggers an access violation, which
+        // hands control to the (now corrupted) SEH handler chain.
+        volatile int *p = *(volatile int **)(buffer + sizeof(buffer));
+        int check = *p;
         (void)check;
     }}
     __except (EXCEPTION_EXECUTE_HANDLER) {{

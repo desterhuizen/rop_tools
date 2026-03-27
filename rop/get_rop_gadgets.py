@@ -43,8 +43,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 # Import core classes and functions
-from rop.core import ROPGadgetParser, get_category_style  # noqa: E402
 from rop.core import get_flat_bad_instructions  # noqa: E402
+from rop.core import ROPGadgetParser, get_category_style  # noqa: E402
 
 # Import display functions
 from rop.display import print_gadgets, print_statistics, printer  # noqa: E402

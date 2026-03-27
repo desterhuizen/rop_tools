@@ -552,8 +552,12 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
             # Re-roll NONE if we have padding to show
             if padding_style == PaddingStyle.NONE:
                 padding_style = rng.choice(
-                    [PaddingStyle.ARRAY, PaddingStyle.MIXED,
-                     PaddingStyle.STRUCT, PaddingStyle.MULTI]
+                    [
+                        PaddingStyle.ARRAY,
+                        PaddingStyle.MIXED,
+                        PaddingStyle.STRUCT,
+                        PaddingStyle.MULTI,
+                    ]
                 )
     else:
         padding_style = PaddingStyle.NONE
@@ -727,8 +731,7 @@ def _print_challenge_summary(config: ServerConfig) -> None:
         stack_info = []
         if layout.pre_padding_size > 0:
             stack_info.append(
-                f"padding={layout.pre_padding_size}B "
-                f"({layout.padding_style.value})"
+                f"padding={layout.pre_padding_size}B " f"({layout.padding_style.value})"
             )
         if layout.landing_pad_size > 0:
             stack_info.append(f"landing_pad={layout.landing_pad_size}B")

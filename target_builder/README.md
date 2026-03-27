@@ -42,7 +42,7 @@ target_builder --vuln fmtstr --protocol rpc --output server.cpp
 | Type        | Arch     | Mechanism                                | Exploitation                     |
 |-------------|----------|------------------------------------------|----------------------------------|
 | `bof`       | x86, x64 | `strcpy` into undersized stack buffer   | Direct EIP/RIP overwrite         |
-| `seh`       | x86 only | Overflow inside `__try/__except`        | SEH chain overwrite              |
+| `seh`       | x86 only | Overflow inside `__try/__except` + AV trigger | SEH chain overwrite (POP POP RET + short jmp) |
 | `egghunter` | x86 only | Small stack buf + heap stash            | Egghunter scans for egg in heap  |
 | `fmtstr`    | x86, x64 | `printf(user_data)` without format spec | Stack read (%x), write (%n)     |
 

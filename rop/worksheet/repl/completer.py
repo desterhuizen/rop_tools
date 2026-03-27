@@ -47,6 +47,7 @@ class WorksheetCompleter:
             "nop",
             "push",
             "pop",
+            "next",
             # Quick ops
             "set",
             "clr",

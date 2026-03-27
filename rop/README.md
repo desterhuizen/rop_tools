@@ -954,7 +954,7 @@ for planning and testing ROP exploits with real-time state tracking.
 - **Named Values**: Create symbolic names for addresses (e.g., "shellcode", "
   base_address")
 - **ASM Operations**: Execute assembly-like operations with full sub-register support
-    - **Data movement**: mov, movzx, movsxd, lea, push, pop
+    - **Data movement**: mov, movzx, movsxd, lea, push, pop, next
     - **Arithmetic**: add, sub, inc, dec, neg
     - **Bitwise**: and, or, xor, not, shl, shr, ror, rol
     - **Exchange**: xchg
@@ -1028,6 +1028,7 @@ nop                          # No operation
 # Stack operations
 push EAX                     # Push EAX onto stack (ESP -= 4, [ESP] = EAX)
 pop EBX                      # Pop from stack into EBX ([EBX] = [ESP], ESP += 4)
+alnext                         # Pop EIP — step to next gadget (alias: n, Ctrl+N)
 ```
 
 #### Quick Operations
@@ -1219,6 +1220,7 @@ The tool automatically resolves:
 
 - **↑ / ↓**: Navigate command history
 - **TAB**: Auto-complete commands, registers, named values
+- **Ctrl+N**: Step to next gadget (pop EIP)
 - **Ctrl+C**: Cancel current command (doesn't exit)
 
 ## File Format

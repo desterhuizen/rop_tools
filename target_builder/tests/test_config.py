@@ -359,16 +359,12 @@ class TestStackLayoutConfig(unittest.TestCase):
         config.validate()  # Should not raise
 
     def test_negative_pre_padding_rejected(self):
-        config = ServerConfig(
-            stack_layout=StackLayoutConfig(pre_padding_size=-1)
-        )
+        config = ServerConfig(stack_layout=StackLayoutConfig(pre_padding_size=-1))
         with self.assertRaises(ValueError):
             config.validate()
 
     def test_negative_landing_pad_rejected(self):
-        config = ServerConfig(
-            stack_layout=StackLayoutConfig(landing_pad_size=-1)
-        )
+        config = ServerConfig(stack_layout=StackLayoutConfig(landing_pad_size=-1))
         with self.assertRaises(ValueError):
             config.validate()
 

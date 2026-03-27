@@ -17,6 +17,7 @@ HELP = """[bold cyan]COMMANDS[/bold cyan]
   neg <dst>                Negate (two's complement)
   push <src>               Push to stack (ESP -= 4, [ESP] = src)
   pop <dst>                Pop from stack (dst = [ESP], ESP += 4)
+  next                     Pop EIP — step to next gadget (alias: n, Ctrl+N)
 
 [yellow]Quick Operations:[/yellow]
   set <target> <value>     Set value directly (alias: s)
@@ -105,7 +106,7 @@ def build_help_panel() -> Panel:
     Returns:
         Rich Panel with quick command reference
     """
-    help_text = """[yellow]ASM:[/yellow] mov add xor xchg inc dec neg push pop  [yellow]|[/yellow]  [yellow]Quick:[/yellow] set clr name stack  [yellow]|[/yellow]  [yellow]Import:[/yellow] importregs importstack  [yellow]|[/yellow]  [yellow]ROP:[/yellow] gadget chain  [yellow]|[/yellow]  help quit  [dim](TAB=complete ↑↓=history)[/dim]"""
+    help_text = """[yellow]ASM:[/yellow] mov add xor xchg inc dec neg push pop  [yellow]|[/yellow]  [yellow]Quick:[/yellow] set clr name stack  [yellow]|[/yellow]  [yellow]Step:[/yellow] next (Ctrl+N)  [yellow]|[/yellow]  [yellow]Import:[/yellow] importregs importstack  [yellow]|[/yellow]  [yellow]ROP:[/yellow] gadget chain  [yellow]|[/yellow]  help quit  [dim](TAB=complete ↑↓=history)[/dim]"""
     return Panel(
         help_text, title="QUICK COMMANDS", border_style="dim blue", padding=(0, 1)
     )

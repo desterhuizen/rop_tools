@@ -16,8 +16,19 @@ class TestClassifyBadInstruction(unittest.TestCase):
     """Test classify_bad_instruction()."""
 
     def test_privileged_instructions(self):
-        for op in ["clts", "hlt", "lmsw", "ltr", "lgdt", "lidt", "lldt",
-                    "invlpg", "invd", "swapgs", "wbinvd"]:
+        for op in [
+            "clts",
+            "hlt",
+            "lmsw",
+            "ltr",
+            "lgdt",
+            "lidt",
+            "lldt",
+            "invlpg",
+            "invd",
+            "swapgs",
+            "wbinvd",
+        ]:
             result = classify_bad_instruction(op)
             self.assertEqual(result, "PRIVILEGED", f"{op} should be PRIVILEGED")
 
@@ -38,14 +49,35 @@ class TestClassifyBadInstruction(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_io_instructions(self):
-        for op in ["in", "ins", "insb", "insw", "insd",
-                    "out", "outs", "outsb", "outsw", "outsd"]:
+        for op in [
+            "in",
+            "ins",
+            "insb",
+            "insw",
+            "insd",
+            "out",
+            "outs",
+            "outsb",
+            "outsw",
+            "outsd",
+        ]:
             result = classify_bad_instruction(op)
             self.assertEqual(result, "I/O", f"{op} should be I/O")
 
     def test_interrupt_instructions(self):
-        for op in ["int", "int3", "into", "iret", "iretd",
-                    "cli", "sti", "syscall", "sysenter", "sysret", "sysexit"]:
+        for op in [
+            "int",
+            "int3",
+            "into",
+            "iret",
+            "iretd",
+            "cli",
+            "sti",
+            "syscall",
+            "sysenter",
+            "sysret",
+            "sysexit",
+        ]:
             result = classify_bad_instruction(op)
             self.assertEqual(result, "INTERRUPT", f"{op} should be INTERRUPT")
 
@@ -70,9 +102,28 @@ class TestClassifyBadInstruction(unittest.TestCase):
             self.assertEqual(result, "SYNC/PREFIX", f"{op} should be SYNC/PREFIX")
 
     def test_good_instructions_return_none(self):
-        for op in ["mov", "add", "sub", "xor", "pop", "push", "inc", "dec",
-                    "neg", "not", "and", "or", "shl", "shr", "nop", "ret",
-                    "lea", "xchg", "cdq", "movzx"]:
+        for op in [
+            "mov",
+            "add",
+            "sub",
+            "xor",
+            "pop",
+            "push",
+            "inc",
+            "dec",
+            "neg",
+            "not",
+            "and",
+            "or",
+            "shl",
+            "shr",
+            "nop",
+            "ret",
+            "lea",
+            "xchg",
+            "cdq",
+            "movzx",
+        ]:
             result = classify_bad_instruction(op)
             self.assertIsNone(result, f"{op} should NOT be classified as bad")
 
@@ -118,8 +169,9 @@ class TestCategoryLabels(unittest.TestCase):
 
     def test_all_categories_have_labels(self):
         for cat in BAD_INSTRUCTION_CATEGORIES:
-            self.assertIn(cat, CATEGORY_LABELS,
-                          f"Category '{cat}' missing from CATEGORY_LABELS")
+            self.assertIn(
+                cat, CATEGORY_LABELS, f"Category '{cat}' missing from CATEGORY_LABELS"
+            )
 
 
 if __name__ == "__main__":

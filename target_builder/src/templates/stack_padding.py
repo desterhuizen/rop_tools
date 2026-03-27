@@ -48,21 +48,29 @@ def generate_landing_pad_truncation(
     data_param: str,
     len_param: str,
     buffer_size: int,
+    seh: bool = False,
 ) -> str:
-    """Generate C++ code to truncate input, limiting post-EIP space.
+    """Generate C++ code to truncate input, limiting post-overwrite space.
 
     When landing_pad_size is set, the server caps the received data so
-    only a limited number of bytes can be placed after the EIP overwrite.
-    This forces attackers to use short jumps or first-stage stagers.
+    only a limited number of bytes can be placed after the critical
+    overwrite target. This forces attackers to use short jumps or
+    first-stage stagers.
 
-    The max processed size is:
+    For BOF the max processed size is:
         buffer_size + pre_padding + 8 (saved EBP + EIP) + landing_pad
+
+    For SEH the frame overhead is larger because MSVC __try/__except
+    places nSEH (4) + handler (4) + scope/try-level (4) on the stack
+    between the buffer and saved EBP/EIP:
+        buffer_size + pre_padding + 20 (SEH + EBP + EIP) + landing_pad
 
     Args:
         layout: Stack layout configuration.
         data_param: Name of the data pointer parameter.
         len_param: Name of the length parameter.
         buffer_size: Size of the vulnerable buffer.
+        seh: True for SEH overflow (larger frame overhead).
 
     Returns:
         C++ code block with truncation logic, or empty string.
@@ -70,13 +78,12 @@ def generate_landing_pad_truncation(
     if layout.landing_pad_size <= 0:
         return ""
 
-    # frame overhead: saved EBP (4) + saved EIP (4) for x86
-    # For x64 it would be 16, but SEH/egghunter are x86-only and BOF
-    # x64 landing pad is similar concept. Use 8 as conservative estimate.
-    frame_overhead = 8
+    # BOF: saved EBP (4) + saved EIP (4) = 8
+    # SEH: nSEH (4) + handler (4) + try-level (4) + saved EBP (4)
+    #       + saved EIP (4) = 20
+    frame_overhead = 20 if seh else 8
     max_size = (
-        buffer_size + layout.pre_padding_size + frame_overhead
-        + layout.landing_pad_size
+        buffer_size + layout.pre_padding_size + frame_overhead + layout.landing_pad_size
     )
 
     return f"""\
@@ -144,9 +151,7 @@ def _mixed_padding(size: int) -> str:
         if "char " in decl and "[" in decl:
             var_name = decl.split("[")[0].replace("char ", "").strip()
             if var_name != "client_tag" and any(var_name in u for u in used):
-                lines.append(
-                    f"    memset({var_name}, 0, sizeof({var_name}));"
-                )
+                lines.append(f"    memset({var_name}, 0, sizeof({var_name}));")
     if remaining > 0:
         lines.append("    memset(_pad, 0, sizeof(_pad));")
 

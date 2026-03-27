@@ -194,6 +194,37 @@ def find_gadget_by_address(ws: Dict[str, Any], addr: str) -> Optional[str]:
     return ws.get("gadgets", {}).get(addr.lower())
 
 
+def _process_single_instruction(
+    ws: Dict[str, Any],
+    inst: str,
+    opcode: str,
+    operands: List[str],
+    gadget_addr: Optional[str],
+    executed: List[str],
+) -> None:
+    """Process and execute a single parsed instruction, appending results to executed."""
+    try:
+        success, error_msg = _execute_instruction(ws, opcode, operands)
+        source = gadget_addr if gadget_addr else "Auto"
+
+        if success:
+            executed.append(inst)
+            log_execution(ws, "auto", source, inst)
+        elif error_msg:
+            executed.append(f"[FAILED: {error_msg}] {inst}")
+        else:
+            # Unknown opcode — check if it's a known-bad instruction
+            from ...core.instructions import classify_bad_instruction
+
+            category = classify_bad_instruction(opcode, operands)
+            if category:
+                warning = f"[WARNING: {category}] {inst}"
+                executed.append(warning)
+                log_execution(ws, "auto", source, warning)
+    except Exception as e:
+        executed.append(f"[ERROR: {e}] {inst}")
+
+
 def process_gadget(
     ws: Dict[str, Any], gadget_str: str, gadget_addr: Optional[str] = None
 ) -> List[str]:
@@ -245,29 +276,7 @@ def process_gadget(
         if not _validate_operands(operands, known_regs):
             continue
 
-        # Execute instruction
-        try:
-            success, error_msg = _execute_instruction(ws, opcode, operands)
-            source = gadget_addr if gadget_addr else "Auto"
-
-            if success:
-                executed.append(inst)
-                log_execution(ws, "auto", source, inst)
-            elif error_msg:
-                # Log failed instruction with error message
-                executed.append(f"[FAILED: {error_msg}] {inst}")
-            else:
-                # Unknown opcode — check if it's a known-bad instruction
-                from ...core.instructions import classify_bad_instruction
-
-                category = classify_bad_instruction(opcode, operands)
-                if category:
-                    warning = f"[WARNING: {category}] {inst}"
-                    executed.append(warning)
-                    log_execution(ws, "auto", source, warning)
-        except Exception as e:
-            # Log exception
-            executed.append(f"[ERROR: {e}] {inst}")
+        _process_single_instruction(ws, inst, opcode, operands, gadget_addr, executed)
 
     # Clear the flag
     ws["_in_auto_gadget"] = False

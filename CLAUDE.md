@@ -368,6 +368,18 @@ pip install -r requirements-lint.txt
   - Build script generation with correct cl.exe flags
   - 114 tests across 6 test files
 
+### March 27, 2026 — Worksheet `next` command + SEH overflow fix
+- **rop/worksheet**: Added `next` command (alias `n`, Ctrl+N keybind) — pops EIP
+  from the stack, stepping to the next gadget. Auto-executes the gadget if
+  auto-gadget is enabled.
+- **target_builder**: Fixed SEH overflow template — previous `buffer[0]` access
+  never triggered an exception, so the function returned normally via corrupted
+  saved EIP (regular BOF behavior). Replaced with a double-dereference of bytes
+  past the buffer end that triggers an AV inside `__try`, routing through the
+  corrupted SEH handler chain. Also fixed landing pad frame overhead for SEH
+  (8 → 20 bytes to account for nSEH + handler + try-level). Exploit skeleton
+  now generates SEH-specific hints (nSEH/handler layout, POP POP RET pattern).
+
 ### March 25, 2026 — Target builder stack layout variation
 - **target_builder**: Added randomized stack layouts for more realistic challenges.
   `--pre-padding` adds local variables between buffer and saved EBP (changes EIP offset).

@@ -220,6 +220,17 @@ def handle_pop(ws: Dict[str, Any], args: str) -> None:
         show_usage("pop <dst>")
 
 
+def handle_next(ws: Dict[str, Any], args: str) -> None:
+    """Handle next command — pop EIP (simulate ret / step to next gadget)."""
+    success, msg = cmd_pop(ws, "EIP")
+    if success:
+        if msg:
+            show_success(msg)
+        display_worksheet(ws)
+    else:
+        show_error(msg)
+
+
 def handle_push(ws: Dict[str, Any], args: str) -> None:
     """Handle push command."""
     if args:
@@ -600,6 +611,8 @@ COMMAND_REGISTRY: Dict[str, Callable] = {
     # Stack operations
     "pop": handle_pop,
     "push": handle_push,
+    "next": handle_next,
+    "n": handle_next,
     "stack": handle_stack,
     # Quick operations
     "set": handle_set,
@@ -646,21 +659,28 @@ COMMAND_REGISTRY: Dict[str, Callable] = {
 # ============================================================================
 
 
-def main():
-    """Main REPL loop for the ROP worksheet."""
-    ws = blank_worksheet()
-
-    # Setup tab completion
+def _setup_readline(ws: Dict[str, Any]) -> None:
+    """Configure readline: tab completion, display width, and keybindings."""
     completer = WorksheetCompleter(ws)
     readline.set_completer(completer.complete)
     readline.set_completer_delims(" \t\n")
 
-    # Configure readline - only complete on TAB
     readline.parse_and_bind("tab: complete")
     with suppress(Exception):
         readline.parse_and_bind("set completion-display-width 0")
 
-    # Initial display
+    # Bind Ctrl+N to "next" (pop EIP / step to next gadget)
+    with suppress(Exception):
+        if "libedit" in (getattr(readline, "__doc__", "") or ""):
+            readline.parse_and_bind(r'bind "^N" "next\n"')
+        else:
+            readline.parse_and_bind(r'"\C-n": "next\n"')
+
+
+def main():
+    """Main REPL loop for the ROP worksheet."""
+    ws = blank_worksheet()
+    _setup_readline(ws)
     display_worksheet(ws)
 
     while True:

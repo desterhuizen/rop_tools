@@ -56,6 +56,15 @@ library independence
 - Shows API, DLL, IAT address, bypass technique, and argument reference
 - Only shown when matching APIs are found and not filtering by `--dll`
 
+### Worksheet: `next` command (March 27, 2026)
+
+- **`next` command** (aliases: `n`): Pops EIP from the stack — equivalent to
+  `pop EIP`. Simulates stepping to the next gadget in the ROP chain. If
+  auto-gadget is enabled, the gadget at the new EIP is automatically executed.
+- **Ctrl+N keybinding**: Triggers `next` without typing. Works on both GNU
+  readline and macOS libedit.
+- Added to tab completion, full help text, and compact help bar.
+
 ### Worksheet: Full instruction set expansion (March 24, 2026)
 
 - **Phase 1 — Sub-register support**: AL/AH/AX, BL/BH/BX, CL/CH/CX, DL/DH/DX,
@@ -132,7 +141,8 @@ library independence
 - **Stack Management**: ESP-relative offsets, absolute addresses, register-based
   addressing
 - **ASM Operations**: mov, add, sub, xor, xchg, and, or, shl, shr, ror, rol,
-  inc, dec, neg, not, cdq, lodsd, stosd, nop, movzx, movsxd, lea, push/pop
+  inc, dec, neg, not, cdq, lodsd, stosd, nop, movzx, movsxd, lea, push/pop,
+  next (pop EIP shortcut, Ctrl+N keybind)
   (auto ESP tracking)
 - **WinDbg Integration**: `importregs`, `importstack` (multi-line paste)
 - **ROP Chains**: Add gadgets, delete entries, visual display

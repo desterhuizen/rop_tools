@@ -290,6 +290,23 @@ Each decoy gets a randomizable command name that sounds plausible (e.g. `PROCESS
 - **New config**: `EmbeddedGadgetsConfig` dataclass, validation for x86-only and
   mutual exclusion with ROP DLL
 
+### March 27, 2026 — SEH Overflow Fix
+- **fix: SEH exception trigger** — The previous `int check = buffer[0]` read the
+  start of the buffer (valid data from strcpy), so no access violation ever fired
+  inside the `__try` block. The function returned normally using the corrupted
+  saved EIP, making it a regular BOF instead of an SEH challenge. Replaced with a
+  double-dereference of bytes past the buffer end: the overflow data is interpreted
+  as a pointer and dereferenced, triggering an AV inside `__try` which routes
+  through the (now corrupted) SEH handler chain.
+- **fix: landing pad frame overhead for SEH** — `generate_landing_pad_truncation()`
+  used `frame_overhead = 8` (saved EBP + EIP only), but MSVC `__try/__except`
+  places nSEH (4) + handler (4) + try-level (4) on the stack between the buffer
+  and saved EBP/EIP. Added `seh=True` parameter; SEH template now passes
+  `frame_overhead = 20`, giving correct truncation offsets.
+- **fix: exploit skeleton SEH hints** — `_crash_payload_comment()` now detects SEH
+  vuln type and generates SEH-specific guidance (nSEH/handler layout, classic
+  POP POP RET + short jump pattern) instead of generic BOF offset hints.
+
 ### March 25, 2026 — Stack Layout Variation
 - **feat: randomized stack layouts** — Three new challenge dimensions:
   - `--pre-padding N` — local variables between buffer and saved EBP/EIP
