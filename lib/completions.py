@@ -130,8 +130,10 @@ def _generate_zsh(parser: argparse.ArgumentParser, tool_names: List[str]) -> str
     args_specs = []
 
     for flag, choices, is_boolean, help_text in _extract_flags(parser):
-        # Escape single quotes in help text
+        # Escape single quotes and square brackets in help text
+        # Square brackets have special meaning in zsh _arguments specs
         help_clean = help_text.replace("'", "'\\''").split("\n")[0][:60]
+        help_clean = help_clean.replace("[", "(").replace("]", ")")
 
         if is_boolean:
             args_specs.append(f"        '{flag}[{help_clean}]'")
