@@ -64,9 +64,7 @@ def _extract_flags(
     return results
 
 
-def _generate_bash(
-    parser: argparse.ArgumentParser, tool_names: List[str]
-) -> str:
+def _generate_bash(parser: argparse.ArgumentParser, tool_names: List[str]) -> str:
     """Generate a bash completion script."""
     func_name = f"_{tool_names[0]}_complete"
     all_flags = []
@@ -99,9 +97,7 @@ def _generate_bash(
             f"            return ;;"
         )
 
-    complete_lines = "\n".join(
-        f"complete -F {func_name} {name}" for name in tool_names
-    )
+    complete_lines = "\n".join(f"complete -F {func_name} {name}" for name in tool_names)
 
     return f"""\
 # bash completion for {tool_names[0]}
@@ -127,9 +123,7 @@ def _generate_bash(
 """
 
 
-def _generate_zsh(
-    parser: argparse.ArgumentParser, tool_names: List[str]
-) -> str:
+def _generate_zsh(parser: argparse.ArgumentParser, tool_names: List[str]) -> str:
     """Generate a zsh completion script."""
     func_name = f"_{tool_names[0]}"
     compdef_names = " ".join(tool_names)
@@ -143,17 +137,11 @@ def _generate_zsh(
             args_specs.append(f"        '{flag}[{help_clean}]'")
         elif choices:
             choices_str = " ".join(str(c) for c in choices)
-            args_specs.append(
-                f"        '{flag}[{help_clean}]:value:({choices_str})'"
-            )
+            args_specs.append(f"        '{flag}[{help_clean}]:value:({choices_str})'")
         elif "file" in help_text.lower() or "output" in flag.lower():
-            args_specs.append(
-                f"        '{flag}[{help_clean}]:file:_files'"
-            )
+            args_specs.append(f"        '{flag}[{help_clean}]:file:_files'")
         else:
-            args_specs.append(
-                f"        '{flag}[{help_clean}]:value:'"
-            )
+            args_specs.append(f"        '{flag}[{help_clean}]:value:'")
 
     args_block = " \\\n".join(args_specs)
 

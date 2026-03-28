@@ -127,7 +127,9 @@ def _generate_mingw(config: ServerConfig) -> str:
         compiler = "x86_64-w64-mingw32-g++"
 
     # Server source file — use basename for portable build scripts
-    src_file = os.path.basename(config.output_file) if config.output_file else "server.cpp"
+    src_file = (
+        os.path.basename(config.output_file) if config.output_file else "server.cpp"
+    )
     exe_name = src_file.rsplit(".", 1)[0] + ".exe"
 
     # Compiler flags

@@ -536,6 +536,25 @@ def _verify_shellcode(asm_code, arch, bad_chars):
         sys.exit(1)
 
 
+def _post_generate(asm_code, bad_chars, args):
+    """Scan, debug, verify, and print usage after generation."""
+    try:
+        shellcode_bytes = assemble_to_binary(asm_code, args.arch)
+        scan_result = scan_shellcode_for_bad_chars(shellcode_bytes)
+        print_bad_char_summary(scan_result)
+    except Exception as e:
+        print(f"\n[!] Warning: Could not scan for bad characters: {str(e)}")
+        print("    (This is informational only - shellgen generation was successful)")
+
+    if args.debug_shellcode:
+        debug_shellcode_opcodes(asm_code, args.arch, bad_chars)
+
+    if args.verify:
+        _verify_shellcode(asm_code, args.arch, bad_chars)
+
+    print_usage_instructions(args.output, args.format, args.payload, args.verify)
+
+
 def run_cli():
     """Main CLI entry point."""
     from lib.completions import handle_completion
@@ -575,20 +594,4 @@ def run_cli():
         sys.exit(1)
 
     _write_output(output_data, args)
-
-    # Automatically scan for common bad characters
-    try:
-        shellcode_bytes = assemble_to_binary(asm_code, args.arch)
-        scan_result = scan_shellcode_for_bad_chars(shellcode_bytes)
-        print_bad_char_summary(scan_result)
-    except Exception as e:
-        print(f"\n[!] Warning: Could not scan for bad characters: {str(e)}")
-        print("    (This is informational only - shellgen generation was successful)")
-
-    if args.debug_shellcode:
-        debug_shellcode_opcodes(asm_code, args.arch, bad_chars)
-
-    if args.verify:
-        _verify_shellcode(asm_code, args.arch, bad_chars)
-
-    print_usage_instructions(args.output, args.format, args.payload, args.verify)
+    _post_generate(asm_code, bad_chars, args)

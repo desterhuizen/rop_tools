@@ -10,10 +10,17 @@ help: ## Show this help
 # ==============================================================================
 
 test: ## Run all tests
-	$(PYTHON) -m unittest discover -s rop/tests -q
-	$(PYTHON) -m unittest discover -s shellgen/tests -q
-	$(PYTHON) -m unittest discover -s lib/tests -q
-	$(PYTHON) -m unittest discover -s target_builder/tests -q
+	@total=0; \
+	for suite in rop/tests shellgen/tests lib/tests target_builder/tests; do \
+		output=$$($(PYTHON) -m unittest discover -s $$suite -q 2>&1); \
+		echo "$$output"; \
+		count=$$(echo "$$output" | grep -oE 'Ran ([0-9]+)' | grep -oE '[0-9]+'); \
+		total=$$((total + count)); \
+	done; \
+	echo ""; \
+	echo "========================================"; \
+	echo "Total: $$total tests across all suites"; \
+	echo "========================================"
 
 test-rop: ## Run ROP tools tests
 	$(PYTHON) -m unittest discover -s rop/tests -q

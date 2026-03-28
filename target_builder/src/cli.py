@@ -395,9 +395,7 @@ def _validate_parsed_args(
             ("--padding-style", args.padding_style),
         ]:
             if arg_val and "," in arg_val:
-                parser.error(
-                    f"{arg_name} comma-lists are only valid with --random"
-                )
+                parser.error(f"{arg_name} comma-lists are only valid with --random")
         if args.exclude_protection is not None:
             parser.error("--exclude-protection is only valid with --random")
 
@@ -559,8 +557,7 @@ def _parse_comma_enum(
     for p in parts:
         if p not in valid:
             raise ValueError(
-                f"Invalid {arg_name} value '{p}'. "
-                f"Valid: {', '.join(sorted(valid))}"
+                f"Invalid {arg_name} value '{p}'. " f"Valid: {', '.join(sorted(valid))}"
             )
         result.append(enum_cls(p))
     return result
@@ -588,9 +585,7 @@ def _validate_random_constraints(
     for prot_name, attr_name in _PROTECTION_FLAG_MAP.items():
         if prot_name in excluded and getattr(args, attr_name, False):
             flag = attr_name.replace("_", "-")
-            raise ValueError(
-                f"--exclude-protection {prot_name} contradicts --{flag}"
-            )
+            raise ValueError(f"--exclude-protection {prot_name} contradicts --{flag}")
 
 
 def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
@@ -669,9 +664,7 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
         args.bad_char_action, BadCharAction, "--bad-char-action"
     )
     if bca_list is not None:
-        bad_char_action = (
-            bca_list[0] if len(bca_list) == 1 else rng.choice(bca_list)
-        )
+        bad_char_action = bca_list[0] if len(bca_list) == 1 else rng.choice(bca_list)
     else:
         bad_char_action = rng.choice(list(BadCharAction))
 
@@ -702,9 +695,7 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
     if "safeseh" in excluded:
         safe_seh = False
     else:
-        safe_seh = args.safeSEH or (
-            vuln_type == VulnType.SEH and rng.random() > 0.5
-        )
+        safe_seh = args.safeSEH or (vuln_type == VulnType.SEH and rng.random() > 0.5)
 
     # Format string leak
     if "fmtstr-leak" in excluded:
@@ -757,9 +748,7 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
         landing_pad = rng.choice([0, 0, 0, 16, 32, 64, 128, 256])
 
     # Padding style — support comma-list, respect explicit value
-    ps_list = _parse_comma_enum(
-        args.padding_style, PaddingStyle, "--padding-style"
-    )
+    ps_list = _parse_comma_enum(args.padding_style, PaddingStyle, "--padding-style")
     if ps_list is not None:
         padding_style = ps_list[0] if len(ps_list) == 1 else rng.choice(ps_list)
     elif pre_padding > 0:

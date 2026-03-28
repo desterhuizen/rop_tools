@@ -3,8 +3,8 @@
 import unittest
 
 from lib.completions import generate_completion
-from rop.get_rop_gadgets import build_arg_parser as build_gadgets_parser
 from rop.get_base_address import _build_parser as build_base_parser
+from rop.get_rop_gadgets import build_arg_parser as build_gadgets_parser
 
 
 class TestGadgetsBashCompletion(unittest.TestCase):
@@ -68,9 +68,7 @@ class TestGadgetsBashCompletion(unittest.TestCase):
     def test_boolean_flags_no_case(self):
         lines = self.result.split("\n")
         for bool_flag in ["--stats", "--modified-only", "--highlight"]:
-            case_lines = [
-                ln for ln in lines if ln.strip().startswith(f"{bool_flag})")
-            ]
+            case_lines = [ln for ln in lines if ln.strip().startswith(f"{bool_flag})")]
             self.assertEqual(
                 len(case_lines), 0, f"{bool_flag} should not have case entry"
             )
@@ -86,9 +84,7 @@ class TestGadgetsZshCompletion(unittest.TestCase):
         )
 
     def test_compdef(self):
-        self.assertIn(
-            "#compdef get_rop_gadgets get_rop_gadgets.py", self.result
-        )
+        self.assertIn("#compdef get_rop_gadgets get_rop_gadgets.py", self.result)
 
     def test_function_name(self):
         self.assertIn("_get_rop_gadgets()", self.result)
@@ -133,9 +129,7 @@ class TestBaseAddressBashCompletion(unittest.TestCase):
     def test_boolean_flags_no_case(self):
         lines = self.result.split("\n")
         for bool_flag in ["--verbose", "--quiet", "--iat", "--no-color"]:
-            case_lines = [
-                ln for ln in lines if ln.strip().startswith(f"{bool_flag})")
-            ]
+            case_lines = [ln for ln in lines if ln.strip().startswith(f"{bool_flag})")]
             self.assertEqual(
                 len(case_lines), 0, f"{bool_flag} should not have case entry"
             )
@@ -151,9 +145,7 @@ class TestBaseAddressZshCompletion(unittest.TestCase):
         )
 
     def test_compdef(self):
-        self.assertIn(
-            "#compdef get_base_address get_base_address.py", self.result
-        )
+        self.assertIn("#compdef get_base_address get_base_address.py", self.result)
 
     def test_function_name(self):
         self.assertIn("_get_base_address()", self.result)

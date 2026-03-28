@@ -17,7 +17,9 @@ class TestBashCompletion(unittest.TestCase):
         self.assertIn("_target_builder_complete()", self.result)
 
     def test_contains_complete_command(self):
-        self.assertIn("complete -F _target_builder_complete target_builder", self.result)
+        self.assertIn(
+            "complete -F _target_builder_complete target_builder", self.result
+        )
 
     def test_contains_cli_script_completion(self):
         self.assertIn(

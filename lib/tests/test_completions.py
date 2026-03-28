@@ -3,7 +3,7 @@
 import argparse
 import unittest
 
-from lib.completions import generate_completion, handle_completion, _extract_flags
+from lib.completions import _extract_flags, generate_completion, handle_completion
 
 
 def _make_parser():
@@ -128,17 +128,13 @@ class TestToolNames(unittest.TestCase):
     """Test that tool names are parameterized correctly."""
 
     def test_bash_custom_names(self):
-        result = generate_completion(
-            "bash", _make_parser(), ["my_tool", "my_tool.py"]
-        )
+        result = generate_completion("bash", _make_parser(), ["my_tool", "my_tool.py"])
         self.assertIn("_my_tool_complete()", result)
         self.assertIn("complete -F _my_tool_complete my_tool", result)
         self.assertIn("complete -F _my_tool_complete my_tool.py", result)
 
     def test_zsh_custom_names(self):
-        result = generate_completion(
-            "zsh", _make_parser(), ["my_tool", "my_tool.py"]
-        )
+        result = generate_completion("zsh", _make_parser(), ["my_tool", "my_tool.py"])
         self.assertIn("#compdef my_tool my_tool.py", result)
         self.assertIn("_my_tool()", result)
 
@@ -155,9 +151,7 @@ class TestHandleCompletion(unittest.TestCase):
     """Test handle_completion early-exit helper."""
 
     def test_returns_false_without_flag(self):
-        result = handle_completion(
-            ["-f", "foo.txt"], _make_parser, ["test_tool"]
-        )
+        result = handle_completion(["-f", "foo.txt"], _make_parser, ["test_tool"])
         self.assertFalse(result)
 
     def test_returns_true_with_bash(self):

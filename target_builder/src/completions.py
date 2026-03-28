@@ -7,7 +7,6 @@ import argparse
 
 from lib.completions import generate_completion as _generate
 
-
 _TOOL_NAMES = ["target_builder", "target_builder_cli.py"]
 
 

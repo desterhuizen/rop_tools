@@ -27,11 +27,7 @@ def generate_includes(config: ServerConfig) -> str:
 def generate_pragma_comment(config: ServerConfig) -> str:
     """Generate #pragma comment for Winsock library linking."""
     if config.compiler == Compiler.MINGW:
-        return (
-            "#ifdef _MSC_VER\n"
-            '#pragma comment(lib, "ws2_32.lib")\n'
-            "#endif"
-        )
+        return "#ifdef _MSC_VER\n" '#pragma comment(lib, "ws2_32.lib")\n' "#endif"
     return '#pragma comment(lib, "ws2_32.lib")'
 
 

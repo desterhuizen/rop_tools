@@ -447,9 +447,7 @@ class TestConstrainedRandomization(unittest.TestCase):
             self.assertEqual(config.arch, Architecture.X86)
 
     def test_explicit_arch_x64_respected(self):
-        config = parse_args(
-            ["--random", "--random-seed", "42", "--arch", "x64"]
-        )
+        config = parse_args(["--random", "--random-seed", "42", "--arch", "x64"])
         self.assertEqual(config.arch, Architecture.X64)
 
     def test_explicit_protocol_tcp_respected(self):
@@ -461,9 +459,7 @@ class TestConstrainedRandomization(unittest.TestCase):
             self.assertEqual(config.protocol, Protocol.TCP)
 
     def test_explicit_protocol_http_respected(self):
-        config = parse_args(
-            ["--random", "--random-seed", "42", "--protocol", "http"]
-        )
+        config = parse_args(["--random", "--random-seed", "42", "--protocol", "http"])
         self.assertEqual(config.protocol, Protocol.HTTP)
 
     def test_vuln_comma_list(self):
@@ -471,8 +467,15 @@ class TestConstrainedRandomization(unittest.TestCase):
         results = set()
         for seed in range(50):
             config = parse_args(
-                ["--random", "--random-seed", str(seed),
-                 "--vuln", "bof,seh", "--arch", "x86"]
+                [
+                    "--random",
+                    "--random-seed",
+                    str(seed),
+                    "--vuln",
+                    "bof,seh",
+                    "--arch",
+                    "x86",
+                ]
             )
             results.add(config.vuln_type)
         self.assertTrue(results.issubset({VulnType.BOF, VulnType.SEH}))
@@ -483,8 +486,7 @@ class TestConstrainedRandomization(unittest.TestCase):
         results = set()
         for seed in range(50):
             config = parse_args(
-                ["--random", "--random-seed", str(seed),
-                 "--protocol", "tcp,http"]
+                ["--random", "--random-seed", str(seed), "--protocol", "tcp,http"]
             )
             results.add(config.protocol)
         self.assertTrue(results.issubset({Protocol.TCP, Protocol.HTTP}))
@@ -495,32 +497,37 @@ class TestConstrainedRandomization(unittest.TestCase):
         results = set()
         for seed in range(50):
             config = parse_args(
-                ["--random", "--random-seed", str(seed),
-                 "--bad-char-action", "drop,replace"]
+                [
+                    "--random",
+                    "--random-seed",
+                    str(seed),
+                    "--bad-char-action",
+                    "drop,replace",
+                ]
             )
             results.add(config.bad_char_action)
-        self.assertTrue(
-            results.issubset({BadCharAction.DROP, BadCharAction.REPLACE})
-        )
+        self.assertTrue(results.issubset({BadCharAction.DROP, BadCharAction.REPLACE}))
 
     def test_padding_style_comma_list(self):
         """--padding-style mixed,struct should pick from those two."""
         results = set()
         for seed in range(50):
             config = parse_args(
-                ["--random", "--random-seed", str(seed),
-                 "--padding-style", "mixed,struct"]
+                [
+                    "--random",
+                    "--random-seed",
+                    str(seed),
+                    "--padding-style",
+                    "mixed,struct",
+                ]
             )
             results.add(config.stack_layout.padding_style)
-        self.assertTrue(
-            results.issubset({PaddingStyle.MIXED, PaddingStyle.STRUCT})
-        )
+        self.assertTrue(results.issubset({PaddingStyle.MIXED, PaddingStyle.STRUCT}))
 
     def test_vuln_comma_arch_filtering(self):
         """--vuln bof,seh --arch x64 should filter out seh, pick bof."""
         config = parse_args(
-            ["--random", "--random-seed", "42",
-             "--vuln", "bof,seh", "--arch", "x64"]
+            ["--random", "--random-seed", "42", "--vuln", "bof,seh", "--arch", "x64"]
         )
         self.assertEqual(config.vuln_type, VulnType.BOF)
 
@@ -528,8 +535,15 @@ class TestConstrainedRandomization(unittest.TestCase):
         """--vuln seh,egghunter --arch x64 should error."""
         with self.assertRaises(ValueError):
             parse_args(
-                ["--random", "--random-seed", "42",
-                 "--vuln", "seh,egghunter", "--arch", "x64"]
+                [
+                    "--random",
+                    "--random-seed",
+                    "42",
+                    "--vuln",
+                    "seh,egghunter",
+                    "--arch",
+                    "x64",
+                ]
             )
 
     def test_single_vuln_pin(self):
@@ -543,16 +557,14 @@ class TestConstrainedRandomization(unittest.TestCase):
     def test_bad_char_action_single_respected(self):
         """Single --bad-char-action should be pinned."""
         config = parse_args(
-            ["--random", "--random-seed", "42",
-             "--bad-char-action", "terminate"]
+            ["--random", "--random-seed", "42", "--bad-char-action", "terminate"]
         )
         self.assertEqual(config.bad_char_action, BadCharAction.TERMINATE)
 
     def test_dep_api_respected(self):
         """--dep-api should be pinned during randomization."""
         config = parse_args(
-            ["--random", "--random-seed", "42",
-             "--dep", "--dep-api", "virtualalloc"]
+            ["--random", "--random-seed", "42", "--dep", "--dep-api", "virtualalloc"]
         )
         self.assertEqual(config.dep_api, DepBypassApi.VIRTUALALLOC)
 
@@ -560,12 +572,9 @@ class TestConstrainedRandomization(unittest.TestCase):
         """--padding-style none should be respected, not randomized."""
         for seed in range(20):
             config = parse_args(
-                ["--random", "--random-seed", str(seed),
-                 "--padding-style", "none"]
+                ["--random", "--random-seed", str(seed), "--padding-style", "none"]
             )
-            self.assertEqual(
-                config.stack_layout.padding_style, PaddingStyle.NONE
-            )
+            self.assertEqual(config.stack_layout.padding_style, PaddingStyle.NONE)
 
     def test_invalid_vuln_value_rejected(self):
         """Invalid --vuln value should be rejected."""
@@ -589,50 +598,73 @@ class TestExcludeProtection(unittest.TestCase):
     def test_exclude_dep(self):
         for seed in range(20):
             config = parse_args(
-                ["--random", "--random-seed", str(seed),
-                 "--exclude-protection", "dep"]
+                ["--random", "--random-seed", str(seed), "--exclude-protection", "dep"]
             )
             self.assertFalse(config.dep)
 
     def test_exclude_aslr(self):
         for seed in range(20):
             config = parse_args(
-                ["--random", "--random-seed", str(seed),
-                 "--exclude-protection", "aslr"]
+                ["--random", "--random-seed", str(seed), "--exclude-protection", "aslr"]
             )
             self.assertFalse(config.aslr)
 
     def test_exclude_canary(self):
         for seed in range(20):
             config = parse_args(
-                ["--random", "--random-seed", str(seed),
-                 "--exclude-protection", "canary"]
+                [
+                    "--random",
+                    "--random-seed",
+                    str(seed),
+                    "--exclude-protection",
+                    "canary",
+                ]
             )
             self.assertFalse(config.stack_canary)
 
     def test_exclude_safeseh(self):
         for seed in range(20):
             config = parse_args(
-                ["--random", "--random-seed", str(seed),
-                 "--vuln", "seh", "--arch", "x86",
-                 "--exclude-protection", "safeseh"]
+                [
+                    "--random",
+                    "--random-seed",
+                    str(seed),
+                    "--vuln",
+                    "seh",
+                    "--arch",
+                    "x86",
+                    "--exclude-protection",
+                    "safeseh",
+                ]
             )
             self.assertFalse(config.safe_seh)
 
     def test_exclude_fmtstr_leak(self):
         for seed in range(20):
             config = parse_args(
-                ["--random", "--random-seed", str(seed),
-                 "--difficulty", "hard",
-                 "--base-address", "auto",
-                 "--exclude-protection", "fmtstr-leak"]
+                [
+                    "--random",
+                    "--random-seed",
+                    str(seed),
+                    "--difficulty",
+                    "hard",
+                    "--base-address",
+                    "auto",
+                    "--exclude-protection",
+                    "fmtstr-leak",
+                ]
             )
             self.assertFalse(config.fmtstr_leak)
 
     def test_exclude_multiple(self):
         config = parse_args(
-            ["--random", "--random-seed", "42",
-             "--exclude-protection", "dep,aslr,canary"]
+            [
+                "--random",
+                "--random-seed",
+                "42",
+                "--exclude-protection",
+                "dep,aslr,canary",
+            ]
         )
         self.assertFalse(config.dep)
         self.assertFalse(config.aslr)
@@ -641,9 +673,15 @@ class TestExcludeProtection(unittest.TestCase):
     def test_exclude_overrides_difficulty(self):
         """--exclude-protection dep --difficulty hard should disable DEP."""
         config = parse_args(
-            ["--random", "--random-seed", "42",
-             "--difficulty", "hard",
-             "--exclude-protection", "dep"]
+            [
+                "--random",
+                "--random-seed",
+                "42",
+                "--difficulty",
+                "hard",
+                "--exclude-protection",
+                "dep",
+            ]
         )
         self.assertFalse(config.dep)
 
@@ -651,29 +689,38 @@ class TestExcludeProtection(unittest.TestCase):
         """--exclude-protection dep --dep should error."""
         with self.assertRaises((ValueError, SystemExit)):
             parse_args(
-                ["--random", "--random-seed", "42",
-                 "--exclude-protection", "dep", "--dep"]
+                [
+                    "--random",
+                    "--random-seed",
+                    "42",
+                    "--exclude-protection",
+                    "dep",
+                    "--dep",
+                ]
             )
 
     def test_contradiction_exclude_and_enable_aslr(self):
         with self.assertRaises((ValueError, SystemExit)):
             parse_args(
-                ["--random", "--random-seed", "42",
-                 "--exclude-protection", "aslr", "--aslr"]
+                [
+                    "--random",
+                    "--random-seed",
+                    "42",
+                    "--exclude-protection",
+                    "aslr",
+                    "--aslr",
+                ]
             )
 
     def test_invalid_protection_name(self):
         with self.assertRaises((ValueError, SystemExit)):
             parse_args(
-                ["--random", "--random-seed", "42",
-                 "--exclude-protection", "invalid"]
+                ["--random", "--random-seed", "42", "--exclude-protection", "invalid"]
             )
 
     def test_exclude_not_valid_without_random(self):
         with self.assertRaises(SystemExit):
-            parse_args(
-                ["--vuln", "bof", "--exclude-protection", "dep"]
-            )
+            parse_args(["--vuln", "bof", "--exclude-protection", "dep"])
 
 
 class TestBackwardCompatibility(unittest.TestCase):
@@ -684,23 +731,31 @@ class TestBackwardCompatibility(unittest.TestCase):
         self.assertEqual(config.arch, Architecture.X86)
         self.assertEqual(config.protocol, Protocol.TCP)
         self.assertEqual(config.bad_char_action, BadCharAction.DROP)
-        self.assertEqual(
-            config.stack_layout.padding_style, PaddingStyle.NONE
-        )
+        self.assertEqual(config.stack_layout.padding_style, PaddingStyle.NONE)
         self.assertEqual(config.dep_api, DepBypassApi.VIRTUALPROTECT)
 
     def test_non_random_explicit_values_work(self):
         config = parse_args(
-            ["--vuln", "bof", "--arch", "x64", "--protocol", "http",
-             "--bad-char-action", "terminate", "--padding-style", "mixed",
-             "--dep", "--dep-api", "virtualalloc"]
+            [
+                "--vuln",
+                "bof",
+                "--arch",
+                "x64",
+                "--protocol",
+                "http",
+                "--bad-char-action",
+                "terminate",
+                "--padding-style",
+                "mixed",
+                "--dep",
+                "--dep-api",
+                "virtualalloc",
+            ]
         )
         self.assertEqual(config.arch, Architecture.X64)
         self.assertEqual(config.protocol, Protocol.HTTP)
         self.assertEqual(config.bad_char_action, BadCharAction.TERMINATE)
-        self.assertEqual(
-            config.stack_layout.padding_style, PaddingStyle.MIXED
-        )
+        self.assertEqual(config.stack_layout.padding_style, PaddingStyle.MIXED)
         self.assertEqual(config.dep_api, DepBypassApi.VIRTUALALLOC)
 
 
@@ -721,9 +776,7 @@ class TestCompilerFlag(unittest.TestCase):
 
     def test_mingw_rejects_embedded_gadgets(self):
         with self.assertRaises((ValueError, SystemExit)):
-            parse_args(
-                ["--vuln", "bof", "--compiler", "mingw", "--embedded-gadgets"]
-            )
+            parse_args(["--vuln", "bof", "--compiler", "mingw", "--embedded-gadgets"])
 
     def test_mingw_build_script(self):
         from target_builder.src.build_script import generate
