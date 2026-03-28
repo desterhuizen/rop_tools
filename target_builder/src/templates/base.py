@@ -139,6 +139,24 @@ def generate_globals(config: ServerConfig) -> str:
 """
 
 
+def generate_info_leak_function(config: ServerConfig) -> str:
+    """Generate a small utility function whose address is leaked via ASLR info leak.
+
+    The attacker sees the leaked pointer, finds this function in the binary
+    (e.g. via IDA/Ghidra), and subtracts the offset to compute the EXE base.
+    """
+    if not config.aslr:
+        return ""
+
+    name = config.leak_func_name
+    return f"""\
+// Internal utility function
+int {name}(void) {{
+    return SERVER_PORT;
+}}
+"""
+
+
 def generate_dep_api_usage(config: ServerConfig) -> str:
     """Generate legitimate usage of the DEP bypass API.
 

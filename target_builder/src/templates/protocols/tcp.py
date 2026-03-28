@@ -146,10 +146,11 @@ def generate_info_leak(config: ServerConfig) -> str:
     if not config.aslr:
         return ""
 
-    return """\
+    name = config.leak_func_name
+    return f"""\
 
     // DEBUG command - inadvertently leaks internal address
-    if (_stricmp(cmd, "DEBUG") == 0) {
+    if (_stricmp(cmd, "DEBUG") == 0) {{
         char debug_buf[512];
         _snprintf(debug_buf, sizeof(debug_buf),
                  "DEBUG INFO:\\n"
@@ -157,10 +158,10 @@ def generate_info_leak(config: ServerConfig) -> str:
                  "  Connections: %d\\n"
                  "  Internal handle: 0x%p\\n"
                  "  Status: OK\\n",
-                 GetTickCount() / 1000, 1, &main);
+                 GetTickCount() / 1000, 1, {name});
         send(client, debug_buf, (int)strlen(debug_buf), 0);
         return;
-    }"""
+    }}"""
 
 
 def generate_fmtstr_leak(config: ServerConfig) -> str:

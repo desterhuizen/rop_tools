@@ -368,6 +368,16 @@ pip install -r requirements-lint.txt
   - Build script generation with correct cl.exe flags
   - 114 tests across 6 test files
 
+### March 28, 2026 — ASLR info leak fix + zsh completion fix
+- **target_builder**: Fixed ASLR info leak — previously leaked `&local_var` (stack
+  address, useless under modern ASLR). Now leaks a function pointer into the
+  server's `.text` section. Attacker subtracts the RVA to compute EXE base.
+  Function name randomized from 12-name pool (`LEAK_FUNC_POOL`) when `--random`
+  is used with ASLR. New config field: `ServerConfig.leak_func_name`.
+- **lib/completions.py**: Fixed zsh completion generation — square brackets in
+  argparse help text (e.g. `[eax]`) broke `_arguments` parsing. Now replaced
+  with parentheses in zsh completion descriptions.
+
 ### March 28, 2026 — Shell completion for shellgen tools
 - **shellgen**: Added `--generate-completion {bash,zsh}` to `shellgen_cli.py` and
   `hash_generator.py`, using shared `lib/completions.py`. 149 shellgen tests

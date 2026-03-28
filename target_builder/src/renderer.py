@@ -56,6 +56,11 @@ def render(config: ServerConfig) -> str:
     sections.append(_generate_forward_declarations(config))
     sections.append("")
 
+    # 4b. Info leak function (leaked pointer target for ASLR bypass)
+    info_leak_func = base.generate_info_leak_function(config)
+    if info_leak_func:
+        sections.append(info_leak_func)
+
     # 5. Bad character filter
     if config.bad_chars:
         sections.append(
@@ -129,6 +134,9 @@ def _generate_forward_declarations(config: ServerConfig) -> str:
         "DWORD WINAPI handle_connection(LPVOID lpParam);",
         "int init_winsock();",
     ]
+
+    if config.aslr:
+        decls.append(f"int {config.leak_func_name}(void);")
 
     if config.bad_chars:
         decls.append("int filter_bad_chars(char* buf, int len);")

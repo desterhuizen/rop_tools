@@ -14,6 +14,7 @@ from target_builder.src.config import (
     BANNER_POOL,
     DECOY_COMMAND_POOL,
     DIFFICULTY_PRESETS,
+    LEAK_FUNC_POOL,
     VULN_ARCH_COMPAT,
     Architecture,
     BadCharAction,
@@ -773,6 +774,9 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
     # Banner
     banner = args.banner if args.banner else rng.choice(BANNER_POOL)
 
+    # ASLR info leak function name
+    leak_func_name = rng.choice(LEAK_FUNC_POOL) if aslr else "get_server_config"
+
     # Base addresses — randomize upper bytes, avoiding bad chars
     base_address = _resolve_base_address_arg(args.base_address, bad_chars, arch)
     if base_address is None:
@@ -809,6 +813,7 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
         stack_canary=stack_canary,
         safe_seh=safe_seh,
         fmtstr_leak=fmtstr_leak,
+        leak_func_name=leak_func_name,
         decoy_count=decoy_count,
         decoy_types=decoy_types,
         decoy_names=decoy_names,

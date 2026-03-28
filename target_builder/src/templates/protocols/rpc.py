@@ -181,25 +181,26 @@ def generate_info_leak(config: ServerConfig) -> str:
     if not config.aslr:
         return ""
 
-    return """\
+    name = config.leak_func_name
+    return f"""\
 
     // Opcode 255: Server info - inadvertently leaks internal address
-    if (opcode == INFO_OPCODE) {
+    if (opcode == INFO_OPCODE) {{
         #pragma pack(push, 1)
-        struct {
+        struct {{
             unsigned int uptime;
             unsigned int version;
             void* internal_handle;  // Leaked pointer
-        } info_resp;
+        }} info_resp;
         #pragma pack(pop)
 
         info_resp.uptime = GetTickCount() / 1000;
         info_resp.version = 0x00010000;
-        info_resp.internal_handle = (void*)&main;
+        info_resp.internal_handle = (void*){name};
         send_rpc_response(client, INFO_OPCODE,
                          (char*)&info_resp, sizeof(info_resp));
         return;
-    }"""
+    }}"""
 
 
 def generate_fmtstr_leak(config: ServerConfig) -> str:

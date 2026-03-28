@@ -70,7 +70,7 @@ target_builder --vuln fmtstr --protocol rpc --output server.cpp
 | Flag           | Compile Effect     | Exploitation Impact                    |
 |----------------|--------------------|-----------------------------------------|
 | `--dep`        | `/NXCOMPAT`        | Must build ROP chain to bypass DEP     |
-| `--aslr`       | `/DYNAMICBASE`     | Must leak address via info leak        |
+| `--aslr`       | `/DYNAMICBASE`     | Must leak function pointer via info leak |
 | `--fmtstr-leak`| (no compile flag)  | Adds printf leak command for ASLR bypass practice |
 | `--stack-canary`| `/GS`             | Must leak or bypass stack cookie       |
 | `--safeSEH`    | `/SAFESEH`         | Must use gadget from non-SafeSEH module|

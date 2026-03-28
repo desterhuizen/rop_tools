@@ -139,6 +139,24 @@ BANNER_POOL = [
     "SyncBridge Data Replication v4.0.1",
 ]
 
+# Pool of plausible C++ function names for the ASLR info leak target.
+# The leaked pointer is the address of this function — the attacker must
+# find it in the binary and subtract its offset to compute the EXE base.
+LEAK_FUNC_POOL = [
+    "get_server_config",
+    "init_logging",
+    "validate_license",
+    "check_heartbeat",
+    "refresh_session",
+    "load_registry_key",
+    "query_service_status",
+    "sync_worker_state",
+    "rotate_log_file",
+    "flush_write_cache",
+    "update_metrics",
+    "poll_event_queue",
+]
+
 # Decoy command name pool
 DECOY_COMMAND_POOL = [
     "PROCESS",
@@ -443,6 +461,7 @@ class ServerConfig:
     stack_canary: bool = False
     safe_seh: bool = False
     fmtstr_leak: bool = False
+    leak_func_name: str = "get_server_config"
 
     # Decoys
     decoy_count: int = 0

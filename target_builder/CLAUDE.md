@@ -144,10 +144,16 @@ When `--dep` is set, the server uses the selected API for a legitimate purpose s
 - `NtAllocateVirtualMemory` → low-level allocation wrapper
 
 ### ASLR Info Leak
-When `--aslr` is set, a safe command/endpoint inadvertently leaks an address:
-- TCP: `DEBUG` command prints internal state including a stack/heap pointer
-- HTTP: `GET /info` returns JSON with a "debug_handle" field containing an address
-- RPC: Opcode 255 response includes a pointer in the binary response struct
+When `--aslr` is set, a safe command/endpoint inadvertently leaks a function pointer
+from the server's `.text` section. The attacker must find the function in the
+disassembly (e.g. IDA/Ghidra) and subtract its offset to compute the EXE base.
+- TCP: `DEBUG` command prints "Internal handle: 0x%p" with the function address
+- HTTP: `GET /info` returns JSON with a "debug_handle" field containing the address
+- RPC: Opcode 255 response includes the pointer in the binary response struct
+- The leaked function name is randomized from a pool of 12 plausible names
+  (e.g. `validate_license`, `check_heartbeat`, `flush_write_cache`)
+- Deterministic with `--random-seed` — same seed always picks the same name
+- Config field: `ServerConfig.leak_func_name` (default: `get_server_config`)
 
 ### Format String Info Leak (`--fmtstr-leak`)
 Optional command/endpoint that passes user input directly to `_snprintf()` as the
@@ -266,6 +272,8 @@ Each decoy gets a randomizable command name that sounds plausible (e.g. `PROCESS
 - **ESP realignment gadget routes** (standard density ROP DLL / embedded gadgets)
 - **Base addresses** — EXE and ROP DLL get random upper bytes (e.g. `0x587B0000`)
   avoiding bad chars; use `--base-address` / `--rop-dll-base` to pin
+- **Info leak function name** — when ASLR is active, the leaked function name is
+  picked from `LEAK_FUNC_POOL` (12 names); attacker must find it in disassembly
 
 ### Constrained Randomization
 Any explicit CLI argument is respected as an override during `--random`:
@@ -326,6 +334,21 @@ contradictions detected, comma-lists rejected without `--random`.
 ---
 
 ## Changelog
+
+### March 28, 2026 — ASLR info leak fix + randomized leak function name
+- **fix: ASLR info leak leaked stack address** — `DEBUG`/`GET /info`/opcode 255
+  previously leaked `&local_var` (a stack address), which is useless for computing
+  module base under modern Windows ASLR (stack, heap, and image bases are randomized
+  independently). Replaced with a function pointer into the server's `.text` section.
+  The attacker finds the function in the disassembly and subtracts its RVA to compute
+  the EXE base — a realistic ASLR bypass workflow.
+- **feat: randomized leak function name** — new `LEAK_FUNC_POOL` (12 plausible
+  C++ function names like `validate_license`, `check_heartbeat`, `flush_write_cache`).
+  When `--aslr` is active during `--random`, the function name is picked from the
+  pool (deterministic with `--random-seed`). New config field:
+  `ServerConfig.leak_func_name` (default: `get_server_config`).
+- **New template function**: `base.generate_info_leak_function(config)` emits
+  the leak target function early in the generated C++ (with forward declaration).
 
 ### March 2026
 - Initial design and planning (TODO_VULNSERVER.md)
