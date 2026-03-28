@@ -17,6 +17,7 @@ from target_builder.src.config import (
     VULN_ARCH_COMPAT,
     Architecture,
     BadCharAction,
+    Compiler,
     DecoyType,
     DepBypassApi,
     Difficulty,
@@ -24,12 +25,14 @@ from target_builder.src.config import (
     ExploitConfig,
     ExploitLevel,
     GadgetDensity,
+    HintVerbosity,
     PaddingStyle,
     Protocol,
     RopDllConfig,
     ServerConfig,
     StackLayoutConfig,
     VulnType,
+    find_random_base_address,
     find_safe_base_address,
 )
 from target_builder.src.exploit_skeleton import generate as generate_exploit
@@ -117,7 +120,7 @@ def build_parser() -> argparse.ArgumentParser:
     server.add_argument(
         "--base-address",
         type=str,
-        default="0x11110000",
+        default=None,
         help=(
             'EXE base address: hex address or "auto" to avoid bad chars '
             "(default: 0x11110000)"
@@ -275,7 +278,22 @@ def build_parser() -> argparse.ArgumentParser:
     out.add_argument(
         "--build-script",
         action="store_true",
-        help="Generate build.bat",
+        help="Generate build script (build.bat for MSVC, build.sh for MinGW)",
+    )
+    out.add_argument(
+        "--compiler",
+        type=str,
+        choices=[c.value for c in Compiler],
+        default="msvc",
+        help="Compiler toolchain: msvc, mingw (default: msvc)",
+    )
+    out.add_argument(
+        "--generate-completion",
+        type=str,
+        choices=["bash", "zsh"],
+        default=None,
+        metavar="SHELL",
+        help="Print shell completion script to stdout and exit",
     )
     out.add_argument(
         "--no-color",
@@ -302,6 +320,13 @@ def build_parser() -> argparse.ArgumentParser:
         type=str,
         default="exploit.py",
         help="Output file for exploit (default: exploit.py)",
+    )
+    exp.add_argument(
+        "--exploit-hints",
+        type=str,
+        choices=[h.value for h in HintVerbosity],
+        default="full",
+        help="Hint verbosity in crash exploits: full, minimal, none (default: full)",
     )
 
     # ROP DLL
@@ -333,7 +358,7 @@ def build_parser() -> argparse.ArgumentParser:
     rop.add_argument(
         "--rop-dll-base",
         type=str,
-        default="0x10000000",
+        default=None,
         help="Preferred DLL base address (default: 0x10000000)",
     )
 
@@ -460,6 +485,7 @@ def _args_to_config(args: argparse.Namespace) -> ServerConfig:
         additional_commands=add_cmds,
         banner=args.banner if args.banner else _default_banner(),
         base_address=base_address,
+        compiler=Compiler(args.compiler),
         bad_chars=bad_chars,
         bad_char_action=BadCharAction(args.bad_char_action or "drop"),
         egg_tag=args.egg,
@@ -483,6 +509,7 @@ def _args_to_config(args: argparse.Namespace) -> ServerConfig:
                 ExploitLevel(args.exploit) if args.exploit else ExploitLevel.CONNECT
             ),
             output_file=args.exploit_output,
+            hint_verbosity=HintVerbosity(args.exploit_hints),
         ),
         rop_dll=RopDllConfig(
             enabled=args.rop_dll,
@@ -757,18 +784,15 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
     # Banner
     banner = args.banner if args.banner else rng.choice(BANNER_POOL)
 
-    # Base addresses — auto-select safe addresses avoiding bad chars
+    # Base addresses — randomize upper bytes, avoiding bad chars
     base_address = _resolve_base_address_arg(args.base_address, bad_chars, arch)
     if base_address is None:
-        if bad_chars:
-            base_address = find_safe_base_address(bad_chars, arch)
-        else:
-            base_address = 0x11110000
+        base_address = find_random_base_address(bad_chars, arch, rng)
 
     dll_base = _resolve_base_address_arg(args.rop_dll_base, bad_chars, arch)
     if dll_base is None:
-        if args.rop_dll and bad_chars:
-            dll_base = find_safe_base_address(bad_chars, arch)
+        if args.rop_dll:
+            dll_base = find_random_base_address(bad_chars, arch, rng)
         else:
             dll_base = 0x10000000
 
@@ -785,6 +809,7 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
         ],
         banner=banner,
         base_address=base_address,
+        compiler=Compiler(args.compiler),
         bad_chars=bad_chars,
         bad_char_action=bad_char_action,
         egg_tag=args.egg,
@@ -811,6 +836,7 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
                 ExploitLevel(args.exploit) if args.exploit else ExploitLevel.CONNECT
             ),
             output_file=args.exploit_output,
+            hint_verbosity=HintVerbosity(args.exploit_hints),
         ),
         rop_dll=RopDllConfig(
             enabled=args.rop_dll,
@@ -980,7 +1006,21 @@ def _print_challenge_summary(config: ServerConfig) -> None:
     print("\n".join(lines), file=sys.stderr)
 
 
-def run(argv: Optional[List[str]] = None) -> int:
+def _handle_completion(argv: List[str]) -> bool:
+    """Handle --generate-completion if present. Returns True if handled."""
+    if "--generate-completion" not in argv:
+        return False
+    idx = argv.index("--generate-completion")
+    if idx + 1 < len(argv) and argv[idx + 1] in ("bash", "zsh"):
+        from target_builder.src.completions import generate_completion
+
+        parser = build_parser()
+        print(generate_completion(argv[idx + 1], parser))
+        return True
+    return False
+
+
+def run(argv: Optional[List[str]] = None) -> int:  # noqa: C901
     """Main CLI entry point.
 
     Args:
@@ -989,6 +1029,11 @@ def run(argv: Optional[List[str]] = None) -> int:
     Returns:
         Exit code (0 for success).
     """
+    # Handle --generate-completion early (no --vuln required)
+    _argv = sys.argv[1:] if argv is None else list(argv)
+    if _handle_completion(_argv):
+        return 0
+
     try:
         config = parse_args(argv)
     except SystemExit:
@@ -1010,15 +1055,19 @@ def run(argv: Optional[List[str]] = None) -> int:
 
     # Generate build script
     if config.build_script:
-        bat_file = (
-            config.output_file.rsplit(".", 1)[0] + ".bat"
+        if config.compiler == Compiler.MINGW:
+            script_ext = ".sh"
+        else:
+            script_ext = ".bat"
+        script_file = (
+            config.output_file.rsplit(".", 1)[0] + script_ext
             if config.output_file
-            else "build.bat"
+            else "build" + script_ext
         )
-        bat_content = generate_build(config)
-        with open(bat_file, "w") as f:
-            f.write(bat_content)
-        print(f"[+] Build script: {bat_file}", file=sys.stderr)
+        script_content = generate_build(config)
+        with open(script_file, "w") as f:
+            f.write(script_content)
+        print(f"[+] Build script: {script_file}", file=sys.stderr)
 
     # Generate exploit skeleton
     if config.exploit.enabled:

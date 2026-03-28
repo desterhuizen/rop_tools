@@ -25,6 +25,13 @@ class Architecture(Enum):
     X64 = "x64"
 
 
+class Compiler(Enum):
+    """Target compiler toolchain."""
+
+    MSVC = "msvc"
+    MINGW = "mingw"
+
+
 class Protocol(Enum):
     """Network protocol for the generated server."""
 
@@ -66,6 +73,14 @@ class ExploitLevel(Enum):
     CONNECT = "connect"
     INTERACT = "interact"
     CRASH = "crash"
+
+
+class HintVerbosity(Enum):
+    """Level of hint detail in crash-level exploit skeletons."""
+
+    FULL = "full"
+    MINIMAL = "minimal"
+    NONE = "none"
 
 
 class GadgetDensity(Enum):
@@ -295,6 +310,39 @@ def find_safe_base_address(bad_chars: List[int], arch: "Architecture") -> int:
     )
 
 
+def find_random_base_address(
+    bad_chars: List[int],
+    arch: "Architecture",
+    rng: object,
+) -> int:
+    """Pick a random 64KB-aligned base address avoiding bad chars.
+
+    Randomly selects upper two bytes (for x86) that aren't in bad_chars,
+    producing addresses like 0x62340000 instead of always 0x11110000.
+    Falls back to find_safe_base_address if no random pick works quickly.
+
+    Args:
+        bad_chars: Byte values to avoid in upper address bytes.
+        arch: Target architecture.
+        rng: A random.Random instance for reproducible selection.
+    """
+    bad_set = set(bad_chars)
+    # Valid byte range for upper bytes: 0x01-0x7F (stay in user-space for x86)
+    safe_bytes = [b for b in range(0x01, 0x80) if b not in bad_set]
+    if not safe_bytes:
+        return find_safe_base_address(bad_chars, arch)
+
+    # Try random combinations
+    for _ in range(100):
+        b3 = rng.choice(safe_bytes)  # byte 3 (highest)
+        b2 = rng.choice(safe_bytes)  # byte 2
+        addr = (b3 << 24) | (b2 << 16)
+        if not address_conflicts_with_bad_chars(addr, bad_chars, arch):
+            return addr
+
+    return find_safe_base_address(bad_chars, arch)
+
+
 @dataclass
 class StackLayoutConfig:
     """Configuration for stack layout variation in the vulnerable function.
@@ -346,6 +394,7 @@ class ExploitConfig:
     enabled: bool = False
     level: ExploitLevel = ExploitLevel.CONNECT
     output_file: str = "exploit.py"
+    hint_verbosity: HintVerbosity = HintVerbosity.FULL
 
 
 @dataclass
@@ -372,6 +421,9 @@ class ServerConfig:
 
     # Base address — default 0x11110000 avoids null bytes in code addresses
     base_address: int = 0x11110000
+
+    # Compiler toolchain
+    compiler: Compiler = Compiler.MSVC
 
     # Bad characters
     bad_chars: List[int] = field(default_factory=list)
@@ -477,6 +529,19 @@ class ServerConfig:
             if self.rop_dll.enabled:
                 raise ValueError(
                     "--embedded-gadgets and --rop-dll are mutually exclusive"
+                )
+
+        # MinGW constraints — inline asm gadgets are MSVC-only
+        if self.compiler == Compiler.MINGW:
+            if self.rop_dll.enabled:
+                raise ValueError(
+                    "--rop-dll requires MSVC inline assembly; "
+                    "use --compiler msvc for --rop-dll"
+                )
+            if self.embedded_gadgets.enabled:
+                raise ValueError(
+                    "--embedded-gadgets requires MSVC inline assembly; "
+                    "use --compiler msvc for --embedded-gadgets"
                 )
 
         # Stack layout validation

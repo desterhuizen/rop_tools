@@ -368,6 +368,17 @@ pip install -r requirements-lint.txt
   - Build script generation with correct cl.exe flags
   - 114 tests across 6 test files
 
+### March 28, 2026 — Exploit improvements, MinGW support, shell completion
+- **target_builder**: Added `p32int()`/`p64int()` signed integer packing helpers
+  to exploit skeletons. New `--exploit-hints {full,minimal,none}` flag controls
+  hint verbosity in crash exploits.
+- **target_builder**: Added `--compiler {msvc,mingw}` for MinGW cross-compilation.
+  Generates `build.sh` with correct GCC flags. `--rop-dll`/`--embedded-gadgets`
+  remain MSVC-only.
+- **target_builder**: Added `--generate-completion {bash,zsh}` for shell tab
+  completion. Auto-generated from argparse parser.
+- 276 tests (was 219).
+
 ### March 28, 2026 — Constrained randomization + C++ generation fixes
 - **target_builder**: Constrained `--random` mode — explicit CLI args now
   respected as overrides. Comma-separated `--vuln bof,seh`, `--protocol`,
@@ -378,7 +389,8 @@ pip install -r requirements-lint.txt
 - **target_builder**: Fixed C++ generation bugs — invalid `req->body` as
   function parameter names, wrong `filter_bad_chars` variable names,
   `#define`/struct ordering issues. Fixed fmtstr crash exploit and `%` bad
-  char exclusion. 219 tests (was 189).
+  char exclusion. Randomized base addresses for EXE and DLL during `--random`.
+  219 tests (was 189).
 
 ### March 27, 2026 — Format string info leak + Worksheet `next` command + SEH overflow fix
 - **target_builder**: Added `--fmtstr-leak` flag — optional format string leak

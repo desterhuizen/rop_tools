@@ -103,7 +103,7 @@ target_builder --vuln bof --base-address 0x22220000
 target_builder --vuln bof --bad-chars "00,0a,0d,11" --base-address auto
 ```
 
-When `--random` is used with bad characters, a safe base address is automatically selected.
+When `--random` is used, both the server EXE and ROP DLL base addresses are randomized (e.g. `0x587B0000`, `0x4A1F0000`) while avoiding bad characters in the upper bytes. Use `--base-address` to pin a specific address instead.
 
 Only the upper 2 bytes of the base address matter — the lower 2 bytes (`0x0000` from 64KB alignment) are replaced by the RVA offset in actual code addresses.
 
@@ -154,6 +154,23 @@ target_builder --vuln bof --exploit crash --exploit-output exploit.py
 | `crash`    | Connect + interact + send overflow payload with TODOs     |
 
 Adapted per protocol (raw socket for TCP, HTTP requests for HTTP, binary packing for RPC).
+
+### Exploit Hints
+
+Control how much guidance the crash exploit includes:
+
+```bash
+# Full hints (default) — TODO comments, stack layout analysis, offset guidance
+target_builder --vuln bof --exploit crash --exploit-hints full
+
+# Minimal — just "TODO: find EIP offset"
+target_builder --vuln bof --exploit crash --exploit-hints minimal
+
+# None — bare crash function, no comments
+target_builder --vuln bof --exploit crash --exploit-hints none
+```
+
+The exploit skeleton also includes `p32int()` / `p64int()` helpers for packing signed integers (e.g. `-1` becomes `\xff\xff\xff\xff`).
 
 ---
 
@@ -304,10 +321,13 @@ Randomization:
 
 Output:
   --output FILE            Output .cpp file (default: stdout)
-  --build-script           Generate build.bat
+  --build-script           Generate build script (.bat for MSVC, .sh for MinGW)
+  --compiler {msvc,mingw}  Compiler toolchain (default: msvc)
+  --generate-completion {bash,zsh}  Print shell completion script and exit
   --exploit {connect,interact,crash}
   --exploit-output FILE    Exploit script output
-  --rop-dll                Generate companion ROP DLL
+  --exploit-hints {full,minimal,none}  Hint verbosity in crash exploits (default: full)
+  --rop-dll                Generate companion ROP DLL (MSVC only)
   --rop-dll-output FILE    DLL source output
   --rop-dll-gadgets {minimal,standard,full}
   --rop-dll-base ADDRESS   DLL preferred base address
@@ -317,11 +337,47 @@ Output:
 
 ---
 
-## Compiling Generated Servers
+## Compiler Support
+
+### MSVC (default)
 
 Generated servers include compile instructions in the header comment. You need:
 - **Visual Studio** with C++ Desktop Development workload (or Build Tools alone)
 - **Visual Studio Native Tools Command Prompt** (x86 or x64 matching `--arch`)
+
+```bat
+REM From the Visual Studio x86 Native Tools Command Prompt:
+cl.exe /GS- /EHsc server.cpp /link ws2_32.lib /DYNAMICBASE:NO /NXCOMPAT:NO /SAFESEH:NO
+
+REM Or use the generated build script:
+build.bat
+```
+
+### MinGW Cross-Compilation
+
+Cross-compile from Linux using MinGW-w64:
+
+```bash
+# Generate with MinGW build script
+target_builder --vuln bof --compiler mingw --build-script --output server.cpp
+
+# Build (requires mingw-w64 package)
+./build.sh
+
+# Test with Wine
+wine ./server.exe
+```
+
+The MinGW build script uses `i686-w64-mingw32-g++` (x86) or `x86_64-w64-mingw32-g++` (x64) with equivalent flags:
+
+| MSVC Flag | MinGW Equivalent |
+|-----------|-----------------|
+| `/GS-` | `-fno-stack-protector` |
+| `/NXCOMPAT` | `-Wl,--nxcompat` |
+| `/DYNAMICBASE` | `-Wl,--dynamicbase` |
+| `/BASE:0xADDR` | `-Wl,--image-base,0xADDR` |
+
+**Limitations**: `--rop-dll` and `--embedded-gadgets` require MSVC inline assembly and are not available with `--compiler mingw`.
 
 ### Visual Studio Build Tools Setup
 
@@ -331,19 +387,26 @@ Build Tools is the lightest option (no IDE needed):
 2. Click Modify on "Build Tools 2026"
 3. Check "Desktop development with C++"
 4. Under "Individual components" make sure these are checked:
-   - MSVC v144 — VS 2026 C++ x64/x86 build tools
+   - MSVC v144 -- VS 2026 C++ x64/x86 build tools
    - Windows SDK (latest version)
 5. Click Install/Modify
 
-### Compiling
+---
 
-```bat
-REM From the Visual Studio x86 Native Tools Command Prompt:
-cl.exe /GS- /EHsc server.cpp /link ws2_32.lib /DYNAMICBASE:NO /NXCOMPAT:NO /SAFESEH:NO
+## Shell Completion
 
-REM Or use the generated build script:
-build.bat
+Generate tab-completion scripts for your shell:
+
+```bash
+# Bash — add to ~/.bashrc or ~/.bash_completion.d/
+target_builder --generate-completion bash > ~/.bash_completion.d/target_builder
+source ~/.bash_completion.d/target_builder
+
+# Zsh — place in your $fpath
+target_builder --generate-completion zsh > ~/.zsh/completions/_target_builder
 ```
+
+Completions are auto-generated from the argparse definition, so new flags are included automatically.
 
 ---
 
@@ -357,7 +420,7 @@ make test-target-builder
 python3 -m unittest discover -s target_builder/tests -p "test_*.py" -t . -v
 ```
 
-114 tests covering config validation, bad char generation, all vulnerability and protocol templates, the renderer pipeline, exploit skeleton output, and full CLI integration.
+276 tests covering config validation, bad char generation, all vulnerability and protocol templates, the renderer pipeline, exploit skeleton output, shell completion generation, and full CLI integration.
 
 ---
 

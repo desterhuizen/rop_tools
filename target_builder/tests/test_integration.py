@@ -11,8 +11,10 @@ from target_builder.src.cli import parse_args, run
 from target_builder.src.config import (
     Architecture,
     BadCharAction,
+    Compiler,
     DepBypassApi,
     GadgetDensity,
+    HintVerbosity,
     PaddingStyle,
     Protocol,
     RopDllConfig,
@@ -700,6 +702,185 @@ class TestBackwardCompatibility(unittest.TestCase):
             config.stack_layout.padding_style, PaddingStyle.MIXED
         )
         self.assertEqual(config.dep_api, DepBypassApi.VIRTUALALLOC)
+
+
+class TestCompilerFlag(unittest.TestCase):
+    """Test --compiler flag parsing and validation."""
+
+    def test_compiler_default_msvc(self):
+        config = parse_args(["--vuln", "bof"])
+        self.assertEqual(config.compiler, Compiler.MSVC)
+
+    def test_compiler_mingw(self):
+        config = parse_args(["--vuln", "bof", "--compiler", "mingw"])
+        self.assertEqual(config.compiler, Compiler.MINGW)
+
+    def test_mingw_rejects_rop_dll(self):
+        with self.assertRaises((ValueError, SystemExit)):
+            parse_args(["--vuln", "bof", "--compiler", "mingw", "--rop-dll"])
+
+    def test_mingw_rejects_embedded_gadgets(self):
+        with self.assertRaises((ValueError, SystemExit)):
+            parse_args(
+                ["--vuln", "bof", "--compiler", "mingw", "--embedded-gadgets"]
+            )
+
+    def test_mingw_build_script(self):
+        from target_builder.src.build_script import generate
+
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            compiler=Compiler.MINGW,
+        )
+        result = generate(config)
+        self.assertIn("#!/bin/bash", result)
+        self.assertIn("i686-w64-mingw32-g++", result)
+        self.assertIn("-lws2_32", result)
+
+    def test_mingw_x64_compiler_name(self):
+        from target_builder.src.build_script import generate
+
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            arch=Architecture.X64,
+            compiler=Compiler.MINGW,
+        )
+        result = generate(config)
+        self.assertIn("x86_64-w64-mingw32-g++", result)
+
+    def test_mingw_dep_flags(self):
+        from target_builder.src.build_script import generate
+
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            dep=True,
+            compiler=Compiler.MINGW,
+        )
+        result = generate(config)
+        self.assertIn("-Wl,--nxcompat", result)
+        self.assertNotIn("-Wl,--disable-nxcompat", result)
+
+    def test_mingw_aslr_flags(self):
+        from target_builder.src.build_script import generate
+
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            aslr=True,
+            compiler=Compiler.MINGW,
+        )
+        result = generate(config)
+        self.assertIn("-Wl,--dynamicbase", result)
+
+    def test_mingw_base_address(self):
+        from target_builder.src.build_script import generate
+
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            base_address=0x22220000,
+            compiler=Compiler.MINGW,
+        )
+        result = generate(config)
+        self.assertIn("-Wl,--image-base,0x22220000", result)
+
+    def test_mingw_seh_exceptions_flag(self):
+        from target_builder.src.build_script import generate
+
+        config = ServerConfig(
+            vuln_type=VulnType.SEH,
+            compiler=Compiler.MINGW,
+        )
+        result = generate(config)
+        self.assertIn("-fseh-exceptions", result)
+
+    def test_mingw_wine_comment(self):
+        from target_builder.src.build_script import generate
+
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            compiler=Compiler.MINGW,
+        )
+        result = generate(config)
+        self.assertIn("wine", result)
+
+    def test_mingw_no_stack_protector(self):
+        from target_builder.src.build_script import generate
+
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            stack_canary=False,
+            compiler=Compiler.MINGW,
+        )
+        result = generate(config)
+        self.assertIn("-fno-stack-protector", result)
+
+    def test_mingw_stack_protector(self):
+        from target_builder.src.build_script import generate
+
+        config = ServerConfig(
+            vuln_type=VulnType.BOF,
+            stack_canary=True,
+            compiler=Compiler.MINGW,
+        )
+        result = generate(config)
+        self.assertIn("-fstack-protector", result)
+
+
+class TestExploitHintsFlag(unittest.TestCase):
+    """Test --exploit-hints flag parsing."""
+
+    def test_default_is_full(self):
+        config = parse_args(["--vuln", "bof", "--exploit", "crash"])
+        self.assertEqual(config.exploit.hint_verbosity, HintVerbosity.FULL)
+
+    def test_minimal(self):
+        config = parse_args(
+            ["--vuln", "bof", "--exploit", "crash", "--exploit-hints", "minimal"]
+        )
+        self.assertEqual(config.exploit.hint_verbosity, HintVerbosity.MINIMAL)
+
+    def test_none(self):
+        config = parse_args(
+            ["--vuln", "bof", "--exploit", "crash", "--exploit-hints", "none"]
+        )
+        self.assertEqual(config.exploit.hint_verbosity, HintVerbosity.NONE)
+
+
+class TestGenerateCompletion(unittest.TestCase):
+    """Test --generate-completion integration."""
+
+    def test_bash_exits_cleanly(self):
+        result = run(["--generate-completion", "bash"])
+        self.assertEqual(result, 0)
+
+    def test_zsh_exits_cleanly(self):
+        result = run(["--generate-completion", "zsh"])
+        self.assertEqual(result, 0)
+
+    def test_no_vuln_required(self):
+        """Completion should work without --vuln."""
+        result = run(["--generate-completion", "bash"])
+        self.assertEqual(result, 0)
+
+
+class TestPragmaComment(unittest.TestCase):
+    """Test pragma comment guard for different compilers."""
+
+    def test_msvc_pragma(self):
+        from target_builder.src.templates.base import generate_pragma_comment
+
+        config = ServerConfig(compiler=Compiler.MSVC)
+        result = generate_pragma_comment(config)
+        self.assertIn('#pragma comment(lib, "ws2_32.lib")', result)
+        self.assertNotIn("#ifdef", result)
+
+    def test_mingw_pragma_guarded(self):
+        from target_builder.src.templates.base import generate_pragma_comment
+
+        config = ServerConfig(compiler=Compiler.MINGW)
+        result = generate_pragma_comment(config)
+        self.assertIn("#ifdef _MSC_VER", result)
+        self.assertIn("#endif", result)
+        self.assertIn('#pragma comment(lib, "ws2_32.lib")', result)
 
 
 if __name__ == "__main__":
