@@ -139,6 +139,21 @@ BANNER_POOL = [
     "SyncBridge Data Replication v4.0.1",
 ]
 
+# Data staging command name pool (randomizable).
+# The command stores received data on the heap for egghunter retrieval.
+DATA_STAGING_CMD_POOL = [
+    "STORE",
+    "CACHE",
+    "DEPOSIT",
+    "UPLOAD",
+    "ARCHIVE",
+    "SAVE",
+    "STASH",
+    "WRITE",
+    "PERSIST",
+    "QUEUE",
+]
+
 # Pool of plausible C++ function names for the ASLR info leak target.
 # The leaked pointer is the address of this function — the attacker must
 # find it in the binary and subtract its offset to compute the EXE base.
@@ -462,6 +477,8 @@ class ServerConfig:
     safe_seh: bool = False
     fmtstr_leak: bool = False
     leak_func_name: str = "get_server_config"
+    data_staging: bool = False
+    data_staging_cmd: str = "STORE"
 
     # Decoys
     decoy_count: int = 0

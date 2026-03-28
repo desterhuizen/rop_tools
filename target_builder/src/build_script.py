@@ -155,6 +155,7 @@ def _generate_mingw(config: ServerConfig) -> str:
 
     if config.aslr:
         link_flags.append("-Wl,--dynamicbase")
+        link_flags.append("-Wl,--enable-reloc-section")
     else:
         link_flags.append("-Wl,--disable-dynamicbase")
 

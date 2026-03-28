@@ -12,6 +12,7 @@ from typing import FrozenSet, List, Optional, Type
 from target_builder.src.build_script import generate as generate_build
 from target_builder.src.config import (
     BANNER_POOL,
+    DATA_STAGING_CMD_POOL,
     DECOY_COMMAND_POOL,
     DIFFICULTY_PRESETS,
     LEAK_FUNC_POOL,
@@ -236,6 +237,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--fmtstr-leak",
         action="store_true",
         help="Add a format string leak command for ASLR bypass practice",
+    )
+    mit.add_argument(
+        "--data-staging",
+        action="store_true",
+        help="Add a data staging command that stores data on the heap "
+        "(for egghunter practice)",
     )
 
     # Randomization
@@ -496,6 +503,7 @@ def _args_to_config(args: argparse.Namespace) -> ServerConfig:
         stack_canary=args.stack_canary,
         safe_seh=args.safeSEH,
         fmtstr_leak=args.fmtstr_leak,
+        data_staging=args.data_staging,
         decoy_count=args.decoy_commands,
         difficulty=(Difficulty(args.difficulty) if args.difficulty else None),
         output_file=args.output,
@@ -538,6 +546,7 @@ _PROTECTION_FLAG_MAP = {
     "canary": "stack_canary",
     "safeseh": "safeSEH",
     "fmtstr-leak": "fmtstr_leak",
+    "data-staging": "data_staging",
 }
 
 
@@ -706,6 +715,17 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
         if not fmtstr_leak and difficulty == Difficulty.HARD and aslr:
             fmtstr_leak = rng.random() > 0.5
 
+    # Data staging
+    if "data-staging" in excluded:
+        data_staging = False
+    else:
+        data_staging = args.data_staging
+        if not data_staging:
+            if difficulty == Difficulty.HARD:
+                data_staging = rng.random() > 0.5
+            elif difficulty == Difficulty.MEDIUM:
+                data_staging = rng.random() > 0.7
+
     # DEP API — respect explicit --dep-api
     if args.dep_api is not None:
         dep_api = DepBypassApi(args.dep_api)
@@ -777,6 +797,9 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
     # ASLR info leak function name
     leak_func_name = rng.choice(LEAK_FUNC_POOL) if aslr else "get_server_config"
 
+    # Data staging command name
+    data_staging_cmd = rng.choice(DATA_STAGING_CMD_POOL) if data_staging else "STORE"
+
     # Base addresses — randomize upper bytes, avoiding bad chars
     base_address = _resolve_base_address_arg(args.base_address, bad_chars, arch)
     if base_address is None:
@@ -814,6 +837,8 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
         safe_seh=safe_seh,
         fmtstr_leak=fmtstr_leak,
         leak_func_name=leak_func_name,
+        data_staging=data_staging,
+        data_staging_cmd=data_staging_cmd,
         decoy_count=decoy_count,
         decoy_types=decoy_types,
         decoy_names=decoy_names,
@@ -961,6 +986,8 @@ def _print_challenge_summary(config: ServerConfig) -> None:
         mitigations.append("SafeSEH")
     if config.fmtstr_leak:
         mitigations.append("FmtStr Leak")
+    if config.data_staging:
+        mitigations.append(f"Data Staging ({config.data_staging_cmd})")
 
     # Stack layout info
     layout = config.stack_layout

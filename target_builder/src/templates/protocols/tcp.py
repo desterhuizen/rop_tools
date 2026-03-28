@@ -59,6 +59,7 @@ def generate_command_dispatcher(
     decoy_handler_calls: str,
     info_leak_call: str,
     fmtstr_leak_call: str = "",
+    data_staging_call: str = "",
 ) -> str:
     """Generate the TCP command dispatcher.
 
@@ -69,6 +70,7 @@ def generate_command_dispatcher(
         decoy_handler_calls: C++ code for decoy command branches.
         info_leak_call: C++ code for ASLR info leak command (or empty).
         fmtstr_leak_call: C++ code for format string leak command (or empty).
+        data_staging_call: C++ code for data staging command (or empty).
     """
     cmd_name = config.command
 
@@ -108,6 +110,10 @@ void dispatch_command(SOCKET client, char* buf, int len) {{
     # Format string leak
     if fmtstr_leak_call:
         parts.append(fmtstr_leak_call)
+
+    # Data staging
+    if data_staging_call:
+        parts.append(data_staging_call)
 
     # Decoy commands
     if decoy_handler_calls:
@@ -187,6 +193,28 @@ def generate_fmtstr_leak(config: ServerConfig) -> str:
     }"""
 
 
+def generate_data_staging(config: ServerConfig) -> str:
+    """Generate data staging command that stores data on the heap."""
+    if not config.data_staging:
+        return ""
+
+    cmd = config.data_staging_cmd
+    return f"""\
+
+    // {cmd} command - stores data in persistent heap buffer
+    if (_stricmp(cmd, "{cmd}") == 0) {{
+        if (data && data_len > 0) {{
+            handle_data_staging(data, data_len);
+            const char* msg = "{cmd}: data stored\\n";
+            send(client, msg, (int)strlen(msg), 0);
+        }} else {{
+            const char* msg = "{cmd}: missing argument\\n";
+            send(client, msg, (int)strlen(msg), 0);
+        }}
+        return;
+    }}"""
+
+
 def _generate_help_branch(config: ServerConfig) -> str:
     """Generate HELP command response listing all commands."""
     all_cmds = [config.command] + config.additional_commands
@@ -195,6 +223,8 @@ def _generate_help_branch(config: ServerConfig) -> str:
         cmd_list += "\\n  DEBUG"
     if config.fmtstr_leak:
         cmd_list += "\\n  ECHO"
+    if config.data_staging:
+        cmd_list += f"\\n  {config.data_staging_cmd}"
 
     return f"""\
 

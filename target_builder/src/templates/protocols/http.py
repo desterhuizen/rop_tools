@@ -127,6 +127,7 @@ def generate_command_dispatcher(
     decoy_handler_calls: str,
     info_leak_call: str,
     fmtstr_leak_call: str = "",
+    data_staging_call: str = "",
 ) -> str:
     """Generate the HTTP request dispatcher."""
     vuln_path = config.command
@@ -172,6 +173,10 @@ void dispatch_http(SOCKET client, http_request_t* req) {{
     # Safe endpoints
     parts.append(safe_handler_calls)
 
+    # Data staging
+    if data_staging_call:
+        parts.append(data_staging_call)
+
     # Decoy endpoints
     if decoy_handler_calls:
         parts.append(decoy_handler_calls)
@@ -209,6 +214,8 @@ def generate_safe_commands(config: ServerConfig) -> str:
         endpoints += ", GET /info"
     if config.fmtstr_leak:
         endpoints += ", POST /echo"
+    if config.data_staging:
+        endpoints += f", POST /{config.data_staging_cmd.lower()}"
 
     branches.append(f"""\
 
@@ -269,6 +276,30 @@ def generate_fmtstr_leak(config: ServerConfig) -> str:
         }
         return;
     }"""
+
+
+def generate_data_staging(config: ServerConfig) -> str:
+    """Generate POST /store endpoint that stores data on the heap."""
+    if not config.data_staging:
+        return ""
+
+    path = "/" + config.data_staging_cmd.lower()
+    cmd = config.data_staging_cmd
+    return f"""\
+
+    // POST {path} - stores data in persistent heap buffer
+    if (_stricmp(req->method, "POST") == 0 &&
+        _stricmp(req->path, "{path}") == 0) {{
+        if (req->body_len > 0) {{
+            handle_data_staging(req->body, req->body_len);
+            send_http_response(client, 200, "OK",
+                             "text/plain", "{cmd}: data stored\\n");
+        }} else {{
+            send_http_response(client, 400, "Bad Request",
+                             "text/plain", "Missing body\\n");
+        }}
+        return;
+    }}"""
 
 
 def _indent(text: str, spaces: int) -> str:

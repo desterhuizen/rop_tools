@@ -15,6 +15,7 @@ from target_builder.src.config import (
     VulnType,
 )
 from target_builder.src.templates import base, buffer_overflow
+from target_builder.src.templates import data_staging as data_staging_templates
 from target_builder.src.templates import decoys as decoy_templates
 from target_builder.src.templates import egghunter, format_string, rop_dll, seh_overflow
 from target_builder.src.templates.protocols import http as http_proto
@@ -83,6 +84,11 @@ def render(config: ServerConfig) -> str:
         )
         sections.append("")
 
+    # 6c. Data staging function
+    staging_func = data_staging_templates.generate_data_staging_function(config)
+    if staging_func:
+        sections.append(staging_func)
+
     # 7. Decoy functions
     decoy_specs = _resolve_decoy_specs(config)
     if decoy_specs:
@@ -104,6 +110,7 @@ def render(config: ServerConfig) -> str:
     safe_calls = proto_module.generate_safe_commands(config)
     info_leak = proto_module.generate_info_leak(config)
     fmtstr_leak = proto_module.generate_fmtstr_leak(config)
+    data_staging = proto_module.generate_data_staging(config)
     decoy_calls = ""
     if decoy_specs:
         decoy_calls = decoy_templates.generate_decoy_dispatcher_branches(
@@ -112,7 +119,13 @@ def render(config: ServerConfig) -> str:
 
     # Command dispatcher
     dispatcher = proto_module.generate_command_dispatcher(
-        config, vuln_call, safe_calls, decoy_calls, info_leak, fmtstr_leak
+        config,
+        vuln_call,
+        safe_calls,
+        decoy_calls,
+        info_leak,
+        fmtstr_leak,
+        data_staging,
     )
     sections.append(dispatcher)
     sections.append("")
@@ -137,6 +150,9 @@ def _generate_forward_declarations(config: ServerConfig) -> str:
 
     if config.aslr:
         decls.append(f"int {config.leak_func_name}(void);")
+
+    if config.data_staging:
+        decls.append("void handle_data_staging(char* data, int data_len);")
 
     if config.bad_chars:
         decls.append("int filter_bad_chars(char* buf, int len);")

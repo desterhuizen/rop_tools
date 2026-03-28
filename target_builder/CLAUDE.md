@@ -81,6 +81,7 @@ src/
     ├── egghunter.py       # Small stack buffer + heap stash for remainder (x86 only)
     ├── format_string.py   # printf(user_data) — no format specifier
     ├── stack_padding.py   # Stack layout variation (padding vars + landing pad)
+    ├── data_staging.py    # Persistent heap buffer for egghunter data staging
     ├── decoys.py          # Safe-looking commands (strncpy, bounded memcpy, etc.)
     └── rop_dll.py         # DLL or embedded __asm gadget blocks
 ```
@@ -117,11 +118,11 @@ Each protocol template provides:
 - `generate_command_dispatcher(config)` → C++ command routing logic
 - `generate_banner_send(config)` → C++ code to send banner on connect
 
-| Protocol | Recv Pattern            | Command Routing            | Info Leak Endpoint     | FmtStr Leak Endpoint   |
-|----------|-------------------------|----------------------------|------------------------|------------------------|
-| `tcp`    | `recv` + string parse   | `strncmp(buf, "CMD", N)`   | `DEBUG` command        | `ECHO` command         |
-| `http`   | `recv` + HTTP parse     | Method + path matching     | `GET /info`            | `POST /echo`           |
-| `rpc`    | `recv` + length/opcode  | Opcode switch              | Opcode 255             | Opcode 254             |
+| Protocol | Recv Pattern            | Command Routing            | Info Leak     | FmtStr Leak   | Data Staging          |
+|----------|-------------------------|----------------------------|---------------|---------------|-----------------------|
+| `tcp`    | `recv` + string parse   | `strncmp(buf, "CMD", N)`   | `DEBUG` cmd   | `ECHO` cmd    | `STORE` cmd (or rand) |
+| `http`   | `recv` + HTTP parse     | Method + path matching     | `GET /info`   | `POST /echo`  | `POST /store` (or rand)|
+| `rpc`    | `recv` + length/opcode  | Opcode switch              | Opcode 255    | Opcode 254    | Opcode 253            |
 
 ---
 
@@ -166,6 +167,22 @@ leak module base addresses for ASLR bypass.
 - Prints a warning (not error) if used without `--aslr`
 - Coexists with the `--aslr` info leak (both commands are generated)
 - Randomization: only enabled for hard difficulty when ASLR is active
+
+### Data Staging (`--data-staging`)
+Optional command/endpoint that stores received data in a persistent 64KB heap
+buffer (`malloc`, never freed). Enables egghunter practice with any vuln type —
+the attacker sends shellcode (with egg tag) via the staging command, then overflows
+with a small egghunter stub that searches process memory for the egg.
+- TCP: `STORE <data>` (or randomized command name) — stores data, responds "data stored"
+- HTTP: `POST /store` (or randomized path) — stores body, responds 200
+- RPC: Opcode 253 — stores payload, responds "STORED"
+- Works with any `--vuln` type (especially useful with tight `--landing-pad`)
+- Command name randomized from `DATA_STAGING_CMD_POOL` (10 names) during `--random`
+- Config fields: `ServerConfig.data_staging`, `ServerConfig.data_staging_cmd`
+- Randomization: hard=50% chance, medium=30% chance
+- Template: `templates/data_staging.py` — `generate_data_staging_function()` for
+  globals and `handle_data_staging()`, protocol templates each have
+  `generate_data_staging()` for dispatcher branches
 
 ---
 
@@ -274,6 +291,8 @@ Each decoy gets a randomizable command name that sounds plausible (e.g. `PROCESS
   avoiding bad chars; use `--base-address` / `--rop-dll-base` to pin
 - **Info leak function name** — when ASLR is active, the leaked function name is
   picked from `LEAK_FUNC_POOL` (12 names); attacker must find it in disassembly
+- **Data staging** — heap staging command; hard=50%, medium=30%. Command name
+  picked from `DATA_STAGING_CMD_POOL` (10 names)
 
 ### Constrained Randomization
 Any explicit CLI argument is respected as an override during `--random`:
@@ -334,6 +353,19 @@ contradictions detected, comma-lists rejected without `--random`.
 ---
 
 ## Changelog
+
+### March 28, 2026 — Data staging, ASLR leak fix, MinGW ASLR fix
+- **feat: `--data-staging`** — Optional command/endpoint that stores received data
+  in a persistent 64KB heap buffer for egghunter practice. Works with any vuln type.
+  TCP: `STORE <data>`, HTTP: `POST /store`, RPC: Opcode 253. Command name randomized
+  from `DATA_STAGING_CMD_POOL` (10 names). Randomization: hard=50%, medium=30%.
+  New template: `templates/data_staging.py`. New config fields:
+  `ServerConfig.data_staging`, `ServerConfig.data_staging_cmd`.
+  `--exclude-protection data-staging` supported.
+- **fix: MinGW ASLR not working** — MinGW strips relocations from EXEs by default,
+  so `--dynamicbase` was set in the PE header but Windows couldn't relocate the
+  binary. Added `-Wl,--enable-reloc-section` to the MinGW build script when
+  `--aslr` is enabled.
 
 ### March 28, 2026 — ASLR info leak fix + randomized leak function name
 - **fix: ASLR info leak leaked stack address** — `DEBUG`/`GET /info`/opcode 255

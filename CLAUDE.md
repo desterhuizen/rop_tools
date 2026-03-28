@@ -89,6 +89,7 @@ rop_tools/
 │   │       ├── base.py         # Winsock2 skeleton
 │   │       ├── protocols/      # TCP, HTTP, RPC handlers
 │   │       ├── buffer_overflow.py, seh_overflow.py, egghunter.py, format_string.py
+│   │       ├── data_staging.py  # Persistent heap buffer for egghunter staging
 │   │       ├── decoys.py       # Non-exploitable decoy commands
 │   │       └── rop_dll.py      # Companion DLL with ROP gadgets
 │   └── tests/                  # Target builder tests (114 tests)
@@ -368,12 +369,19 @@ pip install -r requirements-lint.txt
   - Build script generation with correct cl.exe flags
   - 114 tests across 6 test files
 
-### March 28, 2026 — ASLR info leak fix + zsh completion fix
+### March 28, 2026 — Data staging, ASLR leak fix, MinGW ASLR fix, zsh completion fix
+- **target_builder**: New `--data-staging` flag — adds a command that stores data
+  in a persistent 64KB heap buffer for egghunter practice. TCP: `STORE`, HTTP:
+  `POST /store`, RPC: opcode 253. Command name randomized from 10-name pool.
+  Supports `--exclude-protection data-staging`. Hard=50%, medium=30% during random.
 - **target_builder**: Fixed ASLR info leak — previously leaked `&local_var` (stack
   address, useless under modern ASLR). Now leaks a function pointer into the
   server's `.text` section. Attacker subtracts the RVA to compute EXE base.
   Function name randomized from 12-name pool (`LEAK_FUNC_POOL`) when `--random`
   is used with ASLR. New config field: `ServerConfig.leak_func_name`.
+- **target_builder**: Fixed MinGW ASLR — added `-Wl,--enable-reloc-section` to
+  MinGW build script when `--aslr` is enabled. Without relocations, Windows
+  couldn't relocate the binary despite `--dynamicbase` being set.
 - **lib/completions.py**: Fixed zsh completion generation — square brackets in
   argparse help text (e.g. `[eax]`) broke `_arguments` parsing. Now replaced
   with parentheses in zsh completion descriptions.

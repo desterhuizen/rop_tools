@@ -26,7 +26,8 @@ typedef struct {{
 #define RPC_HEADER_SIZE sizeof(rpc_header_t)
 #define VULN_OPCODE {vuln_opcode}
 #define PING_OPCODE 0
-#define INFO_OPCODE 255"""
+#define INFO_OPCODE 255
+#define STAGING_OPCODE 253"""
 
 
 def generate_connection_handler(config: ServerConfig) -> str:
@@ -101,6 +102,7 @@ def generate_command_dispatcher(
     decoy_handler_calls: str,
     info_leak_call: str,
     fmtstr_leak_call: str = "",
+    data_staging_call: str = "",
 ) -> str:
     """Generate the RPC opcode dispatcher."""
     try:
@@ -142,6 +144,10 @@ void dispatch_rpc(SOCKET client, unsigned short opcode,
 
     # Safe opcodes
     parts.append(safe_handler_calls)
+
+    # Data staging
+    if data_staging_call:
+        parts.append(data_staging_call)
 
     # Decoy opcodes
     if decoy_handler_calls:
@@ -220,6 +226,25 @@ def generate_fmtstr_leak(config: ServerConfig) -> str:
                              (int)strlen(echo_buf));
         } else {
             send_rpc_response(client, 254, "ERR:NO_DATA", 11);
+        }
+        return;
+    }"""
+
+
+def generate_data_staging(config: ServerConfig) -> str:
+    """Generate opcode 253 handler that stores data on the heap."""
+    if not config.data_staging:
+        return ""
+
+    return """\
+
+    // Opcode 253: Data staging - stores payload in persistent heap buffer
+    if (opcode == STAGING_OPCODE) {
+        if (payload_len > 0) {
+            handle_data_staging(payload, payload_len);
+            send_rpc_response(client, STAGING_OPCODE, "STORED", 6);
+        } else {
+            send_rpc_response(client, STAGING_OPCODE, "ERR:NO_DATA", 11);
         }
         return;
     }"""

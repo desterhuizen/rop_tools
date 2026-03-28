@@ -57,11 +57,11 @@ target_builder --vuln fmtstr --protocol rpc --output server.cpp
 
 ## Protocols
 
-| Protocol | Format                              | Vuln Trigger          | Info Leak (ASLR) | FmtStr Leak        |
-|----------|-------------------------------------|-----------------------|-------------------|---------------------|
-| `tcp`    | `COMMAND <data>\n`                  | Vulnerable command    | `DEBUG` command   | `ECHO` command      |
-| `http`   | Standard HTTP/1.1 requests          | `POST /vulnerable`    | `GET /info`       | `POST /echo`        |
-| `rpc`    | 4-byte len + 2-byte opcode + data  | Vulnerable opcode     | Opcode 255        | Opcode 254          |
+| Protocol | Format                              | Vuln Trigger          | Info Leak (ASLR) | FmtStr Leak   | Data Staging       |
+|----------|-------------------------------------|-----------------------|-------------------|---------------|---------------------|
+| `tcp`    | `COMMAND <data>\n`                  | Vulnerable command    | `DEBUG` command   | `ECHO` cmd    | `STORE` cmd (or randomized) |
+| `http`   | Standard HTTP/1.1 requests          | `POST /vulnerable`    | `GET /info`       | `POST /echo`  | `POST /store` (or randomized) |
+| `rpc`    | 4-byte len + 2-byte opcode + data  | Vulnerable opcode     | Opcode 255        | Opcode 254    | Opcode 253          |
 
 ---
 
@@ -74,6 +74,7 @@ target_builder --vuln fmtstr --protocol rpc --output server.cpp
 | `--fmtstr-leak`| (no compile flag)  | Adds printf leak command for ASLR bypass practice |
 | `--stack-canary`| `/GS`             | Must leak or bypass stack cookie       |
 | `--safeSEH`    | `/SAFESEH`         | Must use gadget from non-SafeSEH module|
+| `--data-staging`| (no compile flag) | Adds heap staging command for egghunter practice |
 
 ### DEP Bypass APIs
 
@@ -138,6 +139,28 @@ Adds non-exploitable commands that look suspicious but are safe:
 - **Safe format** — `printf("%s", input)` with format specifier
 - **Bounded copy** — `memcpy` with `min(len, sizeof(buf))`
 - **Heap buffer** — `strcpy` into `malloc`'d buffer (heap, not stack)
+
+---
+
+## Data Staging
+
+```bash
+# Add a heap staging command (for egghunter practice)
+target_builder --vuln bof --data-staging --output server.cpp
+
+# With tight landing pad — forces egghunter approach
+target_builder --vuln bof --landing-pad 16 --data-staging --output server.cpp
+```
+
+Adds a command that stores received data in a persistent 64KB heap buffer (`malloc`, never freed). The attacker sends shellcode prefixed with an egg tag via the staging command, then overflows using the vuln command with a small egghunter stub that searches process memory for the egg.
+
+| Protocol | Staging Command | Behavior |
+|----------|----------------|----------|
+| TCP | `STORE <data>` | Copies data to heap, responds "data stored" |
+| HTTP | `POST /store` | Copies body to heap, responds 200 |
+| RPC | Opcode 253 | Copies payload to heap, responds "STORED" |
+
+The command name is randomized from a pool of 10 names during `--random` (e.g. `STASH`, `CACHE`, `DEPOSIT`). Deterministic with `--random-seed`.
 
 ---
 
@@ -206,7 +229,7 @@ target_builder --random --random-seed 42 --output server.cpp
 target_builder --random --difficulty hard --output server.cpp
 ```
 
-Randomizes: vuln type, arch, protocol, buffer size, bad chars, mitigations, DEP API, banner, decoys, stack layout.
+Randomizes: vuln type, arch, protocol, buffer size, bad chars, mitigations, DEP API, banner, decoys, stack layout, data staging, info leak function name.
 
 ### Constrained Randomization
 
@@ -231,15 +254,15 @@ Comma-separated values for `--vuln`, `--protocol`, `--bad-char-action`, and
 `--padding-style` restrict the randomizer to pick from the given set.
 
 `--exclude-protection` forces named protections OFF. Valid values:
-`dep`, `aslr`, `canary`, `safeseh`, `fmtstr-leak`.
+`dep`, `aslr`, `canary`, `safeseh`, `fmtstr-leak`, `data-staging`.
 
 ### Difficulty Presets
 
-| Difficulty | Buffer  | Bad Chars | Mitigations         | Decoys | Stack Padding | Landing Pad |
-|------------|---------|-----------|---------------------|--------|---------------|-------------|
-| `easy`     | 1024-2048 | none    | none                | 0      | none          | unlimited   |
-| `medium`   | 256-512 | 3-6       | DEP                 | 1-2    | 32-128 bytes  | 64-256 bytes |
-| `hard`     | 64-128  | 8-12      | DEP + ASLR + canary | 3-5    | 64-256 bytes  | 8-32 bytes  |
+| Difficulty | Buffer  | Bad Chars | Mitigations         | Decoys | Stack Padding | Landing Pad | Extras |
+|------------|---------|-----------|---------------------|--------|---------------|-------------|--------|
+| `easy`     | 1024-2048 | none    | none                | 0      | none          | unlimited   | — |
+| `medium`   | 256-512 | 3-6       | DEP                 | 1-2    | 32-128 bytes  | 64-256 bytes | 30% staging |
+| `hard`     | 64-128  | 8-12      | DEP + ASLR + canary | 3-5    | 64-256 bytes  | 8-32 bytes  | 50% staging |
 
 ---
 
@@ -311,13 +334,14 @@ Mitigations:
   --fmtstr-leak            Add format string leak command for ASLR bypass
   --stack-canary           Enable /GS stack cookies
   --safeSEH                Enable SafeSEH (seh vuln only)
+  --data-staging           Add heap staging command (for egghunter practice)
 
 Randomization:
   --random                 Randomize all aspects
   --random-seed SEED       Reproducible random seed
   --difficulty {easy,medium,hard}
   --exclude-protection     Comma-separated protections to force OFF
-                           (dep, aslr, canary, safeseh, fmtstr-leak)
+                           (dep, aslr, canary, safeseh, fmtstr-leak, data-staging)
 
 Output:
   --output FILE            Output .cpp file (default: stdout)
@@ -374,7 +398,7 @@ The MinGW build script uses `i686-w64-mingw32-g++` (x86) or `x86_64-w64-mingw32-
 |-----------|-----------------|
 | `/GS-` | `-fno-stack-protector` |
 | `/NXCOMPAT` | `-Wl,--nxcompat` |
-| `/DYNAMICBASE` | `-Wl,--dynamicbase` |
+| `/DYNAMICBASE` | `-Wl,--dynamicbase -Wl,--enable-reloc-section` |
 | `/BASE:0xADDR` | `-Wl,--image-base,0xADDR` |
 
 **Limitations**: `--rop-dll` and `--embedded-gadgets` require MSVC inline assembly and are not available with `--compiler mingw`.
