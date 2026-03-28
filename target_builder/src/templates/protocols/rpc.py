@@ -193,10 +193,9 @@ def generate_info_leak(config: ServerConfig) -> str:
         } info_resp;
         #pragma pack(pop)
 
-        int local_var = 42;
         info_resp.uptime = GetTickCount() / 1000;
         info_resp.version = 0x00010000;
-        info_resp.internal_handle = &local_var;
+        info_resp.internal_handle = (void*)&main;
         send_rpc_response(client, INFO_OPCODE,
                          (char*)&info_resp, sizeof(info_resp));
         return;

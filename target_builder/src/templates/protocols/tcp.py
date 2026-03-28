@@ -151,14 +151,13 @@ def generate_info_leak(config: ServerConfig) -> str:
     // DEBUG command - inadvertently leaks internal address
     if (_stricmp(cmd, "DEBUG") == 0) {
         char debug_buf[512];
-        int local_var = 42;
         _snprintf(debug_buf, sizeof(debug_buf),
                  "DEBUG INFO:\\n"
                  "  Server uptime: %d seconds\\n"
                  "  Connections: %d\\n"
                  "  Internal handle: 0x%p\\n"
                  "  Status: OK\\n",
-                 GetTickCount() / 1000, 1, &local_var);
+                 GetTickCount() / 1000, 1, &main);
         send(client, debug_buf, (int)strlen(debug_buf), 0);
         return;
     }"""

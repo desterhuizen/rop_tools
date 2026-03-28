@@ -234,13 +234,12 @@ def generate_info_leak(config: ServerConfig) -> str:
     if (_stricmp(req->method, "GET") == 0 &&
         _stricmp(req->path, "/info") == 0) {
         char info_buf[512];
-        int local_var = 42;
         _snprintf(info_buf, sizeof(info_buf),
                  "{\\"server\\":\\"running\\","
                  "\\"version\\":\\"1.0\\","
                  "\\"debug_handle\\":\\"0x%p\\","
                  "\\"uptime\\":%d}\\n",
-                 &local_var, GetTickCount() / 1000);
+                 &main, GetTickCount() / 1000);
         send_http_response(client, 200, "OK",
                          "application/json", info_buf);
         return;
