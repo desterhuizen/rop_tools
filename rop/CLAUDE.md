@@ -87,6 +87,20 @@ library independence
 
 ## Recent Features
 
+### Shell Completion for get_rop_gadgets and get_base_address (March 28, 2026)
+
+- Added `--generate-completion {bash,zsh}` to both `get_rop_gadgets.py` and
+  `get_base_address.py`
+- Extracted `target_builder/src/completions.py` into shared `lib/completions.py`
+  with parameterized tool names. `target_builder/src/completions.py` is now a
+  thin wrapper delegating to the shared module.
+- `lib/completions.py` provides: `generate_completion(shell, parser, tool_names)`,
+  `handle_completion(argv, parser_builder, tool_names)` for early-exit before
+  `parse_args()`, and `_extract_flags(parser)` for argparse introspection.
+- Refactored `get_base_address.py` to extract `_build_parser()` from inline
+  parser construction in `main()`.
+- 522 rop tests (was 501), 65 lib tests (was 40)
+
 ### DEP Bypass Candidate Detection (March 24, 2026)
 
 - `--iat` now shows a **DEP Bypass Candidates** section after the full IAT

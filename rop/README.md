@@ -193,6 +193,7 @@ pip install rich
 | `--offset`                | Calculate offset from base address (e.g., 0x10000000)                            |
 | `--keep-bad-instructions` | Keep gadgets with bad instructions (call, jmp, int, etc.)                        |
 | `--no-color`              | Disable colored output                                                           |
+| `--generate-completion`   | Print shell completion script (bash/zsh) and exit                                |
 
 ## Gadget Categories
 
@@ -717,7 +718,24 @@ rop/
 | `file`          | PE file to analyze (DLL or EXE)                 |
 | `-v, --verbose` | Show detailed PE information including sections |
 | `-q, --quiet`   | Only print ImageBase address (for scripting)    |
+| `--iat`         | Display Import Address Table (IAT) information  |
+| `--dll NAME`    | Filter IAT to show only imports from a DLL      |
 | `--no-color`    | Disable colored output                          |
+| `--generate-completion` | Print shell completion script (bash/zsh) and exit |
+
+## Shell Completion
+
+Generate tab-completion scripts for your shell:
+
+```bash
+# Bash
+get_rop_gadgets --generate-completion bash > ~/.bash_completion.d/get_rop_gadgets
+get_base_address --generate-completion bash > ~/.bash_completion.d/get_base_address
+
+# Zsh — place in your $fpath
+get_rop_gadgets --generate-completion zsh > ~/.zsh/completions/_get_rop_gadgets
+get_base_address --generate-completion zsh > ~/.zsh/completions/_get_base_address
+```
 
 ## Examples
 

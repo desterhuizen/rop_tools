@@ -6,6 +6,7 @@ in the pentest-scripts repository.
 
 Modules:
     color_printer: Terminal color output abstraction using Rich library
+    completions: Shell completion script generation (bash/zsh)
 """
 
 __version__ = "1.0.0"

@@ -368,6 +368,12 @@ pip install -r requirements-lint.txt
   - Build script generation with correct cl.exe flags
   - 114 tests across 6 test files
 
+### March 28, 2026 — Shell completion for rop tools
+- **rop**: Added `--generate-completion {bash,zsh}` to `get_rop_gadgets.py` and
+  `get_base_address.py`. Extracted shared `lib/completions.py` module from
+  target_builder's completions, parameterized by tool name. 522 rop tests
+  (was 501), 65 lib tests (was 40).
+
 ### March 28, 2026 — Exploit improvements, MinGW support, shell completion
 - **target_builder**: Added `p32int()`/`p64int()` signed integer packing helpers
   to exploit skeletons. New `--exploit-hints {full,minimal,none}` flag controls

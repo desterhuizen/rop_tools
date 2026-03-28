@@ -317,8 +317,8 @@ def print_dep_bypass_info(filepath: str, image_base: int):
             print(f"  {entry.function}({info['args']})")
 
 
-def main():
-    """Main entry point for get_base_address tool"""
+def _build_parser():
+    """Build and return the argument parser."""
     parser = argparse.ArgumentParser(
         description="Extract PE file information including ImageBase address",
         epilog="Example: %(prog)s kernel32.dll -v",
@@ -349,7 +349,28 @@ def main():
         metavar="NAME",
         help="Filter IAT to show only imports from specified DLL (case-insensitive)",
     )
+    parser.add_argument(
+        "--generate-completion",
+        choices=["bash", "zsh"],
+        metavar="SHELL",
+        help="Print shell completion script and exit",
+    )
 
+    return parser
+
+
+def main():
+    """Main entry point for get_base_address tool"""
+    from lib.completions import handle_completion
+
+    if handle_completion(
+        sys.argv[1:],
+        _build_parser,
+        ["get_base_address", "get_base_address.py"],
+    ):
+        return
+
+    parser = _build_parser()
     args = parser.parse_args()
 
     # Disable colors if requested

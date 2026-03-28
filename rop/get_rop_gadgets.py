@@ -489,11 +489,26 @@ Categories:
         action="store_true",
         help="Keep gadgets with bad instructions (call, jmp, int, etc.). By default, these are filtered out.",
     )
+    arg_parser.add_argument(
+        "--generate-completion",
+        choices=["bash", "zsh"],
+        metavar="SHELL",
+        help="Print shell completion script and exit",
+    )
 
     return arg_parser
 
 
 def main():
+    from lib.completions import handle_completion
+
+    if handle_completion(
+        sys.argv[1:],
+        build_arg_parser,
+        ["get_rop_gadgets", "get_rop_gadgets.py"],
+    ):
+        return
+
     args = build_arg_parser().parse_args()
 
     # Disable colors if requested
