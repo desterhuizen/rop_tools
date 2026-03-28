@@ -655,6 +655,8 @@ Options:
   --verify                  Verify assembled shellcode for bad characters
   --debug-shellcode         Print opcodes line by line to identify bad characters
   --no-exit                 Skip ExitProcess at the end (Windows only)
+  --generate-completion {bash,zsh}
+                            Print shell completion script and exit
 ```
 
 ## Supported Architectures
@@ -962,6 +964,23 @@ print(f"push 0x{hash_val:08x}    ; CreateFileA hash")
 | WSAStartup         | 0x3bfcedcb | ws2_32.dll   |
 | WSASocketA         | 0xadf509d9 | ws2_32.dll   |
 | WSAConnect         | 0xb32dba0c | ws2_32.dll   |
+
+## Shell Completion
+
+Both `shellgen` and `hash_generator` support auto-generated shell completions:
+
+```bash
+# Bash — add to ~/.bashrc or ~/.bash_completion.d/
+shellgen --generate-completion bash >> ~/.bashrc
+hash_generator --generate-completion bash >> ~/.bashrc
+
+# Zsh — place in $fpath directory
+shellgen --generate-completion zsh > ~/.zsh/completions/_shellgen
+hash_generator --generate-completion zsh > ~/.zsh/completions/_hash_generator
+```
+
+Completions are auto-generated from the argparse parser, so new flags are
+automatically included.
 
 ## Troubleshooting
 

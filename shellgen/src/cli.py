@@ -247,6 +247,13 @@ Examples:
         help="Skip ExitProcess at the end (Windows only)",
     )
 
+    parser.add_argument(
+        "--generate-completion",
+        choices=["bash", "zsh"],
+        metavar="SHELL",
+        help="Print shell completion script and exit",
+    )
+
     return parser
 
 
@@ -531,6 +538,15 @@ def _verify_shellcode(asm_code, arch, bad_chars):
 
 def run_cli():
     """Main CLI entry point."""
+    from lib.completions import handle_completion
+
+    if handle_completion(
+        sys.argv[1:],
+        create_parser,
+        ["shellgen", "shellgen_cli.py"],
+    ):
+        return
+
     parser = create_parser()
     args = parser.parse_args()
 

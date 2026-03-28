@@ -368,6 +368,11 @@ pip install -r requirements-lint.txt
   - Build script generation with correct cl.exe flags
   - 114 tests across 6 test files
 
+### March 28, 2026 — Shell completion for shellgen tools
+- **shellgen**: Added `--generate-completion {bash,zsh}` to `shellgen_cli.py` and
+  `hash_generator.py`, using shared `lib/completions.py`. 149 shellgen tests
+  (was 127).
+
 ### March 28, 2026 — Shell completion for rop tools
 - **rop**: Added `--generate-completion {bash,zsh}` to `get_rop_gadgets.py` and
   `get_base_address.py`. Extracted shared `lib/completions.py` module from

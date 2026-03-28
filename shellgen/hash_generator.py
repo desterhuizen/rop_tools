@@ -256,11 +256,30 @@ Common Windows API Functions:
         help="Verify hash against expected value (format: FunctionName:0x12345678)",
     )
 
+    parser.add_argument(
+        "--generate-completion",
+        choices=["bash", "zsh"],
+        metavar="SHELL",
+        help="Print shell completion script and exit",
+    )
+
     return parser
 
 
 def main():
     """Main entry point."""
+    import os
+
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from lib.completions import handle_completion
+
+    if handle_completion(
+        sys.argv[1:],
+        create_parser,
+        ["hash_generator", "hash_generator.py"],
+    ):
+        return
+
     parser = create_parser()
     args = parser.parse_args()
 

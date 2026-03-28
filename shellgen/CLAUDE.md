@@ -140,6 +140,7 @@ shellgen/
 | `--debug-shellcode` | Disassemble with Capstone, map bad chars | False |
 | `--no-exit` | Skip ExitProcess | False |
 | `--output` | Output filename | shellcode.asm |
+| `--generate-completion` | Print bash/zsh completion script and exit | - |
 
 **Payload-specific options:** `--title`, `--message`, `--cmd`, `--url`, `--save-path`, `--host`, `--port`, `--show-window`
 
@@ -238,6 +239,7 @@ Converts machine code → assembly (required for `--debug-shellcode`)
 
 | Version | Key Changes |
 |---------|-------------|
+| **v3.9** | Shell completion: `--generate-completion {bash,zsh}` for `shellgen` and `hash_generator`, using shared `lib/completions.py`. 149 tests (was 127). |
 | **v3.8.1** | Bug fixes: socket payload assembly (unformatted IP/port/shell placeholders in custom_asm), `--debug-shellcode` CLI flag name, sys.path ordering in shellgen_cli.py entry point |
 | **v3.8** | x64 fixes: RIP-relative addressing, gen_push_string arch-aware, stack allocation bugs fixed, bind_shell_x64 payload added |
 | **v3.7.1** | Bug fix: `--bad-chars` CLI override for JSON, Rich lib added to requirements |
