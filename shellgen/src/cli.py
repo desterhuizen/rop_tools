@@ -52,6 +52,23 @@ def parse_bad_chars(bad_chars_str):
     return bad_chars
 
 
+def _convert_json_arg(arg):
+    """Convert a JSON argument to the expected Python type.
+
+    - Hex strings ("0x40000000") → int
+    - JSON null (None) → 0 (NULL pointer)
+    - Everything else passes through unchanged
+    """
+    if arg is None:
+        return 0
+    if isinstance(arg, str) and arg.startswith("0x"):
+        try:
+            return int(arg, 16)
+        except ValueError:
+            return arg  # not valid hex, keep as string
+    return arg
+
+
 def load_custom_json(json_path):
     """
     Load a custom payload configuration from a JSON file.
@@ -79,9 +96,15 @@ def load_custom_json(json_path):
         with open(json_path, "r") as f:
             config = json.load(f)
 
-        # Convert bad_chars list to set if present
+        # Convert bad_chars list to set — supports ints, hex strings, or both
+        # e.g. [0, 10, 13] or ["0x00", "0x0a", "0x0d"] or [0, "0x0a", 13]
         if "bad_chars" in config:
-            config["bad_chars"] = set(config["bad_chars"])
+            config["bad_chars"] = {
+                int(b, 16) if isinstance(b, str) and b.startswith("0x")
+                else int(b) if isinstance(b, str) and b.isdigit()
+                else b
+                for b in config["bad_chars"]
+            }
         else:
             config["bad_chars"] = {0x00, 0x0A, 0x0D}  # default
 
@@ -90,6 +113,11 @@ def load_custom_json(json_path):
             printer.print_text("✗ ERROR: ", "bold red", end="")
             printer.print_text("JSON must contain 'calls' array\n", "red")
             sys.exit(1)
+
+        # Post-process args: convert hex strings to int, null to 0
+        for call in config["calls"]:
+            if "args" in call:
+                call["args"] = [_convert_json_arg(a) for a in call["args"]]
 
         # Set default exit if not specified
         if "exit" not in config:

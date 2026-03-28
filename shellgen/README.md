@@ -429,12 +429,12 @@ For advanced use cases, you can create custom payloads by defining API calls in 
 
 ```json
 {
-  "bad_chars": [0, 10, 13],
+  "bad_chars": ["0x00", "0x0a", "0x0d"],
   "calls": [
     {
       "api": "MessageBoxA",
       "dll": "user32.dll",
-      "args": [0, "Hello from custom shellgen!", "Custom Payload", 0]
+      "args": [null, "Hello from custom shellgen!", "Custom Payload", 0]
     }
   ],
   "exit": true
@@ -443,11 +443,16 @@ For advanced use cases, you can create custom payloads by defining API calls in 
 
 **Field Descriptions:**
 - `bad_chars` - Array of byte values to avoid (optional, defaults to `[0, 10, 13]`)
+  - Integers: `[0, 10, 13]`
+  - Hex strings: `["0x00", "0x0a", "0x0d"]`
+  - Mixed: `[0, "0x0a", 13]`
 - `calls` - Array of API call objects (required)
   - `api` - Windows API function name (e.g., "CreateFileA", "WriteFile")
   - `dll` - DLL containing the function (e.g., "kernel32.dll", "user32.dll")
   - `args` - Array of arguments to pass to the function
-    - Numbers (e.g., `0`, `0x40000000`)
+    - Integers (e.g., `1`, `2`)
+    - Hex strings (e.g., `"0x40000000"`) — converted to integers automatically
+    - `null` or `0` for NULL pointers
     - Strings (e.g., `"C:\\test.txt"`, `"Hello World!"`)
     - Register references (e.g., `"REG:eax"`, `"REG:esp"`)
 - `exit` - Whether to call ExitProcess at the end (optional, defaults to `true`)
@@ -458,12 +463,12 @@ For advanced use cases, you can create custom payloads by defining API calls in 
 # Create your custom payload JSON file
 cat > my_payload.json << 'EOF'
 {
-  "bad_chars": [0, 10, 13],
+  "bad_chars": ["0x00", "0x0a", "0x0d"],
   "calls": [
     {
       "api": "CreateFileA",
       "dll": "kernel32.dll",
-      "args": ["C:\\test.txt", 0x40000000, 0, 0, 2, 0, 0]
+      "args": ["C:\\test.txt", "0x40000000", 0, null, 2, 0, null]
     },
     {
       "api": "WriteFile",
@@ -505,12 +510,12 @@ cat example_payload.json
 
 ```json
 {
-  "bad_chars": [0, 10, 13],
+  "bad_chars": ["0x00", "0x0a", "0x0d"],
   "calls": [
     {
       "api": "CreateFileA",
       "dll": "kernel32.dll",
-      "args": ["C:\\payload.bat", 0x40000000, 0, 0, 2, 0x80, 0]
+      "args": ["C:\\payload.bat", "0x40000000", 0, null, 2, "0x80", null]
     },
     {
       "api": "WriteFile",
@@ -551,10 +556,12 @@ Use `"REG:register_name"` to reference values stored in registers from previous 
   "calls": [
     {
       "api": "CreateFileA",
-      "args": ["C:\\test.txt", 0x40000000, 0, 0, 2, 0, 0]
+      "dll": "kernel32.dll",
+      "args": ["C:\\test.txt", "0x40000000", 0, null, 2, 0, null]
     },
     {
       "api": "WriteFile",
+      "dll": "kernel32.dll",
       "args": ["REG:eax", "Data", 4, "REG:esp", 0]
     }
   ]
@@ -563,49 +570,30 @@ Use `"REG:register_name"` to reference values stored in registers from previous 
 
 #### Common API Function Arguments
 
-**CreateFileA:**
+**CreateFileA** — `args: [lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile]`
 ```json
 {
   "api": "CreateFileA",
   "dll": "kernel32.dll",
-  "args": [
-    "C:\\path\\to\\file.txt",  // lpFileName
-    0x40000000,                 // dwDesiredAccess (GENERIC_WRITE)
-    0,                          // dwShareMode
-    0,                          // lpSecurityAttributes
-    2,                          // dwCreationDisposition (CREATE_ALWAYS)
-    0x80,                       // dwFlagsAndAttributes (FILE_ATTRIBUTE_NORMAL)
-    0                           // hTemplateFile
-  ]
+  "args": ["C:\\path\\to\\file.txt", "0x40000000", 0, null, 2, "0x80", null]
 }
 ```
 
-**WriteFile:**
+**WriteFile** — `args: [hFile, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, lpOverlapped]`
 ```json
 {
   "api": "WriteFile",
   "dll": "kernel32.dll",
-  "args": [
-    "REG:eax",          // hFile (handle from CreateFileA)
-    "Hello World!",     // lpBuffer (data to write)
-    12,                 // nNumberOfBytesToWrite
-    "REG:esp",          // lpNumberOfBytesWritten (pointer to DWORD)
-    0                   // lpOverlapped
-  ]
+  "args": ["REG:eax", "Hello World!", 12, "REG:esp", 0]
 }
 ```
 
-**MessageBoxA:**
+**MessageBoxA** — `args: [hWnd, lpText, lpCaption, uType]`
 ```json
 {
   "api": "MessageBoxA",
   "dll": "user32.dll",
-  "args": [
-    0,              // hWnd
-    "Message text", // lpText
-    "Title",        // lpCaption
-    0               // uType (MB_OK)
-  ]
+  "args": [null, "Message text", "Title", 0]
 }
 ```
 

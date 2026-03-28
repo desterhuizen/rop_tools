@@ -2,12 +2,26 @@
   "bad_chars": [0, 10, 13],
   "calls": [
     {
-      "api": "MessageBoxA",
-      "dll": "user32.dll",
+      "api": "CreateFileA",
+      "dll": "kernel32.dll",
       "args": [
+        "C:\\test.txt",
+        "0x40000000",
         0,
-        "Hello from custom shellcode!",
-        "Custom Payload",
+        null,
+        2,
+        0,
+        null
+      ]
+    },
+    {
+      "api": "WriteFile",
+      "dll": "kernel32.dll",
+      "args": [
+        "REG:eax",
+        "Hello from shellgen!",
+        20,
+        "REG:esp",
         0
       ]
     }

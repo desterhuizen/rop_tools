@@ -728,8 +728,33 @@ resolve_symbols_kernel32:
 
         return lines, string_to_reg
 
-    def _push_x86_arg(self, arg, original_idx, string_cache, string_to_reg):
+    @staticmethod
+    def _get_reg_refs(args):
+        """Collect register names referenced by REG: args (lowercased)."""
+        refs = set()
+        for a in args:
+            if isinstance(a, str) and a.startswith("REG:"):
+                refs.add(a.split(":")[1].lower())
+        return refs
+
+    @staticmethod
+    def _safe_zero_reg(preferred, candidates, reg_refs):
+        """Pick a scratch register for xor-zeroing that won't clobber REG: refs."""
+        if not reg_refs or preferred not in reg_refs:
+            return preferred
+        for c in candidates:
+            if c not in reg_refs:
+                return c
+        return preferred  # fallback — all candidates referenced
+
+    def _push_x86_arg(
+        self, arg, original_idx, string_cache, string_to_reg, reg_refs=None
+    ):
         """Push a single x86 stdcall argument onto the stack.
+
+        Args:
+            reg_refs: Set of register names used by REG: args in this call.
+                      Used to avoid clobbering registers when pushing zero.
 
         Returns:
             list: Assembly lines
@@ -737,8 +762,9 @@ resolve_symbols_kernel32:
         lines = []
         if isinstance(arg, int):
             if arg == 0:
-                lines.append("    xor eax, eax")
-                lines.append("    push eax               ; arg = 0")
+                zr = self._safe_zero_reg("eax", ["ecx", "edx"], reg_refs)
+                lines.append(f"    xor {zr}, {zr}")
+                lines.append(f"    push {zr}               ; arg = 0")
             else:
                 lines.append(
                     self.gen_push_encoded_dword(arg, comment=f"arg = 0x{arg:x}")
@@ -779,7 +805,37 @@ resolve_symbols_kernel32:
         Returns:
             str: Assembly code
         """
-        lines, string_to_reg = self._prepare_x86_string_args(args, api_name)
+        reg_refs = self._get_reg_refs(args)
+
+        # If any arg references EAX (return value from previous call),
+        # save it before string preparation clobbers it
+        save_reg = None
+        if "eax" in reg_refs:
+            # Check if string prep will actually run (has plain string args)
+            has_strings = any(
+                isinstance(a, str)
+                and not a.startswith(("STR_PTR:", "REG:", "MEM:"))
+                for a in args
+            )
+            if has_strings:
+                save_reg = "ebx"
+                # Rewrite REG:eax -> REG:ebx in a copy of args
+                args = [
+                    f"REG:{save_reg}" if (isinstance(a, str) and a == "REG:eax")
+                    else a
+                    for a in args
+                ]
+                reg_refs = self._get_reg_refs(args)
+
+        lines = []
+        if save_reg:
+            lines.append(
+                f"    mov {save_reg}, eax"
+                f"            ; save return value for {api_name}"
+            )
+
+        prep_lines, string_to_reg = self._prepare_x86_string_args(args, api_name)
+        lines.extend(prep_lines)
 
         # Push arguments right-to-left (stdcall)
         lines.append(f"\n; Push arguments for {api_name} (right to left)")
@@ -787,7 +843,9 @@ resolve_symbols_kernel32:
         for i, arg in enumerate(reversed(args)):
             original_idx = len(args) - 1 - i
             lines.extend(
-                self._push_x86_arg(arg, original_idx, string_cache, string_to_reg)
+                self._push_x86_arg(
+                    arg, original_idx, string_cache, string_to_reg, reg_refs
+                )
             )
 
         lines.append(f"    call dword ptr [ebp+0x{api_offset:02x}]  ; Call {api_name}")
@@ -827,7 +885,9 @@ resolve_symbols_kernel32:
 
         return lines, string_to_reg
 
-    def _resolve_x64_reg_arg(self, arg, i, reg, string_cache, string_to_reg):
+    def _resolve_x64_reg_arg(
+        self, arg, i, reg, string_cache, string_to_reg, reg_refs=None
+    ):
         """Resolve a single argument into a fastcall register (args 1-4).
 
         Returns:
@@ -874,7 +934,9 @@ resolve_symbols_kernel32:
                 )
         return lines
 
-    def _push_x64_stack_arg(self, arg, i, string_cache, string_to_reg):
+    def _push_x64_stack_arg(
+        self, arg, i, string_cache, string_to_reg, reg_refs=None
+    ):
         """Push a single stack argument for x64 fastcall (args 5+).
 
         Returns:
@@ -883,8 +945,9 @@ resolve_symbols_kernel32:
         lines = []
         if isinstance(arg, int):
             if arg == 0:
-                lines.append("    xor rax, rax")
-                lines.append(f"    push rax               ; arg {i + 1} = 0")
+                zr = self._safe_zero_reg("rax", ["r10", "r11"], reg_refs)
+                lines.append(f"    xor {zr}, {zr}")
+                lines.append(f"    push {zr}               ; arg {i + 1} = 0")
             else:
                 lines.append(
                     self.gen_push_encoded_dword(arg, comment=f"arg {i + 1} = 0x{arg:x}")
@@ -945,7 +1008,35 @@ resolve_symbols_kernel32:
         Returns:
             str: Assembly code
         """
-        lines, string_to_reg = self._prepare_x64_string_args(args, api_name)
+        reg_refs = self._get_reg_refs(args)
+
+        # If any arg references RAX (return value from previous call),
+        # save it before string preparation clobbers it
+        save_reg = None
+        if "rax" in reg_refs:
+            has_strings = any(
+                isinstance(a, str)
+                and not a.startswith(("STR_PTR:", "REG:", "MEM:"))
+                for a in args
+            )
+            if has_strings:
+                save_reg = "rbx"
+                args = [
+                    f"REG:{save_reg}" if (isinstance(a, str) and a == "REG:rax")
+                    else a
+                    for a in args
+                ]
+                reg_refs = self._get_reg_refs(args)
+
+        lines = []
+        if save_reg:
+            lines.append(
+                f"    mov {save_reg}, rax"
+                f"            ; save return value for {api_name}"
+            )
+
+        prep_lines, string_to_reg = self._prepare_x64_string_args(args, api_name)
+        lines.extend(prep_lines)
 
         # x64 fastcall: RCX, RDX, R8, R9, then stack
         param_regs = ["rcx", "rdx", "r8", "r9"]
@@ -958,7 +1049,8 @@ resolve_symbols_kernel32:
         for i, arg in enumerate(args[:4]):
             lines.extend(
                 self._resolve_x64_reg_arg(
-                    arg, i, param_regs[i], string_cache, string_to_reg
+                    arg, i, param_regs[i], string_cache, string_to_reg,
+                    reg_refs,
                 )
             )
 
@@ -967,7 +1059,9 @@ resolve_symbols_kernel32:
             lines.append("\n; Push remaining arguments (5+) onto stack")
             for i in range(len(args) - 1, 3, -1):
                 lines.extend(
-                    self._push_x64_stack_arg(args[i], i, string_cache, string_to_reg)
+                    self._push_x64_stack_arg(
+                        args[i], i, string_cache, string_to_reg, reg_refs
+                    )
                 )
 
         # Shadow space + call
