@@ -368,6 +368,18 @@ pip install -r requirements-lint.txt
   - Build script generation with correct cl.exe flags
   - 114 tests across 6 test files
 
+### March 28, 2026 — Constrained randomization + C++ generation fixes
+- **target_builder**: Constrained `--random` mode — explicit CLI args now
+  respected as overrides. Comma-separated `--vuln bof,seh`, `--protocol`,
+  `--bad-char-action`, `--padding-style` constrain random pool. New
+  `--exclude-protection dep,aslr,canary,safeseh,fmtstr-leak` forces
+  protections OFF. Fixed `--bad-char-action`/`--dep-api` being ignored,
+  and `--arch x86`/`--protocol tcp` being indistinguishable from defaults.
+- **target_builder**: Fixed C++ generation bugs — invalid `req->body` as
+  function parameter names, wrong `filter_bad_chars` variable names,
+  `#define`/struct ordering issues. Fixed fmtstr crash exploit and `%` bad
+  char exclusion. 219 tests (was 189).
+
 ### March 27, 2026 — Format string info leak + Worksheet `next` command + SEH overflow fix
 - **target_builder**: Added `--fmtstr-leak` flag — optional format string leak
   command/endpoint for ASLR bypass practice. User input passed directly to

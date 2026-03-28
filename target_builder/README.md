@@ -191,6 +191,33 @@ target_builder --random --difficulty hard --output server.cpp
 
 Randomizes: vuln type, arch, protocol, buffer size, bad chars, mitigations, DEP API, banner, decoys, stack layout.
 
+### Constrained Randomization
+
+Pin specific values while randomizing the rest:
+
+```bash
+# Random, but always x86 architecture
+target_builder --random --arch x86 --output server.cpp
+
+# Random, but only bof or seh vulnerabilities
+target_builder --random --vuln bof,seh --output server.cpp
+
+# Random, but never enable DEP or ASLR
+target_builder --random --exclude-protection dep,aslr --output server.cpp
+
+# Combine constraints
+target_builder --random --vuln bof,seh --arch x86 --protocol tcp,http \
+  --exclude-protection canary --output server.cpp
+```
+
+Comma-separated values for `--vuln`, `--protocol`, `--bad-char-action`, and
+`--padding-style` restrict the randomizer to pick from the given set.
+
+`--exclude-protection` forces named protections OFF. Valid values:
+`dep`, `aslr`, `canary`, `safeseh`, `fmtstr-leak`.
+
+### Difficulty Presets
+
 | Difficulty | Buffer  | Bad Chars | Mitigations         | Decoys | Stack Padding | Landing Pad |
 |------------|---------|-----------|---------------------|--------|---------------|-------------|
 | `easy`     | 1024-2048 | none    | none                | 0      | none          | unlimited   |
@@ -272,6 +299,8 @@ Randomization:
   --random                 Randomize all aspects
   --random-seed SEED       Reproducible random seed
   --difficulty {easy,medium,hard}
+  --exclude-protection     Comma-separated protections to force OFF
+                           (dep, aslr, canary, safeseh, fmtstr-leak)
 
 Output:
   --output FILE            Output .cpp file (default: stdout)

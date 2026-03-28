@@ -264,6 +264,20 @@ Each decoy gets a randomizable command name that sounds plausible (e.g. `PROCESS
 - **Format string leak** (hard difficulty only, when ASLR is active)
 - **ESP realignment gadget routes** (standard density ROP DLL / embedded gadgets)
 
+### Constrained Randomization
+Any explicit CLI argument is respected as an override during `--random`:
+- `--arch x86` → architecture pinned, everything else randomized
+- `--vuln bof,seh` → vuln picked from {bof, seh} (comma-separated list)
+- `--protocol tcp,http` → protocol picked from {tcp, http}
+- `--bad-char-action drop,replace` → action picked from {drop, replace}
+- `--padding-style mixed,struct` → style picked from {mixed, struct}
+- `--dep-api virtualalloc` → DEP API pinned
+- `--exclude-protection dep,aslr,canary,safeseh,fmtstr-leak` → force OFF
+
+Validation: comma-lists checked against enums, vuln list filtered by arch
+compat (error if empty after filtering), `--exclude-protection X` + `--X`
+contradictions detected, comma-lists rejected without `--random`.
+
 ### Seed Behavior
 - `--random-seed SEED` makes everything deterministic
 - Same seed → identical C++ output, identical exploit skeleton, identical gadget selection
@@ -327,6 +341,38 @@ Each decoy gets a randomizable command name that sounds plausible (e.g. `PROCESS
   - `cli.py` — Full argparse, randomization with seed/difficulty, challenge summary output
   - `target_builder_cli.py` — Entry point
 - **114 tests** across 6 test files (test_config, test_bad_chars, test_templates, test_renderer, test_exploit_skeleton, test_integration)
+
+### March 28, 2026 — Constrained Randomization + Template Fixes
+- **feat: constrained `--random` mode** — Explicit CLI arguments now respected
+  as overrides when combined with `--random`:
+  - `--arch`, `--protocol`, `--bad-char-action`, `--padding-style`, `--dep-api`
+    pin their value (no longer masked by matching the argparse default)
+  - `--vuln`, `--protocol`, `--bad-char-action`, `--padding-style` accept
+    comma-separated values to constrain the random pool
+    (e.g. `--vuln bof,seh` picks randomly from {bof, seh})
+  - New `--exclude-protection dep,aslr,canary,safeseh,fmtstr-leak` forces
+    named protections OFF during randomization
+- **fix: `--bad-char-action` ignored during randomization** — now respected
+- **fix: `--dep-api` ignored during randomization** — now respected
+- **fix: default-masking bug** — `--arch x86`, `--protocol tcp`,
+  `--padding-style none` could not be explicitly pinned because they matched
+  the argparse default. Defaults changed to `None` with fallback logic.
+- **fix: C++ code generation bugs** — vuln templates used `req->body` as C
+  function parameter names (invalid syntax for HTTP), `filter_bad_chars` used
+  hardcoded `data`/`data_len` regardless of protocol, RPC `#define`s and HTTP
+  `http_request_t` struct emitted after first use. Fixed by normalizing vuln
+  function params to `data`/`data_len`, extracting protocol definitions into
+  `generate_protocol_definitions()`, and reordering renderer output.
+- **fix: fmtstr crash exploit** — exploit skeleton sent buffer-overflow-style
+  `b"A" * N` payload for format string vulns (never crashes). Now sends `%s`
+  specifiers that dereference junk pointers.
+- **fix: 0x25 (`%`) in fmtstr bad chars** — randomizer no longer includes `%`
+  as a bad char when vuln_type is fmtstr (would make the vuln unexploitable).
+- Validation: comma-list values checked against enums, arch-filtered vuln
+  lists error when empty, `--exclude-protection X` + `--X` contradictions
+  detected, comma-lists rejected without `--random`
+- **219 tests** (was 189) — 30 new tests for constrained randomization,
+  exclude-protection, and backward compatibility
 
 ### March 27, 2026 — Format String Info Leak
 - **feat: `--fmtstr-leak`** — Optional command/endpoint that passes user input

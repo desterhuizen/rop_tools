@@ -4,9 +4,10 @@ Argparse definition, validation, randomization logic, and orchestration.
 """
 
 import argparse
+import enum
 import random
 import sys
-from typing import List, Optional
+from typing import FrozenSet, List, Optional, Type
 
 from target_builder.src.build_script import generate as generate_build
 from target_builder.src.config import (
@@ -50,8 +51,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--vuln",
         type=str,
-        choices=[v.value for v in VulnType],
-        help="Vulnerability type to embed",
+        default=None,
+        help=(
+            "Vulnerability type: bof, seh, egghunter, fmtstr. "
+            "Comma-separated list with --random to constrain pool "
+            "(e.g. --vuln bof,seh)"
+        ),
     )
 
     # Server settings
@@ -66,7 +71,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--arch",
         type=str,
         choices=[a.value for a in Architecture],
-        default="x86",
+        default=None,
         help="Target architecture (default: x86)",
     )
     server.add_argument(
@@ -78,9 +83,12 @@ def build_parser() -> argparse.ArgumentParser:
     server.add_argument(
         "--protocol",
         type=str,
-        choices=[p.value for p in Protocol],
-        default="tcp",
-        help="Network protocol (default: tcp)",
+        default=None,
+        help=(
+            "Network protocol: tcp, http, rpc. "
+            "Comma-separated list with --random (e.g. --protocol tcp,http). "
+            "Default: tcp"
+        ),
     )
     server.add_argument(
         "--command",
@@ -133,9 +141,11 @@ def build_parser() -> argparse.ArgumentParser:
     bad.add_argument(
         "--bad-char-action",
         type=str,
-        choices=[a.value for a in BadCharAction],
-        default="drop",
-        help="How server handles bad chars (default: drop)",
+        default=None,
+        help=(
+            "How server handles bad chars: drop, replace, terminate. "
+            "Comma-separated list with --random. Default: drop"
+        ),
     )
 
     # Egghunter
@@ -182,9 +192,11 @@ def build_parser() -> argparse.ArgumentParser:
     stk.add_argument(
         "--padding-style",
         type=str,
-        choices=[s.value for s in PaddingStyle],
-        default="none",
-        help="Style of stack padding variables (default: none)",
+        default=None,
+        help=(
+            "Style of stack padding variables: none, array, mixed, struct, multi. "
+            "Comma-separated list with --random. Default: none"
+        ),
     )
 
     # Mitigations
@@ -198,7 +210,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--dep-api",
         type=str,
         choices=[a.value for a in DepBypassApi],
-        default="virtualprotect",
+        default=None,
         help="DEP bypass API (default: virtualprotect)",
     )
     mit.add_argument(
@@ -241,6 +253,15 @@ def build_parser() -> argparse.ArgumentParser:
         choices=[d.value for d in Difficulty],
         default=None,
         help="Preset difficulty level",
+    )
+    rand.add_argument(
+        "--exclude-protection",
+        type=str,
+        default=None,
+        help=(
+            "Comma-separated protections to force OFF during --random. "
+            "Valid: dep, aslr, canary, safeseh, fmtstr-leak"
+        ),
     )
 
     # Output
@@ -334,6 +355,50 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _validate_parsed_args(
+    parser: argparse.ArgumentParser,
+    args: argparse.Namespace,
+    is_random: bool,
+) -> None:
+    """Validate args that lost choices= constraints or are random-only."""
+    # Comma-lists and --exclude-protection only valid with --random
+    if not is_random:
+        for arg_name, arg_val in [
+            ("--vuln", args.vuln),
+            ("--protocol", args.protocol),
+            ("--bad-char-action", args.bad_char_action),
+            ("--padding-style", args.padding_style),
+        ]:
+            if arg_val and "," in arg_val:
+                parser.error(
+                    f"{arg_name} comma-lists are only valid with --random"
+                )
+        if args.exclude_protection is not None:
+            parser.error("--exclude-protection is only valid with --random")
+
+    # Validate single-value enum args (choices= removed for comma-list support)
+    _check_enum_arg(parser, "--vuln", args.vuln, VulnType)
+    _check_enum_arg(parser, "--protocol", args.protocol, Protocol)
+    _check_enum_arg(parser, "--bad-char-action", args.bad_char_action, BadCharAction)
+    _check_enum_arg(parser, "--padding-style", args.padding_style, PaddingStyle)
+
+
+def _check_enum_arg(
+    parser: argparse.ArgumentParser,
+    arg_name: str,
+    value: Optional[str],
+    enum_cls: Type[enum.Enum],
+) -> None:
+    """Validate a single-value enum arg (skip comma-lists)."""
+    if value and "," not in value:
+        valid = {e.value for e in enum_cls}
+        if value not in valid:
+            parser.error(
+                f"argument {arg_name}: invalid choice: '{value}' "
+                f"(choose from {', '.join(sorted(valid))})"
+            )
+
+
 def parse_args(argv: Optional[List[str]] = None) -> ServerConfig:
     """Parse CLI arguments into a ServerConfig.
 
@@ -346,8 +411,12 @@ def parse_args(argv: Optional[List[str]] = None) -> ServerConfig:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    is_random = args.random or args.random_seed is not None
+
+    _validate_parsed_args(parser, args, is_random)
+
     # Handle randomization first
-    if args.random or args.random_seed is not None:
+    if is_random:
         return _randomize_config(args)
 
     # Require --vuln when not randomizing
@@ -371,7 +440,7 @@ def _args_to_config(args: argparse.Namespace) -> ServerConfig:
     ]
 
     # Parse DLL base address
-    arch = Architecture(args.arch)
+    arch = Architecture(args.arch or "x86")
     dll_base = _resolve_base_address_arg(args.rop_dll_base, bad_chars, arch)
     if dll_base is None:
         dll_base = 0x10000000
@@ -386,18 +455,18 @@ def _args_to_config(args: argparse.Namespace) -> ServerConfig:
         port=args.port,
         arch=arch,
         buffer_size=args.buffer_size,
-        protocol=Protocol(args.protocol),
+        protocol=Protocol(args.protocol or "tcp"),
         command=args.command,
         additional_commands=add_cmds,
         banner=args.banner if args.banner else _default_banner(),
         base_address=base_address,
         bad_chars=bad_chars,
-        bad_char_action=BadCharAction(args.bad_char_action),
+        bad_char_action=BadCharAction(args.bad_char_action or "drop"),
         egg_tag=args.egg,
         vuln_buffer_size=args.vuln_buffer_size,
         seh_offset=args.seh_offset,
         dep=args.dep,
-        dep_api=DepBypassApi(args.dep_api),
+        dep_api=DepBypassApi(args.dep_api or "virtualprotect"),
         aslr=args.aslr,
         stack_canary=args.stack_canary,
         safe_seh=args.safeSEH,
@@ -429,15 +498,76 @@ def _args_to_config(args: argparse.Namespace) -> ServerConfig:
         stack_layout=StackLayoutConfig(
             pre_padding_size=args.pre_padding,
             landing_pad_size=args.landing_pad,
-            padding_style=PaddingStyle(args.padding_style),
+            padding_style=PaddingStyle(args.padding_style or "none"),
         ),
     )
 
     return config
 
 
+# Map from --exclude-protection names to argparse flag attributes
+_PROTECTION_FLAG_MAP = {
+    "dep": "dep",
+    "aslr": "aslr",
+    "canary": "stack_canary",
+    "safeseh": "safeSEH",
+    "fmtstr-leak": "fmtstr_leak",
+}
+
+
+def _parse_comma_enum(
+    value: Optional[str],
+    enum_cls: Type[enum.Enum],
+    arg_name: str,
+) -> Optional[List[enum.Enum]]:
+    """Parse a comma-separated string into a list of enum values.
+
+    Returns None if value is None. Raises ValueError on invalid values.
+    """
+    if value is None:
+        return None
+    parts = [v.strip() for v in value.split(",") if v.strip()]
+    valid = {e.value for e in enum_cls}
+    result = []
+    for p in parts:
+        if p not in valid:
+            raise ValueError(
+                f"Invalid {arg_name} value '{p}'. "
+                f"Valid: {', '.join(sorted(valid))}"
+            )
+        result.append(enum_cls(p))
+    return result
+
+
+def _parse_exclude_protections(value: Optional[str]) -> FrozenSet[str]:
+    """Parse --exclude-protection into a frozenset of protection names."""
+    if not value:
+        return frozenset()
+    parts = {p.strip() for p in value.split(",") if p.strip()}
+    invalid = parts - _PROTECTION_FLAG_MAP.keys()
+    if invalid:
+        raise ValueError(
+            f"Invalid --exclude-protection value(s): {', '.join(sorted(invalid))}. "
+            f"Valid: {', '.join(sorted(_PROTECTION_FLAG_MAP.keys()))}"
+        )
+    return frozenset(parts)
+
+
+def _validate_random_constraints(
+    args: argparse.Namespace,
+    excluded: FrozenSet[str],
+) -> None:
+    """Validate that --exclude-protection doesn't contradict explicit flags."""
+    for prot_name, attr_name in _PROTECTION_FLAG_MAP.items():
+        if prot_name in excluded and getattr(args, attr_name, False):
+            flag = attr_name.replace("_", "-")
+            raise ValueError(
+                f"--exclude-protection {prot_name} contradicts --{flag}"
+            )
+
+
 def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
-    """Build a randomized ServerConfig."""
+    """Build a randomized ServerConfig, respecting explicit overrides."""
     seed = (
         args.random_seed if args.random_seed is not None else random.randint(0, 2**31)
     )
@@ -446,20 +576,31 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
     # Print seed to stderr for reproducibility
     print(f"[*] Random seed: {seed}", file=sys.stderr)
 
+    # Parse and validate constraints
+    excluded = _parse_exclude_protections(args.exclude_protection)
+    _validate_random_constraints(args, excluded)
+
     difficulty = None
     if args.difficulty:
         difficulty = Difficulty(args.difficulty)
 
-    # Architecture
-    arch = (
-        Architecture(args.arch)
-        if args.arch != "x86"
-        else rng.choice(list(Architecture))
-    )
+    # Architecture — respect explicit --arch
+    if args.arch is not None:
+        arch = Architecture(args.arch)
+    else:
+        arch = rng.choice(list(Architecture))
 
-    # Vuln type (respecting arch constraints)
-    if args.vuln:
-        vuln_type = VulnType(args.vuln)
+    # Vuln type — support comma-list (e.g. --vuln bof,seh)
+    vuln_list = _parse_comma_enum(args.vuln, VulnType, "--vuln")
+    if vuln_list is not None:
+        # Filter by arch compatibility
+        candidates = [v for v in vuln_list if arch in VULN_ARCH_COMPAT[v]]
+        if not candidates:
+            raise ValueError(
+                f"No vuln types from '{args.vuln}' are compatible "
+                f"with --arch {arch.value}"
+            )
+        vuln_type = candidates[0] if len(candidates) == 1 else rng.choice(candidates)
     elif difficulty:
         preset = DIFFICULTY_PRESETS[difficulty]
         candidates = [v for v in preset["vuln_types"] if arch in VULN_ARCH_COMPAT[v]]
@@ -468,12 +609,12 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
         candidates = [v for v in VulnType if arch in VULN_ARCH_COMPAT[v]]
         vuln_type = rng.choice(candidates)
 
-    # Protocol
-    protocol = (
-        Protocol(args.protocol)
-        if args.protocol != "tcp"
-        else rng.choice(list(Protocol))
-    )
+    # Protocol — support comma-list (e.g. --protocol tcp,http)
+    proto_list = _parse_comma_enum(args.protocol, Protocol, "--protocol")
+    if proto_list is not None:
+        protocol = proto_list[0] if len(proto_list) == 1 else rng.choice(proto_list)
+    else:
+        protocol = rng.choice(list(Protocol))
 
     # Buffer size
     if difficulty:
@@ -496,28 +637,63 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
             count = rng.randint(0, 8)
         bad_chars = _generate_random_bad_chars(count, rng, vuln_type)
 
-    bad_char_action = rng.choice(list(BadCharAction))
+    # Bad char action — support comma-list, respect explicit value
+    bca_list = _parse_comma_enum(
+        args.bad_char_action, BadCharAction, "--bad-char-action"
+    )
+    if bca_list is not None:
+        bad_char_action = (
+            bca_list[0] if len(bca_list) == 1 else rng.choice(bca_list)
+        )
+    else:
+        bad_char_action = rng.choice(list(BadCharAction))
 
-    # Mitigations
+    # Mitigations — respect --exclude-protection
     if difficulty:
         preset = DIFFICULTY_PRESETS[difficulty]
-        dep = "dep" in preset["mitigations"]
-        aslr = "aslr" in preset["mitigations"]
-        stack_canary = "stack_canary" in preset["mitigations"]
+        dep = "dep" in preset["mitigations"] and "dep" not in excluded
+        aslr = "aslr" in preset["mitigations"] and "aslr" not in excluded
+        stack_canary = (
+            "stack_canary" in preset["mitigations"] and "canary" not in excluded
+        )
     else:
-        dep = args.dep or rng.random() > 0.5
-        aslr = args.aslr or rng.random() > 0.6
-        stack_canary = args.stack_canary or rng.random() > 0.7
+        if "dep" in excluded:
+            dep = False
+        else:
+            dep = args.dep or rng.random() > 0.5
 
-    safe_seh = args.safeSEH or (vuln_type == VulnType.SEH and rng.random() > 0.5)
+        if "aslr" in excluded:
+            aslr = False
+        else:
+            aslr = args.aslr or rng.random() > 0.6
 
-    # Format string leak — only for hard difficulty
-    fmtstr_leak = args.fmtstr_leak
-    if not fmtstr_leak and difficulty == Difficulty.HARD and aslr:
-        fmtstr_leak = rng.random() > 0.5
+        if "canary" in excluded:
+            stack_canary = False
+        else:
+            stack_canary = args.stack_canary or rng.random() > 0.7
 
-    # DEP API
-    dep_api = rng.choice(list(DepBypassApi)) if dep else DepBypassApi.VIRTUALPROTECT
+    if "safeseh" in excluded:
+        safe_seh = False
+    else:
+        safe_seh = args.safeSEH or (
+            vuln_type == VulnType.SEH and rng.random() > 0.5
+        )
+
+    # Format string leak
+    if "fmtstr-leak" in excluded:
+        fmtstr_leak = False
+    else:
+        fmtstr_leak = args.fmtstr_leak
+        if not fmtstr_leak and difficulty == Difficulty.HARD and aslr:
+            fmtstr_leak = rng.random() > 0.5
+
+    # DEP API — respect explicit --dep-api
+    if args.dep_api is not None:
+        dep_api = DepBypassApi(args.dep_api)
+    elif dep:
+        dep_api = rng.choice(list(DepBypassApi))
+    else:
+        dep_api = DepBypassApi.VIRTUALPROTECT
 
     # Decoys
     if difficulty:
@@ -553,8 +729,12 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
     else:
         landing_pad = rng.choice([0, 0, 0, 16, 32, 64, 128, 256])
 
-    if args.padding_style != "none":
-        padding_style = PaddingStyle(args.padding_style)
+    # Padding style — support comma-list, respect explicit value
+    ps_list = _parse_comma_enum(
+        args.padding_style, PaddingStyle, "--padding-style"
+    )
+    if ps_list is not None:
+        padding_style = ps_list[0] if len(ps_list) == 1 else rng.choice(ps_list)
     elif pre_padding > 0:
         if difficulty:
             preset = DIFFICULTY_PRESETS[difficulty]
