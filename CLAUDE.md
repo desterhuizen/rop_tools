@@ -369,6 +369,13 @@ pip install -r requirements-lint.txt
   - Build script generation with correct cl.exe flags
   - 114 tests across 6 test files
 
+### March 29, 2026 — ROP DLL DEP API fix
+- **target_builder**: Fixed ROP DLL missing DEP bypass API — the companion DLL
+  only contained ROP gadgets but did not import the selected DEP bypass API,
+  so the DLL's IAT had no entry for VirtualProtect (or whichever API). Now the
+  DLL calls the same API as the server. New config field: `RopDllConfig.dep_api`.
+  284 target_builder tests (was 276).
+
 ### March 28, 2026 — Data staging, ASLR leak fix, MinGW ASLR fix, zsh completion fix
 - **target_builder**: New `--data-staging` flag — adds a command that stores data
   in a persistent 64KB heap buffer for egghunter practice. TCP: `STORE`, HTTP:

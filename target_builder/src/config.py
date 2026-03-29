@@ -418,6 +418,7 @@ class RopDllConfig:
     no_aslr: bool = True
     base_address: int = 0x10000000
     seed: Optional[int] = None
+    dep_api: Optional["DepBypassApi"] = None
 
 
 @dataclass
@@ -600,8 +601,15 @@ class ServerConfig:
             raise ValueError(
                 "--base-address must be between 0x00010000 and " "0x7FFE0000 for x86"
             )
-        if self.bad_chars and address_conflicts_with_bad_chars(
-            self.base_address, self.bad_chars, self.arch
+        # Skip bad char check when --rop-dll is used: the server EXE base
+        # intentionally contains null bytes so its gadgets are unusable,
+        # forcing the student to use the DLL instead.
+        if (
+            self.bad_chars
+            and not self.rop_dll.enabled
+            and address_conflicts_with_bad_chars(
+                self.base_address, self.bad_chars, self.arch
+            )
         ):
             raise ValueError(
                 f"--base-address 0x{self.base_address:08X} contains bytes "

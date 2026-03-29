@@ -275,6 +275,78 @@ class TestRopDll(unittest.TestCase):
         result = generate_rop_dll(config)
         self.assertIn("0x62500000", result)
 
+    def test_dll_includes_virtualprotect_when_dep_api_set(self):
+        config = RopDllConfig(enabled=True, dep_api=DepBypassApi.VIRTUALPROTECT)
+        result = generate_rop_dll(config)
+        self.assertIn("VirtualProtect", result)
+        self.assertIn("rop_init_helper_data", result)
+
+    def test_dll_includes_virtualalloc_when_dep_api_set(self):
+        config = RopDllConfig(enabled=True, dep_api=DepBypassApi.VIRTUALALLOC)
+        result = generate_rop_dll(config)
+        self.assertIn("VirtualAlloc", result)
+        self.assertIn("rop_init_scratch", result)
+
+    def test_dll_includes_writeprocessmemory_when_dep_api_set(self):
+        config = RopDllConfig(enabled=True, dep_api=DepBypassApi.WRITEPROCESSMEMORY)
+        result = generate_rop_dll(config)
+        self.assertIn("WriteProcessMemory", result)
+        self.assertIn("rop_patch_callback", result)
+
+    def test_dll_includes_heapcreate_when_dep_api_set(self):
+        config = RopDllConfig(enabled=True, dep_api=DepBypassApi.HEAPCREATE)
+        result = generate_rop_dll(config)
+        self.assertIn("HeapCreate", result)
+        self.assertIn("rop_init_heap", result)
+
+    def test_dll_includes_setprocessdeppolicy_when_dep_api_set(self):
+        config = RopDllConfig(enabled=True, dep_api=DepBypassApi.SETPROCESSDEPPOLICY)
+        result = generate_rop_dll(config)
+        self.assertIn("SetProcessDEPPolicy", result)
+        self.assertIn("rop_check_dep", result)
+
+    def test_dll_includes_ntallocate_when_dep_api_set(self):
+        config = RopDllConfig(enabled=True, dep_api=DepBypassApi.NTALLOCATE)
+        result = generate_rop_dll(config)
+        self.assertIn("NtAllocateVirtualMemory", result)
+        self.assertIn("rop_init_nt_alloc", result)
+
+    def test_dll_no_dep_api_no_extra_imports(self):
+        config = RopDllConfig(enabled=True, dep_api=None)
+        result = generate_rop_dll(config)
+        for api in [
+            "VirtualProtect",
+            "VirtualAlloc",
+            "WriteProcessMemory",
+            "HeapCreate",
+            "SetProcessDEPPolicy",
+            "NtAllocateVirtualMemory",
+        ]:
+            self.assertNotIn(api, result)
+
+    def test_dll_dep_api_matches_server(self):
+        """DLL and server should use the same DEP API."""
+        for api in DepBypassApi:
+            server_config = ServerConfig(
+                dep=True,
+                dep_api=api,
+                rop_dll=RopDllConfig(enabled=True, dep_api=api),
+            )
+            server = render(server_config)
+            dll = generate_rop_dll(server_config.rop_dll)
+
+            api_names = {
+                "virtualprotect": "VirtualProtect",
+                "virtualalloc": "VirtualAlloc",
+                "writeprocessmemory": "WriteProcessMemory",
+                "heapcreate": "HeapCreate",
+                "setprocessdeppolicy": "SetProcessDEPPolicy",
+                "ntallocate": "NtAllocateVirtualMemory",
+            }
+            target = api_names[api.value]
+            self.assertIn(target, server, f"Server missing {target}")
+            self.assertIn(target, dll, f"DLL missing {target}")
+
 
 class TestCLIRun(unittest.TestCase):
     """Test the run() function with file output."""

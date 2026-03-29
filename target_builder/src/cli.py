@@ -477,9 +477,11 @@ def _args_to_config(args: argparse.Namespace) -> ServerConfig:
         dll_base = 0x10000000
 
     # Parse server base address
+    # When --rop-dll is used, default to 0x00400000 (standard PE base with null
+    # byte) so EXE gadget addresses are unusable — forces use of the DLL.
     base_address = _resolve_base_address_arg(args.base_address, bad_chars, arch)
     if base_address is None:
-        base_address = 0x11110000
+        base_address = 0x00400000 if args.rop_dll else 0x11110000
 
     config = ServerConfig(
         vuln_type=VulnType(args.vuln),
@@ -524,6 +526,9 @@ def _args_to_config(args: argparse.Namespace) -> ServerConfig:
             gadget_density=GadgetDensity(args.rop_dll_gadgets),
             no_aslr=args.rop_dll_no_aslr,
             base_address=dll_base,
+            dep_api=(
+                DepBypassApi(args.dep_api or "virtualprotect") if args.dep else None
+            ),
         ),
         embedded_gadgets=EmbeddedGadgetsConfig(
             enabled=args.embedded_gadgets,
@@ -801,9 +806,15 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
     data_staging_cmd = rng.choice(DATA_STAGING_CMD_POOL) if data_staging else "STORE"
 
     # Base addresses — randomize upper bytes, avoiding bad chars
+    # When --rop-dll is used, default to 0x00400000 (null byte in address)
+    # so EXE gadget addresses are unusable — forces use of the DLL.
     base_address = _resolve_base_address_arg(args.base_address, bad_chars, arch)
     if base_address is None:
-        base_address = find_random_base_address(bad_chars, arch, rng)
+        base_address = (
+            0x00400000
+            if args.rop_dll
+            else find_random_base_address(bad_chars, arch, rng)
+        )
 
     dll_base = _resolve_base_address_arg(args.rop_dll_base, bad_chars, arch)
     if dll_base is None:
@@ -864,6 +875,7 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
             no_aslr=args.rop_dll_no_aslr,
             base_address=dll_base,
             seed=seed,
+            dep_api=dep_api if dep else None,
         ),
         embedded_gadgets=EmbeddedGadgetsConfig(
             enabled=args.embedded_gadgets,

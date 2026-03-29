@@ -204,7 +204,7 @@ target_builder --vuln bof --dep --rop-dll --rop-dll-gadgets full \
   --rop-dll-base 0x62500000
 ```
 
-Generates a DLL with inline assembly gadgets the server loads at startup.
+Generates a DLL with inline assembly gadgets the server loads at startup. When `--dep` is also enabled, the DLL imports the same DEP bypass API as the server so the student can use the DLL's IAT (at a known, non-ASLR address) in their ROP chain.
 
 | `--rop-dll-gadgets` | Gadgets Included                                        |
 |---------------------|---------------------------------------------------------|

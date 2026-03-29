@@ -15,7 +15,7 @@ IMPORTANT NOTES on the TOOL:
 
 - **Language:** Python 3.8+ (generates C++ source code)
 - **Dependencies:** `rich` (terminal formatting via `lib/color_printer`)
-- **Testing:** `unittest` (stdlib) — 276 tests across 7 test files
+- **Testing:** `unittest` (stdlib) — 284 tests across 7 test files
 - **Linting:** flake8, black, isort, mypy (config in root `.flake8` / `pyproject.toml`)
 
 ### Running the Tool
@@ -238,6 +238,13 @@ Each decoy gets a randomizable command name that sounds plausible (e.g. `PROCESS
 
 ## ROP Companion DLL
 
+### DEP Bypass API in DLL IAT
+When `--dep` is enabled with `--rop-dll`, the DLL also calls the selected DEP
+bypass API so it appears in the DLL's IAT. Since the DLL is compiled without
+ASLR (`/DYNAMICBASE:NO`), the student can use the DLL's IAT entry at a known
+address in their ROP chain. The `RopDllConfig.dep_api` field controls which API
+is included — propagated automatically from `ServerConfig.dep_api` by the CLI.
+
 ### Gadget Categories by Density
 
 **minimal**: The bare essentials (hardest — no ESP capture gadgets)
@@ -353,6 +360,16 @@ contradictions detected, comma-lists rejected without `--random`.
 ---
 
 ## Changelog
+
+### March 29, 2026 — ROP DLL DEP API fix
+- **fix: ROP DLL missing DEP bypass API** — The companion DLL only contained
+  generic ROP gadgets but did not import the selected DEP bypass API (e.g.
+  VirtualProtect). This meant the DLL's IAT had no entry for the API, so the
+  student couldn't use the non-ASLR DLL to find the API address for their ROP
+  chain. The DLL now calls the same DEP API as the server (legitimate usage
+  pattern) so it appears in the DLL's IAT. New config field:
+  `RopDllConfig.dep_api` (propagated from `ServerConfig.dep_api` when DEP is
+  enabled). 284 tests (was 276).
 
 ### March 28, 2026 — Data staging, ASLR leak fix, MinGW ASLR fix
 - **feat: `--data-staging`** — Optional command/endpoint that stores received data

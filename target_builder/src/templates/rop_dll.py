@@ -16,7 +16,7 @@ densities require creative chaining through "dirty" gadgets with side effects.
 import random as _random_mod
 from typing import Optional
 
-from target_builder.src.config import GadgetDensity, RopDllConfig
+from target_builder.src.config import DepBypassApi, GadgetDensity, RopDllConfig
 
 # ── Dirty ESP gadget pools ───────────────────────────────────────────
 #
@@ -176,10 +176,19 @@ def generate_rop_dll(config: RopDllConfig) -> str:
 
     parts = [
         _generate_header(base_hex),
-        _generate_gadget_functions(config.gadget_density, config.seed),
-        _generate_dllmain(),
-        _generate_init_export(),
     ]
+
+    dep_api_code = _generate_dep_api_usage(config.dep_api)
+    if dep_api_code:
+        parts.append(dep_api_code)
+
+    parts.extend(
+        [
+            _generate_gadget_functions(config.gadget_density, config.seed),
+            _generate_dllmain(),
+            _generate_init_export(config.dep_api),
+        ]
+    )
 
     return "\n\n".join(parts)
 
@@ -198,6 +207,103 @@ def generate_dll_build_command(config: RopDllConfig) -> str:
     ]
 
     return f"cl.exe {' '.join(flags)} {output} /link {' '.join(link_flags)}"
+
+
+def _generate_dep_api_usage(dep_api: Optional[DepBypassApi]) -> str:
+    """Generate a legitimate use of the DEP bypass API so it appears in the DLL IAT.
+
+    Mirrors the server-side pattern: each API is called for a real purpose so
+    ``dumpbin /imports`` shows it naturally.  The student can then use the
+    DLL's IAT entry (at a known, non-ASLR address) in their ROP chain.
+
+    Args:
+        dep_api: Which DEP bypass API to import, or None to skip.
+
+    Returns:
+        C++ function code as a string, or empty string if dep_api is None.
+    """
+    if dep_api is None:
+        return ""
+
+    _DEP_API_DLL_CODE = {
+        "virtualprotect": """\
+// Legitimate use of VirtualProtect — re-protect helper data as read-only
+static char g_helper_data[4096];
+
+void rop_init_helper_data() {
+    DWORD old_protect;
+    memset(g_helper_data, 0, sizeof(g_helper_data));
+    strcpy(g_helper_data, "rop_helper_v1");
+    VirtualProtect(g_helper_data, sizeof(g_helper_data),
+                   PAGE_READONLY, &old_protect);
+}""",
+        "virtualalloc": """\
+// Legitimate use of VirtualAlloc — allocate scratch buffer
+static char* g_scratch_buffer = NULL;
+
+void rop_init_scratch() {
+    g_scratch_buffer = (char*)VirtualAlloc(
+        NULL, 4096, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE
+    );
+    if (g_scratch_buffer) {
+        memset(g_scratch_buffer, 0, 4096);
+    }
+}""",
+        "writeprocessmemory": """\
+// Legitimate use of WriteProcessMemory — patch callback table
+typedef void (*callback_t)(void);
+static callback_t g_callbacks[8] = {0};
+
+void rop_patch_callback(int index, callback_t func) {
+    if (index >= 0 && index < 8) {
+        SIZE_T written;
+        WriteProcessMemory(
+            GetCurrentProcess(),
+            &g_callbacks[index],
+            &func,
+            sizeof(callback_t),
+            &written
+        );
+    }
+}""",
+        "heapcreate": """\
+// Legitimate use of HeapCreate/HeapAlloc — private heap for helper data
+static HANDLE g_helper_heap = NULL;
+
+void rop_init_heap() {
+    g_helper_heap = HeapCreate(0, 4096, 1024 * 1024);
+}
+
+void* rop_heap_alloc(SIZE_T size) {
+    if (g_helper_heap) {
+        return HeapAlloc(g_helper_heap, HEAP_ZERO_MEMORY, size);
+    }
+    return NULL;
+}""",
+        "setprocessdeppolicy": """\
+// Legacy DEP compatibility check via SetProcessDEPPolicy
+void rop_check_dep() {
+    SetProcessDEPPolicy(0);
+}""",
+        "ntallocate": """\
+// Low-level allocation via NtAllocateVirtualMemory
+typedef NTSTATUS (NTAPI *pNtAllocateVirtualMemory)(
+    HANDLE, PVOID*, ULONG_PTR, PSIZE_T, ULONG, ULONG
+);
+
+static pNtAllocateVirtualMemory g_NtAllocVm = NULL;
+
+void rop_init_nt_alloc() {
+    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    if (ntdll) {
+        g_NtAllocVm = (pNtAllocateVirtualMemory)GetProcAddress(
+            ntdll, "NtAllocateVirtualMemory"
+        );
+    }
+}""",
+    }
+
+    return _DEP_API_DLL_CODE.get(dep_api.value, "")
 
 
 def _generate_header(base_hex: str) -> str:
@@ -619,10 +725,23 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID reserved) {
 }"""
 
 
-def _generate_init_export() -> str:
+def _generate_init_export(dep_api: Optional[DepBypassApi] = None) -> str:
     """Generate the exported init function the server calls."""
-    return """\
+    _DEP_INIT_CALLS = {
+        "virtualprotect": "    rop_init_helper_data();\n",
+        "virtualalloc": "    rop_init_scratch();\n",
+        "writeprocessmemory": "",  # No init needed — called on demand
+        "heapcreate": "    rop_init_heap();\n",
+        "setprocessdeppolicy": "    rop_check_dep();\n",
+        "ntallocate": "    rop_init_nt_alloc();\n",
+    }
+
+    dep_init = ""
+    if dep_api is not None:
+        dep_init = _DEP_INIT_CALLS.get(dep_api.value, "")
+
+    return f"""\
 // Exported function called by the server after LoadLibrary
-extern "C" __declspec(dllexport) void RopHelperInit() {
+extern "C" __declspec(dllexport) void RopHelperInit() {{
     printf("[+] ROP Helper DLL initialized\\n");
-}"""
+{dep_init}}}"""
