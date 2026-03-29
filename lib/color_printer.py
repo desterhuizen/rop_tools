@@ -64,7 +64,11 @@ class ColorPrinter:
         return str(text)
 
     def stylize_regex(self, text, pattern, match_style="bold red"):
-        """Highlight regex matches in text"""
+        """Highlight regex matches in text.
+
+        If the pattern contains capture groups, only the groups are
+        highlighted.  Otherwise the entire match is highlighted.
+        """
         if not self.enabled:
             return text
 
@@ -72,9 +76,17 @@ class ColorPrinter:
             regex = re.compile(pattern, re.IGNORECASE)
             rich_text = Text(text)
 
-            # Find all matches and stylize them
             for match in regex.finditer(text):
-                rich_text.stylize(match_style, match.start(), match.end())
+                if match.lastindex:
+                    # Pattern has capture groups — highlight each group
+                    for i in range(1, match.lastindex + 1):
+                        if match.start(i) != -1:
+                            rich_text.stylize(
+                                match_style, match.start(i), match.end(i)
+                            )
+                else:
+                    # No capture groups — highlight the full match
+                    rich_text.stylize(match_style, match.start(), match.end())
 
             return rich_text
         except re.error:
