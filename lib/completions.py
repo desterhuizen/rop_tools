@@ -51,8 +51,7 @@ def _extract_flags(
         # Get the longest option string (prefer --long over -short)
         flags = [f for f in action.option_strings if f.startswith("--")]
         if not flags:
-            # Positional argument — skip for completion flags list
-            # but could be handled separately
+            # Positional argument — handled by _has_positional_file
             continue
         flag = flags[0]
         choices = None
@@ -64,12 +63,26 @@ def _extract_flags(
     return results
 
 
+def _has_positional_file(parser: argparse.ArgumentParser) -> bool:
+    """Check if the parser has a positional argument that expects a file."""
+    for action in parser._actions:
+        if isinstance(action, argparse._HelpAction):
+            continue
+        if not action.option_strings:
+            help_text = (action.help or "").lower()
+            dest = (action.dest or "").lower()
+            if "file" in help_text or "file" in dest:
+                return True
+    return False
+
+
 def _generate_bash(parser: argparse.ArgumentParser, tool_names: List[str]) -> str:
     """Generate a bash completion script."""
     func_name = f"_{tool_names[0]}_complete"
     all_flags = []
     case_entries = []
     file_flags = []
+    has_positional = _has_positional_file(parser)
 
     for flag, choices, is_boolean, help_text in _extract_flags(parser):
         all_flags.append(flag)
@@ -97,6 +110,19 @@ def _generate_bash(parser: argparse.ArgumentParser, tool_names: List[str]) -> st
             f"            return ;;"
         )
 
+    # When a positional file arg exists, fall back to file completion
+    # if the current word doesn't start with "-"
+    positional_fallback = ""
+    if has_positional:
+        positional_fallback = """\
+
+    # Complete files for positional argument
+    if [[ "$cur" != -* ]]; then
+        COMPREPLY=($(compgen -f -- "$cur"))
+        return
+    fi
+"""
+
     complete_lines = "\n".join(f"complete -F {func_name} {name}" for name in tool_names)
 
     return f"""\
@@ -115,7 +141,7 @@ def _generate_bash(parser: argparse.ArgumentParser, tool_names: List[str]) -> st
 {case_block}
 {file_cases}
     esac
-
+{positional_fallback}
     COMPREPLY=($(compgen -W "$opts" -- "$cur"))
 }}
 
@@ -128,6 +154,7 @@ def _generate_zsh(parser: argparse.ArgumentParser, tool_names: List[str]) -> str
     func_name = f"_{tool_names[0]}"
     compdef_names = " ".join(tool_names)
     args_specs = []
+    has_positional = _has_positional_file(parser)
 
     for flag, choices, is_boolean, help_text in _extract_flags(parser):
         # Escape single quotes and square brackets in help text
@@ -144,6 +171,9 @@ def _generate_zsh(parser: argparse.ArgumentParser, tool_names: List[str]) -> str
             args_specs.append(f"        '{flag}[{help_clean}]:file:_files'")
         else:
             args_specs.append(f"        '{flag}[{help_clean}]:value:'")
+
+    if has_positional:
+        args_specs.append("        '*:file:_files'")
 
     args_block = " \\\n".join(args_specs)
 
