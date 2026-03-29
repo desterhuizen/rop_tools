@@ -12,13 +12,14 @@
         2,
         0,
         null
-      ]
+      ],
+      "save_return": "esi"
     },
     {
       "api": "WriteFile",
       "dll": "kernel32.dll",
       "args": [
-        "REG:eax",
+        "REG:esi",
         "Hello from shellgen!",
         20,
         "REG:esp",

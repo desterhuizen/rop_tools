@@ -75,7 +75,6 @@ shellgen/
 └── hash_generator.py        # ROR13 hash tool
 ```
 
-**See [MODULAR_STRUCTURE.md](MODULAR_STRUCTURE.md) for detailed module documentation.**
 
 ---
 
@@ -83,8 +82,8 @@ shellgen/
 
 | Platform | Architectures | Payloads |
 |----------|---------------|----------|
-| **Windows** | x86, x64 | messagebox, winexec, createprocess, shellexecute, system, download_exec, reverse_shell, reverse_shell_powershell, bind_shell |
-| **Linux** | ARM, ARM64 | execve, reverse_shell |
+| **Windows** | x86, x64 | messagebox, winexec, createprocess, shellexecute, system, download_exec, reverse_shell (x86), reverse_shell_x64, reverse_shell_powershell, bind_shell (x86), bind_shell_x64, bind_shell_simple |
+| **Linux** | x86, x64, ARM, ARM64 | execve, reverse_shell, bind_shell |
 
 ### Output Formats
 - **asm**: Assembly source code
@@ -119,8 +118,8 @@ shellgen/
 - 8-byte pointers, supports kernel32.dll and kernelbase.dll
 - Registers: [RBP+0x08]=lookup_func, [RBP+0x10]=LoadLibraryA, [RBP+0x20]=kernel32 base
 
-### Linux Shellcode (ARM/ARM64)
-- **Direct Syscalls**: ARM32 `swi #0` (r7=syscall#), ARM64 `svc #0` (x8=syscall#)
+### Linux Shellcode (x86/x64/ARM/ARM64)
+- **Direct Syscalls**: x86 `int 0x80` (eax=syscall#), x64 `syscall` (rax=syscall#), ARM32 `swi #0` (r7=syscall#), ARM64 `svc #0` (x8=syscall#)
 - **Key Syscalls**: execve, socket, connect, dup2/dup3
 - **Data Storage**: PC-relative addressing via `adr`, `.asciz` directives, stack-based argv
 
@@ -135,14 +134,15 @@ shellgen/
 | `--payload` | Payload name | Required |
 | `--arch` | x86, x64, arm, arm64 | x86 |
 | `--format` | asm, python, c, raw, pyasm | asm |
-| `--bad-chars` | Hex bytes to avoid (comma-separated) | 00,0a,0d |
+| `--bad-chars` | Hex bytes to avoid (comma-separated) | 00 |
+| `--json` | Load custom payload from JSON file | - |
 | `--verify` | Verify shellcode for bad chars | False |
 | `--debug-shellcode` | Disassemble with Capstone, map bad chars | False |
-| `--no-exit` | Skip ExitProcess | False |
-| `--output` | Output filename | shellcode.asm |
+| `--no-exit` | Skip ExitProcess (Windows only) | False |
+| `--output` | Output filename | stdout |
 | `--generate-completion` | Print bash/zsh completion script and exit | - |
 
-**Payload-specific options:** `--title`, `--message`, `--cmd`, `--url`, `--save-path`, `--host`, `--port`, `--show-window`
+**Payload-specific options:** `--title`, `--message`, `--cmd`, `--url`, `--save-path`, `--host`, `--port`, `--shell`, `--show-window`
 
 ---
 
@@ -207,15 +207,22 @@ config = {
     'bad_chars': {0x00, 0x0a, 0x0d},
     'calls': [
         {'api': 'CreateFileA', 'dll': 'kernel32.dll',
-         'args': ['C:\\test.txt', 0x40000000, 0, 0, 2, 0, 0]},
+         'args': ['C:\\test.txt', 0x40000000, 0, 0, 2, 0, 0],
+         'save_result': 'esi'},
         {'api': 'WriteFile', 'dll': 'kernel32.dll',
-         'args': ['REG:eax', 'Hello!', 6, 'REG:esp', 0]}
+         'args': ['REG:esi', 'Hello!', 6, 'REG:esp', 0]}
     ],
     'exit': True
 }
 generator = WindowsGenerator(config['bad_chars'], arch='x86')
 asm_code = generator.generate(config)
 ```
+
+### JSON Call Object Fields
+- `api` — Windows API function name
+- `dll` — DLL containing the function
+- `args` — Argument array (integers, hex strings, `null`, strings, `"REG:reg"`)
+- `save_result` — (optional) Register name to save EAX into after the call (e.g., `"esi"`, `"edi"`). Emits `mov <reg>, eax`. Use with `"REG:<reg>"` in later calls to reference the saved value. On x86, string prep uses `edi`/`esi`/`edx` as scratch — saved values in those registers may be clobbered by later calls with string arguments.
 
 ---
 
@@ -276,9 +283,8 @@ def ror13_hash(name):
 ## Limitations
 
 1. **Windows ARM/ARM64**: Not implemented (different conventions)
-2. **Linux x86/x64**: Not yet implemented (use ARM/ARM64)
-3. **Bad Character Encoding**: Only Windows x86/x64
-4. **Complex Payloads**: Some edge cases need manual adjustment
+2. **Bad Character Encoding**: Only Windows x86/x64
+3. **Complex Payloads**: Some edge cases need manual adjustment
 
 ---
 
@@ -314,7 +320,6 @@ def ror13_hash(name):
 - [ROR13 Hash Algorithm](https://www.fireeye.com/blog/threat-research/2019/10/api-hashing-tool.html)
 - [ARM Syscall Numbers](https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md)
 - [Keystone Engine](http://www.keystone-engine.org/)
-- [Modular Structure Details](MODULAR_STRUCTURE.md)
 
 ---
 

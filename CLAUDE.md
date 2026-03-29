@@ -151,8 +151,8 @@ printer.disable()  # For --no-color flag
 ### 1. Shellcode Generator (shellgen/)
 Multi-architecture shellcode generation with automatic bad character avoidance.
 
-**Platforms:** Windows (x86/x64), Linux (ARM/ARM64)
-**Payloads:** 9 Windows payloads, 2 Linux payloads
+**Platforms:** Windows (x86/x64), Linux (x86/x64/ARM/ARM64)
+**Payloads:** 12 Windows payloads, 3 Linux payloads
 **Key Features:** PEB walk, ROR13 hash, bad char encoding, Keystone/Capstone integration
 
 **See:** `shellgen/CLAUDE.md` for technical details
