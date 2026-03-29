@@ -76,6 +76,8 @@ target_builder --vuln fmtstr --protocol rpc --output server.cpp
 | `--safeSEH`    | `/SAFESEH`         | Must use gadget from non-SafeSEH module|
 | `--data-staging`| (no compile flag) | Adds heap staging command for egghunter practice |
 
+> **Note:** `--dep` with `--vuln seh` is an advanced combination. The classic POP POP RET technique lands EIP on the stack, which DEP blocks. Exploiting this requires a stack pivot gadget as the SEH handler instead of POP POP RET, followed by a full ROP chain — significantly harder than standard SEH or standard DEP bypass alone.
+
 ### DEP Bypass APIs
 
 When `--dep` is enabled, the server imports one of these APIs for a legitimate purpose (appears in IAT):
