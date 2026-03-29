@@ -971,10 +971,8 @@ def _default_banner() -> str:
     return "Target Server v1.0 - Type HELP for commands"
 
 
-def _print_challenge_summary(config: ServerConfig) -> None:
-    """Print randomized challenge parameters to stderr."""
-    bad_hex = ", ".join(f"0x{b:02x}" for b in config.bad_chars)
-
+def _collect_mitigations(config: ServerConfig) -> List[str]:
+    """Build list of active mitigation descriptions."""
     mitigations = []
     if config.dep:
         mitigations.append(f"DEP ({config.dep_api.value})")
@@ -988,6 +986,13 @@ def _print_challenge_summary(config: ServerConfig) -> None:
         mitigations.append("FmtStr Leak")
     if config.data_staging:
         mitigations.append(f"Data Staging ({config.data_staging_cmd})")
+    return mitigations
+
+
+def _print_challenge_summary(config: ServerConfig) -> None:
+    """Print randomized challenge parameters to stderr."""
+    bad_hex = ", ".join(f"0x{b:02x}" for b in config.bad_chars)
+    mitigations = _collect_mitigations(config)
 
     # Stack layout info
     layout = config.stack_layout

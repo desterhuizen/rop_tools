@@ -100,9 +100,11 @@ def load_custom_json(json_path):
         # e.g. [0, 10, 13] or ["0x00", "0x0a", "0x0d"] or [0, "0x0a", 13]
         if "bad_chars" in config:
             config["bad_chars"] = {
-                int(b, 16) if isinstance(b, str) and b.startswith("0x")
-                else int(b) if isinstance(b, str) and b.isdigit()
-                else b
+                (
+                    int(b, 16)
+                    if isinstance(b, str) and b.startswith("0x")
+                    else int(b) if isinstance(b, str) and b.isdigit() else b
+                )
                 for b in config["bad_chars"]
             }
         else:

@@ -813,16 +813,14 @@ resolve_symbols_kernel32:
         if "eax" in reg_refs:
             # Check if string prep will actually run (has plain string args)
             has_strings = any(
-                isinstance(a, str)
-                and not a.startswith(("STR_PTR:", "REG:", "MEM:"))
+                isinstance(a, str) and not a.startswith(("STR_PTR:", "REG:", "MEM:"))
                 for a in args
             )
             if has_strings:
                 save_reg = "ebx"
                 # Rewrite REG:eax -> REG:ebx in a copy of args
                 args = [
-                    f"REG:{save_reg}" if (isinstance(a, str) and a == "REG:eax")
-                    else a
+                    f"REG:{save_reg}" if (isinstance(a, str) and a == "REG:eax") else a
                     for a in args
                 ]
                 reg_refs = self._get_reg_refs(args)
@@ -934,9 +932,7 @@ resolve_symbols_kernel32:
                 )
         return lines
 
-    def _push_x64_stack_arg(
-        self, arg, i, string_cache, string_to_reg, reg_refs=None
-    ):
+    def _push_x64_stack_arg(self, arg, i, string_cache, string_to_reg, reg_refs=None):
         """Push a single stack argument for x64 fastcall (args 5+).
 
         Returns:
@@ -1015,15 +1011,13 @@ resolve_symbols_kernel32:
         save_reg = None
         if "rax" in reg_refs:
             has_strings = any(
-                isinstance(a, str)
-                and not a.startswith(("STR_PTR:", "REG:", "MEM:"))
+                isinstance(a, str) and not a.startswith(("STR_PTR:", "REG:", "MEM:"))
                 for a in args
             )
             if has_strings:
                 save_reg = "rbx"
                 args = [
-                    f"REG:{save_reg}" if (isinstance(a, str) and a == "REG:rax")
-                    else a
+                    f"REG:{save_reg}" if (isinstance(a, str) and a == "REG:rax") else a
                     for a in args
                 ]
                 reg_refs = self._get_reg_refs(args)
@@ -1049,7 +1043,11 @@ resolve_symbols_kernel32:
         for i, arg in enumerate(args[:4]):
             lines.extend(
                 self._resolve_x64_reg_arg(
-                    arg, i, param_regs[i], string_cache, string_to_reg,
+                    arg,
+                    i,
+                    param_regs[i],
+                    string_cache,
+                    string_to_reg,
                     reg_refs,
                 )
             )
@@ -1080,6 +1078,40 @@ resolve_symbols_kernel32:
             )
 
         return "\n".join(lines)
+
+    def _emit_api_call(self, index, call, api_to_offset, string_cache):
+        """Emit assembly for a single API call (normal or custom_asm)."""
+        out = []
+        api_name = call["api"]
+        args_str = ", ".join(str(a) for a in call["args"])
+
+        out.append(
+            "\n; =========================================================================="
+        )
+        out.append(f"; Call #{index + 1}: {api_name}({args_str})")
+        out.append(
+            "; =========================================================================="
+        )
+
+        if call.get("custom_asm"):
+            out.append(call["custom_asm"])
+        else:
+            api_offset = api_to_offset[api_name]
+            out.append(
+                self.gen_api_call_preresolve(
+                    api_name, call["args"], api_offset, string_cache
+                )
+            )
+
+        save_reg = call.get("save_result")
+        if save_reg:
+            ret_reg = "rax" if self.arch == "x64" else "eax"
+            out.append(
+                f"    mov {save_reg}, {ret_reg}" f"            ; save {api_name} result"
+            )
+
+        out.append("")
+        return out
 
     def generate(self, config):
         """
@@ -1136,39 +1168,7 @@ resolve_symbols_kernel32:
 
         # Call pre-resolved APIs
         for i, call in enumerate(calls):
-            # Handle custom assembly blocks
-            if call.get("custom_asm"):
-                output.append(
-                    "\n; =========================================================================="
-                )
-                output.append(
-                    f"; Call #{i + 1}: {call['api']}({', '.join(str(a) for a in call['args'])})"
-                )
-                output.append(
-                    "; =========================================================================="
-                )
-                output.append(call.get("custom_asm"))
-                output.append("")
-                continue
-
-            api_name = call["api"]
-            api_offset = api_to_offset[api_name]
-
-            output.append(
-                "\n; =========================================================================="
-            )
-            output.append(
-                f"; Call #{i + 1}: {api_name}({', '.join(str(a) for a in call['args'])})"
-            )
-            output.append(
-                "; =========================================================================="
-            )
-            output.append(
-                self.gen_api_call_preresolve(
-                    api_name, call["args"], api_offset, string_cache
-                )
-            )
-            output.append("")
+            output.extend(self._emit_api_call(i, call, api_to_offset, string_cache))
 
         # Exit
         if do_exit:
