@@ -490,7 +490,7 @@ class TestFmtstrLeakIntegration(unittest.TestCase):
 
         result = render(config)
         self.assertIn("ECHO", result)
-        self.assertIn("_sprintf_p(echo_buf", result)
+        self.assertIn("VULN_SNPRINTF(echo_buf", result)
 
     def test_random_hard_may_enable_fmtstr_leak(self):
         """Hard difficulty with ASLR can randomly enable fmtstr_leak."""

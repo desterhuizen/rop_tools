@@ -56,7 +56,7 @@ class TestRendererBasic(unittest.TestCase):
             banner="Test",
         )
         result = render(config)
-        self.assertIn("_printf_p(data)", result)
+        self.assertIn("VULN_PRINTF(data)", result)
 
 
 class TestRendererProtocols(unittest.TestCase):
@@ -229,7 +229,7 @@ class TestRendererFmtstrLeak(unittest.TestCase):
         )
         result = render(config)
         self.assertIn("ECHO", result)
-        self.assertIn("_sprintf_p(echo_buf", result)
+        self.assertIn("VULN_SNPRINTF(echo_buf", result)
 
     def test_fmtstr_leak_http(self):
         config = ServerConfig(
@@ -240,7 +240,7 @@ class TestRendererFmtstrLeak(unittest.TestCase):
         )
         result = render(config)
         self.assertIn("/echo", result)
-        self.assertIn("_sprintf_p(echo_buf", result)
+        self.assertIn("VULN_SNPRINTF(echo_buf", result)
 
     def test_fmtstr_leak_rpc(self):
         config = ServerConfig(
@@ -251,7 +251,7 @@ class TestRendererFmtstrLeak(unittest.TestCase):
         )
         result = render(config)
         self.assertIn("254", result)
-        self.assertIn("_sprintf_p(echo_buf", result)
+        self.assertIn("VULN_SNPRINTF(echo_buf", result)
 
     def test_fmtstr_leak_coexists_with_aslr_leak(self):
         config = ServerConfig(
@@ -274,7 +274,7 @@ class TestRendererFmtstrLeak(unittest.TestCase):
             banner="Test",
         )
         result = render(config)
-        self.assertNotIn("_sprintf_p(echo_buf", result)
+        self.assertNotIn("VULN_SNPRINTF(echo_buf", result)
 
 
 class TestRendererArchitecture(unittest.TestCase):

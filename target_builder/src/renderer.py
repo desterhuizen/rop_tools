@@ -95,6 +95,10 @@ def render(config: ServerConfig) -> str:
         sections.append(decoy_templates.generate_decoy_functions(config, decoy_specs))
         sections.append("")
 
+    # 7b. Format string macros (needed by fmtstr vuln and fmtstr-leak)
+    if config.vuln_type == VulnType.FMTSTR or config.fmtstr_leak:
+        sections.append(_fmtstr_macros())
+
     # 8. Vulnerable function
     vuln_func = _get_vuln_function(config)
     sections.append(vuln_func)
@@ -189,6 +193,22 @@ def _get_protocol_module(config: ServerConfig):
     elif config.protocol == Protocol.RPC:
         return rpc_proto
     raise ValueError(f"Unknown protocol: {config.protocol}")
+
+
+def _fmtstr_macros() -> str:
+    """Return portable format-string macro definitions."""
+    return """\
+// Portable format-string wrappers:
+// MSVC _printf_p/_sprintf_p support positional params (%3$p).
+// MinGW printf/snprintf support them natively (glibc-compatible).
+#ifdef _MSC_VER
+#define VULN_PRINTF _printf_p
+#define VULN_SNPRINTF _sprintf_p
+#else
+#define VULN_PRINTF printf
+#define VULN_SNPRINTF snprintf
+#endif
+"""
 
 
 def _get_vuln_function(config: ServerConfig) -> str:

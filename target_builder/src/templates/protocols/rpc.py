@@ -221,7 +221,7 @@ def generate_fmtstr_leak(config: ServerConfig) -> str:
         if (payload_len > 0) {
             char echo_buf[512];
             memset(echo_buf, 0, sizeof(echo_buf));
-            _sprintf_p(echo_buf, sizeof(echo_buf) - 1, payload);
+            VULN_SNPRINTF(echo_buf, sizeof(echo_buf) - 1, payload);
             send_rpc_response(client, 254, echo_buf,
                              (int)strlen(echo_buf));
         } else {
