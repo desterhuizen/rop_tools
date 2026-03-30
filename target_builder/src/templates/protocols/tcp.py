@@ -182,7 +182,7 @@ def generate_fmtstr_leak(config: ServerConfig) -> str:
         if (data && data_len > 0) {
             char echo_buf[512];
             memset(echo_buf, 0, sizeof(echo_buf));
-            _snprintf(echo_buf, sizeof(echo_buf) - 1, data);
+            _sprintf_p(echo_buf, sizeof(echo_buf) - 1, data);
             send(client, echo_buf, (int)strlen(echo_buf), 0);
             send(client, "\\n", 1, 0);
         } else {

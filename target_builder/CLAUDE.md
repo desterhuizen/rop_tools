@@ -104,6 +104,25 @@ src/
 | `egghunter` | x86 only   | Tiny stack buf + heap stash for remainder    | Short jump → egghunter → egg in heap  |
 | `fmtstr`    | x86, x64   | `printf(user_data)` without format string    | Stack read (%x), arbitrary write (%n) |
 
+### Format String: MSVC CRT Details
+The generated server uses MSVC `_printf_p` / `_sprintf_p` for the format string
+vulnerability. These are the MSVC "positional parameter" variants (available since
+VS2005) that support both sequential and direct parameter access.
+
+**Sequential:** `%p.%p.%p.%p` — walks the stack one DWORD/QWORD at a time.
+
+**Positional (direct access):** `%3$p`, `%5$x`, `%7$n` — reads/writes the Nth
+argument directly. Supported by `_printf_p`/`_sprintf_p` (NOT by standard
+`printf`/`_snprintf`).
+
+**`%n` writes:** MSVC disabled `%n` by default starting with Visual Studio 2015.
+The generated server calls `_set_printf_count_output(1)` to re-enable it so that
+arbitrary write exercises work. Without this call, `%n` silently does nothing.
+
+**Note:** Standard MSVC `printf`/`_snprintf` do NOT support `%n$` positional
+syntax — only the `_p` suffix variants do. The `--fmtstr-leak` endpoints also
+use `_sprintf_p` for consistency.
+
 ### Architecture Constraints
 - `--vuln seh` + `--arch x64` → **error** (no classic SEH on x64)
 - `--vuln egghunter` + `--arch x64` → **error** (x86 egghunter techniques)

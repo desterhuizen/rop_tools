@@ -53,6 +53,11 @@ target_builder --vuln fmtstr --protocol rpc --output server.cpp
 - `--vuln seh` + `--arch x64` is rejected (no classic SEH on x64)
 - `--vuln egghunter` + `--arch x64` is rejected (x86 egghunter techniques)
 
+### Format String Notes (MSVC CRT)
+- **`%p`/`%x` sequential** — works: `%p.%p.%p.%p` walks the stack one value at a time
+- **`%3$p` positional** — works: uses MSVC `_printf_p`/`_sprintf_p` which support `%n$` syntax (standard `printf` does not)
+- **`%n` writes** — requires `_set_printf_count_output(1)` (generated server enables this automatically). Disabled by default in MSVC since VS2015.
+
 ---
 
 ## Protocols

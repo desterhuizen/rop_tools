@@ -267,7 +267,7 @@ def generate_fmtstr_leak(config: ServerConfig) -> str:
         if (req->body_len > 0) {
             char echo_buf[512];
             memset(echo_buf, 0, sizeof(echo_buf));
-            _snprintf(echo_buf, sizeof(echo_buf) - 1, req->body);
+            _sprintf_p(echo_buf, sizeof(echo_buf) - 1, req->body);
             send_http_response(client, 200, "OK",
                              "text/plain", echo_buf);
         } else {

@@ -1,6 +1,7 @@
 """Format string vulnerability template.
 
-Generates printf(user_data) without a format specifier. Works on x86/x64.
+Generates _printf_p(user_data) without a format specifier. Works on x86/x64.
+Uses MSVC _printf_p/_sprintf_p which support positional params (%3$p).
 """
 
 from target_builder.src.config import Protocol, ServerConfig
@@ -20,8 +21,16 @@ def generate_vuln_function(config: ServerConfig) -> str:
     len_param = "data_len"
 
     return f"""\
+// Enable %n in printf — MSVC disables it by default since VS2015.
+// Without this, %n silently does nothing (no arbitrary write).
+void enable_printf_n() {{
+    _set_printf_count_output(1);
+}}
+
 // VULNERABLE FUNCTION - Format string vulnerability
-// User input passed directly to printf without format specifier
+// User input passed directly to _printf_p without format specifier
+// _printf_p / _sprintf_p support positional params: %1$p, %3$x, %5$n
+// Also supports sequential: %p, %x, %n
 void vuln_function(SOCKET client, char* {data_param}, int {len_param}) {{
 {filter_call}\
     char response[4096];
@@ -35,17 +44,18 @@ void vuln_function(SOCKET client, char* {data_param}, int {len_param}) {{
     (void)internal_key;
     (void)stack_addr;
 
-    // VULNERABLE: printf with user-controlled format string
+    // VULNERABLE: _printf_p with user-controlled format string
     // Attacker can use %x/%p to read stack, %n to write
+    // Supports positional params: %3$p reads the 3rd argument
     printf("[*] Processing: ");
-    printf({data_param});
+    _printf_p({data_param});
     printf("\\n");
 
     // Also send the formatted output back to the attacker
     // This lets them see the leaked data over the network
     resp_len = _snprintf(response, sizeof(response) - 1, "Result: ");
-    resp_len += _snprintf(response + resp_len, sizeof(response) - resp_len - 1,
-                          {data_param});
+    resp_len += _sprintf_p(response + resp_len, sizeof(response) - resp_len - 1,
+                           {data_param});
     response[resp_len] = '\\0';
     strcat(response, "\\n");
 

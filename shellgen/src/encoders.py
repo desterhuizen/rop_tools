@@ -28,7 +28,7 @@ def encode_dword(target, bad_chars):
 
     # If target is already clean, no encoding needed
     if not contains_bad_chars(target_bytes, bad_chars):
-        return None  # Signal: no encoding needed
+        return None  # Signal: no encodi$ng needed
 
     # Strategy 1: Try small offsets with varying increments
     # This handles consecutive bad characters better

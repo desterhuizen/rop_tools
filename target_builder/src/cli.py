@@ -627,20 +627,35 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
     else:
         arch = rng.choice(list(Architecture))
 
+    # Determine if DEP will be enabled (needed to filter vuln pool)
+    _dep_will_be_on = False
+    if args.dep:
+        _dep_will_be_on = True
+    elif "dep" not in excluded and difficulty:
+        preset = DIFFICULTY_PRESETS[difficulty]
+        _dep_will_be_on = "dep" in preset["mitigations"]
+        # For free-random without difficulty, we can't know yet —
+        # defer filtering to after DEP is decided.
+
     # Vuln type — support comma-list (e.g. --vuln bof,seh)
     vuln_list = _parse_comma_enum(args.vuln, VulnType, "--vuln")
     if vuln_list is not None:
         # Filter by arch compatibility
         candidates = [v for v in vuln_list if arch in VULN_ARCH_COMPAT[v]]
+        # Filter out egghunter when DEP is certain
+        if _dep_will_be_on:
+            candidates = [v for v in candidates if v != VulnType.EGGHUNTER]
         if not candidates:
             raise ValueError(
                 f"No vuln types from '{args.vuln}' are compatible "
-                f"with --arch {arch.value}"
+                f"with --arch {arch.value}" + (" and --dep" if _dep_will_be_on else "")
             )
         vuln_type = candidates[0] if len(candidates) == 1 else rng.choice(candidates)
     elif difficulty:
         preset = DIFFICULTY_PRESETS[difficulty]
         candidates = [v for v in preset["vuln_types"] if arch in VULN_ARCH_COMPAT[v]]
+        if _dep_will_be_on:
+            candidates = [v for v in candidates if v != VulnType.EGGHUNTER]
         vuln_type = rng.choice(candidates) if candidates else VulnType.BOF
     else:
         candidates = [v for v in VulnType if arch in VULN_ARCH_COMPAT[v]]
@@ -730,6 +745,51 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
                 data_staging = rng.random() > 0.5
             elif difficulty == Difficulty.MEDIUM:
                 data_staging = rng.random() > 0.7
+
+    # DEP feasibility: if DEP ended up on, enforce solvability
+    if dep:
+        # Egghunter can't work with DEP — re-roll if randomly selected
+        if vuln_type == VulnType.EGGHUNTER:
+            candidates = [
+                v
+                for v in VulnType
+                if v != VulnType.EGGHUNTER and arch in VULN_ARCH_COMPAT[v]
+            ]
+            vuln_type = rng.choice(candidates) if candidates else VulnType.BOF
+
+        # DEP requires a gadget source — auto-enable if user didn't
+        if not args.rop_dll and not args.embedded_gadgets:
+            # Prefer embedded gadgets for x86/MSVC (simpler, no extra file)
+            if arch == Architecture.X86 and Compiler(args.compiler) == Compiler.MSVC:
+                args.embedded_gadgets = True
+                # Match density to difficulty
+                if difficulty == Difficulty.HARD:
+                    args.embedded_gadgets_density = GadgetDensity.MINIMAL.value
+                elif difficulty == Difficulty.MEDIUM:
+                    args.embedded_gadgets_density = GadgetDensity.STANDARD.value
+                else:
+                    args.embedded_gadgets_density = GadgetDensity.STANDARD.value
+            elif arch == Architecture.X86:
+                # MinGW can't use inline asm — fall back to disabling DEP
+                dep = False
+            # x64 has no inline asm gadgets — disable DEP
+            if arch == Architecture.X64:
+                dep = False
+
+        # SEH + DEP needs at least standard density (stack pivot)
+        if vuln_type == VulnType.SEH and dep:
+            if args.rop_dll:
+                density = GadgetDensity(args.rop_dll_gadgets)
+            elif args.embedded_gadgets:
+                density = GadgetDensity(args.embedded_gadgets_density)
+            else:
+                density = GadgetDensity.STANDARD
+            if density == GadgetDensity.MINIMAL:
+                # Bump to standard for stack pivot
+                if args.rop_dll:
+                    args.rop_dll_gadgets = GadgetDensity.STANDARD.value
+                elif args.embedded_gadgets:
+                    args.embedded_gadgets_density = GadgetDensity.STANDARD.value
 
     # DEP API — respect explicit --dep-api
     if args.dep_api is not None:

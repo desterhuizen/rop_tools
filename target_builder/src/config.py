@@ -557,6 +557,42 @@ class ServerConfig:
                 "contains bytes that conflict with --bad-chars"
             )
 
+        # DEP feasibility — x86 requires a gadget source for ROP chain.
+        # (x64 can use system DLLs and the server binary directly.)
+        if (
+            self.dep
+            and self.arch == Architecture.X86
+            and not self.rop_dll.enabled
+            and not self.embedded_gadgets.enabled
+        ):
+            raise ValueError(
+                "--dep on x86 requires a gadget source: add --rop-dll or "
+                "--embedded-gadgets (server binary alone is too small "
+                "for reliable ROP chains)"
+            )
+
+        # EGGHUNTER + DEP — egghunter stub is shellcode that must execute
+        # on the stack; DEP prevents this. ROP→VirtualProtect→egghunter
+        # is too complex for a training challenge.
+        if self.vuln_type == VulnType.EGGHUNTER and self.dep:
+            raise ValueError(
+                "--vuln egghunter is incompatible with --dep: the egghunter "
+                "stub must execute on the stack, which DEP prevents"
+            )
+
+        # SEH + DEP requires stack pivot (at least standard density)
+        if self.vuln_type == VulnType.SEH and self.dep:
+            gadget_density = None
+            if self.rop_dll.enabled:
+                gadget_density = self.rop_dll.gadget_density
+            elif self.embedded_gadgets.enabled:
+                gadget_density = self.embedded_gadgets.gadget_density
+            if gadget_density == GadgetDensity.MINIMAL:
+                raise ValueError(
+                    "--vuln seh with --dep requires at least standard gadget "
+                    "density (minimal has no stack pivot for SEH+DEP exploit)"
+                )
+
         # Embedded gadgets constraints
         if self.embedded_gadgets.enabled:
             if self.arch != Architecture.X86:

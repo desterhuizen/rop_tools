@@ -52,6 +52,7 @@ class TestCLIParsing(unittest.TestCase):
                 "--aslr",
                 "--stack-canary",
                 "--safeSEH",
+                "--rop-dll",
             ]
         )
         self.assertEqual(config.vuln_type, VulnType.SEH)
@@ -62,6 +63,7 @@ class TestCLIParsing(unittest.TestCase):
         self.assertTrue(config.aslr)
         self.assertTrue(config.stack_canary)
         self.assertTrue(config.safe_seh)
+        self.assertTrue(config.rop_dll.enabled)
 
     def test_bad_chars_parsing(self):
         config = parse_args(
@@ -488,7 +490,7 @@ class TestFmtstrLeakIntegration(unittest.TestCase):
 
         result = render(config)
         self.assertIn("ECHO", result)
-        self.assertIn("_snprintf(echo_buf", result)
+        self.assertIn("_sprintf_p(echo_buf", result)
 
     def test_random_hard_may_enable_fmtstr_leak(self):
         """Hard difficulty with ASLR can randomly enable fmtstr_leak."""

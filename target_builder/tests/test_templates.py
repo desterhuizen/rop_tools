@@ -107,8 +107,8 @@ class TestFormatString(unittest.TestCase):
     def test_contains_printf_vuln(self):
         config = ServerConfig(vuln_type=VulnType.FMTSTR)
         result = format_string.generate_vuln_function(config)
-        # Should have printf(data) without format specifier
-        self.assertIn("printf(data)", result)
+        # Should have _printf_p(data) — positional param support
+        self.assertIn("_printf_p(data)", result)
         # Should have secret values for leaking
         self.assertIn("0xDEADBEEF", result)
 
@@ -353,7 +353,7 @@ class TestFmtstrLeakTCP(unittest.TestCase):
         config = ServerConfig(protocol=Protocol.TCP, fmtstr_leak=True)
         result = tcp_proto.generate_fmtstr_leak(config)
         self.assertIn("ECHO", result)
-        self.assertIn("_snprintf(echo_buf", result)
+        self.assertIn("_sprintf_p(echo_buf", result)
 
     def test_fmtstr_leak_disabled(self):
         config = ServerConfig(protocol=Protocol.TCP, fmtstr_leak=False)
@@ -374,7 +374,7 @@ class TestFmtstrLeakHTTP(unittest.TestCase):
         config = ServerConfig(protocol=Protocol.HTTP, fmtstr_leak=True)
         result = http_proto.generate_fmtstr_leak(config)
         self.assertIn("/echo", result)
-        self.assertIn("_snprintf(echo_buf", result)
+        self.assertIn("_sprintf_p(echo_buf", result)
 
     def test_fmtstr_leak_disabled(self):
         config = ServerConfig(protocol=Protocol.HTTP, fmtstr_leak=False)
@@ -394,7 +394,7 @@ class TestFmtstrLeakRPC(unittest.TestCase):
         config = ServerConfig(protocol=Protocol.RPC, fmtstr_leak=True)
         result = rpc_proto.generate_fmtstr_leak(config)
         self.assertIn("254", result)
-        self.assertIn("_snprintf(echo_buf", result)
+        self.assertIn("_sprintf_p(echo_buf", result)
 
     def test_fmtstr_leak_disabled(self):
         config = ServerConfig(protocol=Protocol.RPC, fmtstr_leak=False)

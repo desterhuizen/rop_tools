@@ -81,9 +81,7 @@ class ColorPrinter:
                     # Pattern has capture groups — highlight each group
                     for i in range(1, match.lastindex + 1):
                         if match.start(i) != -1:
-                            rich_text.stylize(
-                                match_style, match.start(i), match.end(i)
-                            )
+                            rich_text.stylize(match_style, match.start(i), match.end(i))
                 else:
                     # No capture groups — highlight the full match
                     rich_text.stylize(match_style, match.start(), match.end())

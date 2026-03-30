@@ -4,7 +4,7 @@ Generates the shared Winsock2 server structure: includes, main() with
 socket setup, accept loop, and thread-per-connection model.
 """
 
-from target_builder.src.config import Architecture, Compiler, ServerConfig
+from target_builder.src.config import Architecture, Compiler, ServerConfig, VulnType
 
 
 def generate_includes(config: ServerConfig) -> str:
@@ -305,6 +305,10 @@ def generate_main_function(config: ServerConfig) -> str:
         elif api == "ntallocate":
             dep_init_call = "    init_nt_alloc();\n"
 
+    fmtstr_init = ""
+    if config.vuln_type == VulnType.FMTSTR:
+        fmtstr_init = "    enable_printf_n();  // enable %n for format string writes\n"
+
     rop_dll_load = ""
     if config.rop_dll.enabled:
         dll_name = config.rop_dll.output_file.replace(".cpp", ".dll")
@@ -332,7 +336,7 @@ int main(int argc, char* argv[]) {{
 
     if (init_winsock() != 0) return 1;
 
-{dep_init_call}{rop_dll_load}\
+{fmtstr_init}{dep_init_call}{rop_dll_load}\
     listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (listen_socket == INVALID_SOCKET) {{
         printf("[-] Socket creation failed: %d\\n", WSAGetLastError());
