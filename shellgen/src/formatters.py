@@ -260,7 +260,22 @@ if add_break:
 # Assembly and Execution
 ks = Ks({arch_const}, {mode_const})
 
-encoding, count = ks.asm(CODE)
+try:
+    encoding, count = ks.asm(CODE)
+except KsError as e:
+    print(f"[-] Assembly error: {{e}}")
+    # Print the failing line for debugging
+    for i, line in enumerate(CODE.split(";"), 1):
+        line = line.strip()
+        if line:
+            print(f"  {{i:4d}}: {{line}}")
+    raise SystemExit(1)
+
+if encoding is None:
+    print("[-] Assembly failed: Keystone returned no encoding")
+    print("[-] Check CODE for syntax errors (empty instructions, bad operands)")
+    raise SystemExit(1)
+
 print(f"[+] Encoded {{count}} instructions")
 
 sh = b""
