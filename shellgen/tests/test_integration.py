@@ -289,5 +289,129 @@ class TestErrorHandling(unittest.TestCase):
         self.assertIn("Cannot encode", str(context.exception))
 
 
+class TestStackAlloc(unittest.TestCase):
+    """Test stack_alloc feature for output buffer allocation."""
+
+    def setUp(self):
+        from shellgen.src.generators.windows import WindowsGenerator
+
+        self.gen_x86 = WindowsGenerator(bad_chars={0x00, 0x0A, 0x0D}, arch="x86")
+        self.gen_x64 = WindowsGenerator(bad_chars={0x00, 0x0A, 0x0D}, arch="x64")
+        # Generator with minimal bad chars for testing clean dword paths
+        self.gen_clean = WindowsGenerator(bad_chars=set(), arch="x86")
+
+    def test_single_alloc_x86(self):
+        """Test single buffer allocation on x86."""
+        allocs = [{"name": "edi", "size": 260}]
+        result = self.gen_clean._gen_stack_alloc(allocs)
+        self.assertIn("sub esp, 260", result)
+        self.assertIn("mov edi, esp", result)
+        self.assertIn("260 bytes", result)
+
+    def test_single_alloc_x64(self):
+        """Test single buffer allocation on x64."""
+        allocs = [{"name": "r12", "size": 260}]
+        result = self.gen_x64._gen_stack_alloc(allocs)
+        self.assertIn("sub rsp", result)
+        self.assertIn("mov r12, rsp", result)
+
+    def test_multiple_allocs(self):
+        """Test multiple buffer allocations."""
+        allocs = [
+            {"name": "edi", "size": 260},
+            {"name": "ebx", "size": 4, "init_dword": 260},
+        ]
+        result = self.gen_clean._gen_stack_alloc(allocs)
+        self.assertIn("sub esp, 264", result)
+        self.assertIn("mov edi, esp", result)
+        self.assertIn("lea ebx", result)
+        self.assertIn("mov dword [ebx], 260", result)
+
+    def test_init_dword(self):
+        """Test init_dword initializes the buffer."""
+        allocs = [{"name": "ebx", "size": 4, "init_dword": 512}]
+        result = self.gen_clean._gen_stack_alloc(allocs)
+        self.assertIn("mov dword [ebx], 512", result)
+
+    def test_init_dword_with_bad_chars(self):
+        """Test init_dword encodes when value contains bad chars."""
+        gen = WindowsGenerator(bad_chars={0x00, 0x0A, 0x0D, 0x04}, arch="x86")
+        # 0x00000104 contains 0x00 bytes — needs encoding
+        allocs = [{"name": "ebx", "size": 4, "init_dword": 0x00000104}]
+        result = gen._gen_stack_alloc(allocs)
+        # Should NOT have a plain mov dword, should use encoded push + pop
+        self.assertNotIn("mov dword [ebx], 260", result)
+        self.assertIn("pop eax", result)
+        self.assertIn("mov [ebx], eax", result)
+
+    def test_dword_has_bad_chars(self):
+        """Test _dword_has_bad_chars detection."""
+        self.assertTrue(self.gen_x86._dword_has_bad_chars(0x00000001))  # has 0x00
+        self.assertTrue(self.gen_x86._dword_has_bad_chars(0x0A112233))  # has 0x0A
+        self.assertFalse(self.gen_x86._dword_has_bad_chars(0x11223344))  # clean
+
+    def test_header_comment(self):
+        """Test that stack alloc section has header comment."""
+        allocs = [{"name": "edi", "size": 64}]
+        result = self.gen_x86._gen_stack_alloc(allocs)
+        self.assertIn("Stack allocation for output buffers", result)
+
+
+from shellgen.src.generators.windows import WindowsGenerator  # noqa: E402
+
+
+class TestStackAllocJsonLoading(unittest.TestCase):
+    """Test stack_alloc validation in JSON loading."""
+
+    def test_valid_stack_alloc(self):
+        """Test loading a valid JSON with stack_alloc."""
+        import json
+        import tempfile
+
+        config = {
+            "calls": [
+                {"api": "MessageBoxA", "dll": "user32.dll", "args": [0, "Hi", "T", 0]}
+            ],
+            "stack_alloc": [
+                {"name": "edi", "size": 260},
+                {"name": "ebx", "size": 4, "init_dword": 260},
+            ],
+        }
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        ) as f:
+            json.dump(config, f)
+            f.flush()
+
+            from shellgen.src.cli import load_custom_json
+
+            result = load_custom_json(f.name)
+            self.assertEqual(len(result["stack_alloc"]), 2)
+            self.assertEqual(result["stack_alloc"][0]["size"], 260)
+            self.assertEqual(result["stack_alloc"][1]["init_dword"], 260)
+
+    def test_hex_size_in_stack_alloc(self):
+        """Test that hex string sizes are converted."""
+        import json
+        import tempfile
+
+        config = {
+            "calls": [
+                {"api": "MessageBoxA", "dll": "user32.dll", "args": [0, "Hi", "T", 0]}
+            ],
+            "stack_alloc": [{"name": "edi", "size": "0x104"}],
+        }
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        ) as f:
+            json.dump(config, f)
+            f.flush()
+
+            from shellgen.src.cli import load_custom_json
+
+            result = load_custom_json(f.name)
+            self.assertEqual(result["stack_alloc"][0]["size"], 260)
+
+
 if __name__ == "__main__":
     unittest.main()

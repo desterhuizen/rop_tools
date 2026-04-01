@@ -182,7 +182,7 @@ def format_c_array(shellcode_bytes, arch="x86", platform="windows"):
         return "\n".join(lines) + "\n"
 
 
-def format_pyasm(asm_code, arch="x86", platform="windows"):
+def format_pyasm(asm_code, arch="x86", platform="windows", bad_chars=None):
     """
     Format as Python script with assembly code string for Keystone.
 
@@ -190,6 +190,7 @@ def format_pyasm(asm_code, arch="x86", platform="windows"):
         asm_code: Assembly source code
         arch: Architecture name
         platform: Platform name
+        bad_chars: Set of bad character bytes to avoid (for push_string helper)
 
     Returns:
         str: Complete Python script
@@ -208,6 +209,14 @@ def format_pyasm(asm_code, arch="x86", platform="windows"):
     # Convert assembly with inline comments to Python tuple format
     asm_tuple = _convert_asm_to_python_tuple(asm_code)
 
+    # Format bad_chars as a Python set literal for the template
+    if bad_chars:
+        bad_chars_str = (
+            "{" + ", ".join(f"0x{b:02x}" for b in sorted(bad_chars)) + "}"
+        )
+    else:
+        bad_chars_str = "{0x00}"
+
     pyasm_template = '''#!/usr/bin/env python3
 """
 Shellcode Compiler - Keystone Engine
@@ -216,6 +225,108 @@ Platform: {platform}
 """
 import ctypes, struct
 from keystone import *
+
+# Bad characters to avoid in generated assembly
+BAD_CHARS = {bad_chars_set}
+
+
+def _contains_bad_chars(value_bytes):
+    """Check if any byte in value_bytes is in BAD_CHARS."""
+    return any(b in BAD_CHARS for b in value_bytes)
+
+
+def _encode_dword(target):
+    """Find a clean encoding for a dword that contains bad characters.
+
+    Returns:
+        None if no encoding needed,
+        ("SUB", clean, offset) for subtraction encoding,
+        ("ADD", val1, val2) for addition encoding.
+    """
+    target = target & 0xFFFFFFFF
+    target_bytes = struct.pack("<I", target)
+
+    if not _contains_bad_chars(target_bytes):
+        return None
+
+    # Strategy 1: subtraction (clean - offset = target)
+    for inc in [1, 2, 3, 5, 7, 11, 13, 17, 0x101, 0x1001, 0x10001]:
+        for mult in range(1, 1000):
+            offset = inc * mult
+            if offset > 0x00FFFFFF:
+                break
+            clean = (target + offset) & 0xFFFFFFFF
+            if (not _contains_bad_chars(struct.pack("<I", clean))
+                    and not _contains_bad_chars(struct.pack("<I", offset))):
+                return ("SUB", clean, offset)
+
+    # Strategy 2: addition (val1 + val2 = target)
+    for val1 in range(0x01010101, 0x7F7F7F7F, 0x01010101):
+        val2 = (target - val1) & 0xFFFFFFFF
+        if (not _contains_bad_chars(struct.pack("<I", val1))
+                and not _contains_bad_chars(struct.pack("<I", val2))):
+            return ("ADD", val1, val2)
+
+    raise ValueError(f"Cannot encode 0x{{target:08x}} avoiding bad chars")
+
+
+def push_string(s, reg="eax", ptr_reg="{ptr_reg}", sp_reg="{sp_reg}"):
+    """Generate assembly to push a null-terminated string onto the stack.
+
+    Encodes each dword to avoid bad characters. After execution,
+    ptr_reg (ecx/rcx) points to the string on the stack.
+
+    Args:
+        s: The string to push (ASCII)
+        reg: Scratch register for encoding (default: eax/rax)
+        ptr_reg: Register that gets the string pointer (default: ecx/rcx)
+        sp_reg: Stack pointer register (default: esp/rsp)
+
+    Returns:
+        str: Assembly instructions (semicolon-delimited for Keystone)
+
+    Example:
+        # Add to your CODE string:
+        extra = push_string("\\\\\\\\127.0.0.1\\\\test\\\\test.exe")
+        CODE += extra + f"    mov edi, ecx;"  # save pointer
+    """
+    s_bytes = s.encode("ascii") + b"\\x00"
+    while len(s_bytes) % 4 != 0:
+        s_bytes += b"\\x00"
+
+    dwords = []
+    for i in range(0, len(s_bytes), 4):
+        dwords.append(struct.unpack("<I", s_bytes[i:i + 4])[0])
+
+    lines = []
+    lines.append(f"    ; Push string: \\"{{s}}\\"                        ;")
+
+    # Push dwords in reverse order
+    for dword in reversed(dwords):
+        enc = _encode_dword(dword)
+        if enc is None:
+            lines.append(f"    push 0x{{dword:08x}}                          ;")
+        elif enc[0] == "SUB":
+            _, clean, offset = enc
+            lines.append(
+                f"    mov {{reg}}, 0x{{clean:08x}}                   ;"
+                f"    sub {{reg}}, 0x{{offset:08x}}                  ;"
+                f"    push {{reg}}                                   ;"
+            )
+        elif enc[0] == "ADD":
+            _, val1, val2 = enc
+            lines.append(
+                f"    mov {{reg}}, 0x{{val1:08x}}                    ;"
+                f"    add {{reg}}, 0x{{val2:08x}}                    ;"
+                f"    push {{reg}}                                   ;"
+            )
+
+    lines.append(
+        f"    mov {{ptr_reg}}, {{sp_reg}}"
+        f"                              ; {{ptr_reg}} -> string;"
+    )
+    return "\\n".join(lines)
+
 
 add_break = input("Add int3 breakpoints for debugging? (y/n): ").lower() == 'y'
 
@@ -297,16 +408,25 @@ else:
         print("=" * 40)
     '''
 
+    # Determine arch-appropriate registers for push_string helper
+    is_x64 = arch == "x64"
+    ptr_reg = "rcx" if is_x64 else "ecx"
+    sp_reg = "rsp" if is_x64 else "esp"
+
     return pyasm_template.format(
         arch_upper=arch.upper(),
         platform=platform,
         asm_tuple=asm_tuple,
         arch_const=arch_const,
         mode_const=mode_const,
+        bad_chars_set=bad_chars_str,
+        ptr_reg=ptr_reg,
+        sp_reg=sp_reg,
     )
 
 
-def format_output(asm_code, output_format, arch="x86", platform="windows"):
+def format_output(asm_code, output_format, arch="x86", platform="windows",
+                   bad_chars=None):
     """
     Format the shellgen in the requested output format.
 
@@ -315,6 +435,7 @@ def format_output(asm_code, output_format, arch="x86", platform="windows"):
         output_format: Format type ('asm', 'python', 'c', 'raw', 'pyasm')
         arch: Architecture name
         platform: Platform name
+        bad_chars: Set of bad character bytes to avoid (for pyasm push_string helper)
 
     Returns:
         str or bytes: Formatted output
@@ -326,7 +447,11 @@ def format_output(asm_code, output_format, arch="x86", platform="windows"):
         return format_asm(asm_code)
 
     if output_format == "pyasm":
-        return format_pyasm(asm_code, arch, platform)
+        return format_pyasm(asm_code, arch, platform, bad_chars=bad_chars)
+
+    valid_formats = ("raw", "python", "c")
+    if output_format not in valid_formats:
+        raise ValueError(f"Unknown output format: {output_format}")
 
     # For other formats, we need to assemble first
     binary_data = assemble_to_binary(asm_code, arch)
@@ -335,10 +460,8 @@ def format_output(asm_code, output_format, arch="x86", platform="windows"):
         return binary_data
     elif output_format == "python":
         return format_python_bytes(binary_data, arch, platform)
-    elif output_format == "c":
-        return format_c_array(binary_data, arch, platform)
     else:
-        raise ValueError(f"Unknown output format: {output_format}")
+        return format_c_array(binary_data, arch, platform)
 
 
 def print_usage_instructions(output_file, output_format, payload_name, verify_enabled):

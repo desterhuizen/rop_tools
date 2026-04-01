@@ -121,6 +121,27 @@ def load_custom_json(json_path):
             if "args" in call:
                 call["args"] = [_convert_json_arg(a) for a in call["args"]]
 
+        # Validate stack_alloc if present
+        if "stack_alloc" in config:
+            if not isinstance(config["stack_alloc"], list):
+                printer.print_text("✗ ERROR: ", "bold red", end="")
+                printer.print_text("'stack_alloc' must be an array\n", "red")
+                sys.exit(1)
+            for i, alloc in enumerate(config["stack_alloc"]):
+                if "name" not in alloc or "size" not in alloc:
+                    printer.print_text("✗ ERROR: ", "bold red", end="")
+                    printer.print_text(
+                        f"stack_alloc[{i}] must have 'name' and 'size'\n", "red"
+                    )
+                    sys.exit(1)
+                alloc["size"] = int(
+                    alloc["size"], 16
+                ) if isinstance(alloc["size"], str) and alloc["size"].startswith(
+                    "0x"
+                ) else int(alloc["size"])
+                if "init_dword" in alloc:
+                    alloc["init_dword"] = _convert_json_arg(alloc["init_dword"])
+
         # Set default exit if not specified
         if "exit" not in config:
             config["exit"] = True
@@ -617,7 +638,9 @@ def run_cli():
 
     # Format output
     try:
-        output_data = format_output(asm_code, args.format, args.arch, args.platform)
+        output_data = format_output(
+            asm_code, args.format, args.arch, args.platform, bad_chars=bad_chars
+        )
     except Exception as e:
         printer.print_text("✗ ERROR: ", "bold red", end="")
         printer.print_text(f"Error formatting output: {e}\n", "red")

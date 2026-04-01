@@ -1113,6 +1113,102 @@ resolve_symbols_kernel32:
         out.append("")
         return out
 
+    def _gen_stack_alloc(self, allocs):
+        """Generate stack allocation for output buffers.
+
+        Args:
+            allocs: List of dicts with 'name' (register), 'size' (bytes),
+                    and optional 'init_dword' (initial DWORD value).
+
+        Returns:
+            str: Assembly code for stack allocation
+        """
+        lines = []
+        lines.append(
+            "; =========================================================================="
+        )
+        lines.append("; Stack allocation for output buffers")
+        lines.append(
+            "; =========================================================================="
+        )
+
+        is_x64 = self.arch == "x64"
+        sp = "rsp" if is_x64 else "esp"
+
+        # Calculate total allocation size (align to pointer size)
+        ptr_size = 8 if is_x64 else 4
+        total_size = 0
+        for alloc in allocs:
+            size = alloc["size"]
+            # Align each allocation to pointer size
+            aligned = (size + ptr_size - 1) & ~(ptr_size - 1)
+            alloc["_aligned"] = aligned
+            alloc["_offset"] = total_size
+            total_size += aligned
+
+        # Single sub for total allocation
+        lines.append(
+            self.gen_push_encoded_dword(total_size, comment=f"alloc {total_size} bytes")
+            if self._dword_has_bad_chars(total_size)
+            else f"    sub {sp}, {total_size}          ; allocate {total_size} bytes"
+        )
+
+        # If we used encoded push instead of sub, pop into scratch and sub
+        if self._dword_has_bad_chars(total_size):
+            scratch = "rax" if is_x64 else "eax"
+            lines.append(f"    pop {scratch}")
+            lines.append(f"    sub {sp}, {scratch}")
+
+        # Assign registers to each allocation
+        for alloc in allocs:
+            reg = alloc["name"]
+            offset = alloc["_offset"]
+            size = alloc["size"]
+
+            if offset == 0:
+                lines.append(
+                    f"    mov {reg}, {sp}"
+                    f"          ; {reg} -> buffer ({size} bytes)"
+                )
+            else:
+                lines.append(
+                    f"    lea {reg}, [{sp} + {offset}]"
+                    f"  ; {reg} -> buffer ({size} bytes)"
+                )
+
+            # Initialize with a dword value if requested
+            if "init_dword" in alloc:
+                init_val = alloc["init_dword"]
+                if self._dword_has_bad_chars(init_val):
+                    lines.append(
+                        self.gen_push_encoded_dword(
+                            init_val, comment=f"init value {init_val}"
+                        )
+                    )
+                    scratch = "rax" if is_x64 else "eax"
+                    lines.append(f"    pop {scratch}")
+                    lines.append(f"    mov [{reg}], {scratch}")
+                else:
+                    lines.append(
+                        f"    mov dword [{reg}], {init_val}"
+                        f"  ; initialize = {init_val}"
+                    )
+
+        # Clean up temp keys
+        for alloc in allocs:
+            del alloc["_aligned"]
+            del alloc["_offset"]
+
+        return "\n".join(lines)
+
+    def _dword_has_bad_chars(self, value):
+        """Check if a dword value contains any bad characters."""
+        value = value & 0xFFFFFFFF
+        for i in range(4):
+            if ((value >> (i * 8)) & 0xFF) in self.bad_chars:
+                return True
+        return False
+
     def generate(self, config):
         """
         Generate complete Windows shellgen from a config dict.
@@ -1166,6 +1262,12 @@ resolve_symbols_kernel32:
                 )
             output.append("")
 
+        # Stack allocations for output buffers
+        stack_allocs = config.get("stack_alloc", [])
+        if stack_allocs:
+            output.append(self._gen_stack_alloc(stack_allocs))
+            output.append("")
+
         # Call pre-resolved APIs
         for i, call in enumerate(calls):
             output.extend(self._emit_api_call(i, call, api_to_offset, string_cache))
@@ -1191,6 +1293,10 @@ resolve_symbols_kernel32:
                 file=sys.stderr,
             )
         print(f"Clean exit:     {do_exit}", file=sys.stderr)
+        if stack_allocs:
+            total = sum(a["size"] for a in stack_allocs)
+            regs = ", ".join(a["name"] for a in stack_allocs)
+            print(f"Stack alloc:    {total} bytes -> [{regs}]", file=sys.stderr)
         if string_cache:
             print(f"Cached strings: {len(string_cache)}", file=sys.stderr)
         print("=" * 72, file=sys.stderr)
