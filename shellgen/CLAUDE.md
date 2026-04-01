@@ -224,6 +224,14 @@ asm_code = generator.generate(config)
 - `args` — Argument array (integers, hex strings, `null`, strings, `"REG:reg"`)
 - `save_result` — (optional) Register name to save EAX into after the call (e.g., `"esi"`, `"edi"`). Emits `mov <reg>, eax`. Use with `"REG:<reg>"` in later calls to reference the saved value. On x86, string prep uses `edi`/`esi`/`edx` as scratch — saved values in those registers may be clobbered by later calls with string arguments.
 
+### JSON stack_alloc Field
+- `stack_alloc` — (optional) Array of stack buffer allocations, processed before API calls
+  - `name` — Register to point at the buffer (e.g., `"edi"`, `"ebx"`, `"r12"`)
+  - `size` — Buffer size in bytes (int or hex string `"0x104"`)
+  - `init_dword` — (optional) Initial DWORD value at buffer start (int or hex string)
+  - All buffers allocated with a single `sub esp/rsp`, each register gets `mov`/`lea`
+  - Bad char encoding applied to both allocation size and init values
+
 ---
 
 ## Dependencies
@@ -246,6 +254,7 @@ Converts machine code → assembly (required for `--debug-shellcode`)
 
 | Version | Key Changes |
 |---------|-------------|
+| **v3.10** | Stack allocation (`stack_alloc` JSON field) for output buffer pre-allocation with bad char encoding. PyASM `push_string` helper for encoding strings onto the stack avoiding bad chars. Bad chars forwarded to pyasm formatter. Fixed `format_output` validation order (unknown format checked before assembly). 158 tests (was 149). |
 | **v3.9** | Shell completion: `--generate-completion {bash,zsh}` for `shellgen` and `hash_generator`, using shared `lib/completions.py`. 149 tests (was 127). |
 | **v3.8.1** | Bug fixes: socket payload assembly (unformatted IP/port/shell placeholders in custom_asm), `--debug-shellcode` CLI flag name, sys.path ordering in shellgen_cli.py entry point |
 | **v3.8** | x64 fixes: RIP-relative addressing, gen_push_string arch-aware, stack allocation bugs fixed, bind_shell_x64 payload added |

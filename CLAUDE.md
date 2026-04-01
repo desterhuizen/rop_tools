@@ -347,6 +347,19 @@ pip install -r requirements-lint.txt
 
 ## Changelog (Project-Wide)
 
+### April 1, 2026 — Shellgen stack_alloc + pyasm push_string helper
+- **shellgen**: New `stack_alloc` JSON field for pre-allocating stack buffers in custom
+  payloads. Each entry specifies a register, size, and optional init_dword. All buffers
+  allocated with a single `sub esp/rsp`. Values containing bad chars are automatically
+  encoded. Hex string sizes (e.g., `"0x104"`) supported.
+- **shellgen**: PyASM output (`--format pyasm`) now includes `BAD_CHARS` set and
+  `push_string(s)` helper function that pushes null-terminated strings onto the stack
+  with automatic bad character encoding (SUB/ADD strategies). Bad chars from `--bad-chars`
+  or JSON are forwarded to the template.
+- **shellgen**: Fixed `format_output` validation order — unknown format now raises
+  `ValueError` before attempting assembly, so the error is correct even without Keystone.
+  158 shellgen tests (was 149).
+
 ### March 2026
 - **Added linting infrastructure**: flake8, black, isort, mypy with full configuration
   - Created `requirements-lint.txt` with 7 linting tools

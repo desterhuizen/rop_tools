@@ -444,6 +444,16 @@ shellgen --platform windows --payload winexec --cmd "calc.exe" --format pyasm --
 # Creates a Python script with assembly code that can be assembled with Keystone
 ```
 
+The generated pyasm script includes:
+- **`BAD_CHARS` set** — populated from your `--bad-chars` (or JSON `bad_chars`)
+- **`push_string(s)` helper** — pushes a null-terminated ASCII string onto the stack with automatic bad character encoding. After execution, `ecx`/`rcx` points to the string. Useful for building UNC paths, filenames, or command strings at runtime:
+  ```python
+  # In the generated script, add to your CODE:
+  extra = push_string("\\\\127.0.0.1\\share\\payload.exe")
+  CODE += extra + "    mov edi, ecx;"  # save pointer
+  ```
+- **`_encode_dword(target)` helper** — finds clean SUB/ADD encodings for dwords containing bad characters
+
 ### Custom JSON Payloads
 
 For advanced use cases, you can create custom payloads by defining API calls in a JSON file. This allows you to chain together any Windows API functions with precise control over arguments.
@@ -485,6 +495,12 @@ For advanced use cases, you can create custom payloads by defining API calls in 
     **Caution:** String argument preparation uses `edi`, `esi`, `edx` as scratch registers (x86),
     so a saved value may be clobbered if a later call has plain string arguments that trigger
     string prep into the same register.
+- `stack_alloc` - Array of stack buffer allocations (optional). Each entry is an object:
+  - `name` - Register to point at the allocated buffer (e.g., `"edi"`, `"ebx"`, `"r12"`)
+  - `size` - Buffer size in bytes (integer or hex string like `"0x104"`)
+  - `init_dword` - Initial DWORD value to write at the buffer start (optional, integer or hex string)
+  - Buffers are allocated with a single `sub esp/rsp` and each register gets a `mov`/`lea` to its region
+  - Values containing bad characters are automatically encoded
 - `exit` - Whether to call ExitProcess at the end (optional, defaults to `true`)
 
 #### Using Custom JSON Payloads
@@ -566,6 +582,39 @@ cat example_payload.json
   "exit": true
 }
 ```
+
+#### Stack Buffer Allocation (stack_alloc)
+
+Use `stack_alloc` to pre-allocate stack buffers for API calls that need output pointers (e.g., `GetCurrentDirectoryA`, `GetTempPathA`, `ReadFile`). Each allocation reserves space on the stack and assigns a register to point at it.
+
+```json
+{
+  "bad_chars": ["0x00", "0x0a", "0x0d"],
+  "stack_alloc": [
+    {"name": "edi", "size": "0x104"},
+    {"name": "ebx", "size": 4, "init_dword": "0x104"}
+  ],
+  "calls": [
+    {
+      "api": "GetCurrentDirectoryA",
+      "dll": "kernel32.dll",
+      "args": ["REG:ebx", "REG:edi"],
+      "save_result": "esi"
+    },
+    {
+      "api": "MessageBoxA",
+      "dll": "user32.dll",
+      "args": [null, "REG:edi", "Current Dir", 0]
+    }
+  ]
+}
+```
+
+In this example:
+- `edi` points to a 260-byte buffer for the directory path
+- `ebx` points to a 4-byte DWORD initialized to 260 (the buffer size)
+- Both are allocated with a single `sub esp` instruction
+- Values containing bad characters are automatically encoded using the subtraction/addition strategy
 
 #### Register References & save_result
 
@@ -734,6 +783,8 @@ Options:
 - ✅ LoadLibraryA support for external DLLs (Windows)
 - ✅ Native socket reverse shell with proper handle inheritance (Windows)
 - ✅ Direct syscall implementation (Linux)
+- ✅ **Stack buffer allocation**: `stack_alloc` JSON field for output buffers with bad char encoding
+- ✅ **PyASM push_string helper**: Encodes strings onto the stack avoiding bad characters
 - ✅ String consolidation for size optimization
 - ✅ ROR13 hash-based function lookup
 - ✅ Modular architecture for easy extension
