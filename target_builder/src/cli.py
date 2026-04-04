@@ -456,6 +456,7 @@ def parse_args(argv: Optional[List[str]] = None) -> ServerConfig:
 
     config = _args_to_config(args)
     _warn_fmtstr_leak_no_aslr(config)
+    _warn_egghunter_no_staging(config)
     config.validate()
     return config
 
@@ -953,6 +954,7 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
     _print_challenge_summary(config)
 
     _warn_fmtstr_leak_no_aslr(config)
+    _warn_egghunter_no_staging(config)
     config.validate()
     return config
 
@@ -1034,6 +1036,30 @@ def _warn_fmtstr_leak_no_aslr(config: ServerConfig) -> None:
             "[!] --fmtstr-leak without --aslr: the format string leak "
             "command will be generated but ASLR is not enabled. "
             "Useful for experimentation, but not needed for exploitation.",
+            file=sys.stderr,
+        )
+
+
+def _warn_egghunter_no_staging(config: ServerConfig) -> None:
+    """Warn when egghunter has a tight landing pad but no data staging."""
+    if config.vuln_type != VulnType.EGGHUNTER:
+        return
+    if config.data_staging:
+        return
+    landing_pad = config.stack_layout.landing_pad_size
+    # A typical egghunter stub is ~32 bytes; with a tight landing pad
+    # there is not enough room for both the stub and egg-tagged shellcode.
+    # Landing pad of 0 means unlimited (no truncation).
+    if landing_pad == 0:
+        return
+    # Egghunter stub (~32 B) + egg-tagged shellcode needs substantial space.
+    # Below 128 bytes the student will struggle to fit anything useful.
+    if landing_pad < 128:
+        print(
+            f"[!] --vuln egghunter with --landing-pad {landing_pad}: "
+            "limited space after EIP overwrite for both the egghunter "
+            "stub and egg-tagged shellcode. Consider adding --data-staging "
+            "to provide a separate endpoint for depositing shellcode.",
             file=sys.stderr,
         )
 

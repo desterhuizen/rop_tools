@@ -1010,5 +1010,87 @@ class TestPragmaComment(unittest.TestCase):
         self.assertIn('#pragma comment(lib, "ws2_32.lib")', result)
 
 
+class TestEgghunterStagingWarning(unittest.TestCase):
+    """Tests for egghunter + tight landing pad warning."""
+
+    def test_egghunter_tight_landing_pad_warns(self):
+        """Egghunter with tight landing pad and no staging should warn."""
+        import io
+        import sys
+
+        stderr = io.StringIO()
+        old_stderr = sys.stderr
+        sys.stderr = stderr
+        try:
+            parse_args(
+                [
+                    "--vuln",
+                    "egghunter",
+                    "--landing-pad",
+                    "32",
+                ]
+            )
+        finally:
+            sys.stderr = old_stderr
+        self.assertIn("--data-staging", stderr.getvalue())
+
+    def test_egghunter_tight_landing_pad_no_warn_with_staging(self):
+        """No warning when --data-staging is provided."""
+        import io
+        import sys
+
+        stderr = io.StringIO()
+        old_stderr = sys.stderr
+        sys.stderr = stderr
+        try:
+            parse_args(
+                [
+                    "--vuln",
+                    "egghunter",
+                    "--landing-pad",
+                    "32",
+                    "--data-staging",
+                ]
+            )
+        finally:
+            sys.stderr = old_stderr
+        self.assertNotIn("--data-staging", stderr.getvalue())
+
+    def test_egghunter_no_landing_pad_no_warn(self):
+        """No warning when landing pad is unlimited (0)."""
+        import io
+        import sys
+
+        stderr = io.StringIO()
+        old_stderr = sys.stderr
+        sys.stderr = stderr
+        try:
+            parse_args(["--vuln", "egghunter"])
+        finally:
+            sys.stderr = old_stderr
+        self.assertNotIn("--data-staging", stderr.getvalue())
+
+    def test_egghunter_large_landing_pad_no_warn(self):
+        """No warning when landing pad is large enough."""
+        import io
+        import sys
+
+        stderr = io.StringIO()
+        old_stderr = sys.stderr
+        sys.stderr = stderr
+        try:
+            parse_args(
+                [
+                    "--vuln",
+                    "egghunter",
+                    "--landing-pad",
+                    "256",
+                ]
+            )
+        finally:
+            sys.stderr = old_stderr
+        self.assertNotIn("--data-staging", stderr.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()
