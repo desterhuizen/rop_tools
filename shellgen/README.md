@@ -1044,7 +1044,7 @@ pip install keystone-engine
 
 The encoder couldn't find clean values. Try:
 - Reducing bad character restrictions
-- Using different payload type
+- Using a different payload type
 - Different command/string values
 
 ### Keystone build fails on older systems

@@ -69,7 +69,7 @@ def _convert_json_arg(arg):
     return arg
 
 
-def load_custom_json(json_path):
+def load_custom_json(json_path):  # noqa: C901
     """
     Load a custom payload configuration from a JSON file.
 
@@ -134,11 +134,11 @@ def load_custom_json(json_path):
                         f"stack_alloc[{i}] must have 'name' and 'size'\n", "red"
                     )
                     sys.exit(1)
-                alloc["size"] = int(
-                    alloc["size"], 16
-                ) if isinstance(alloc["size"], str) and alloc["size"].startswith(
-                    "0x"
-                ) else int(alloc["size"])
+                alloc["size"] = (
+                    int(alloc["size"], 16)
+                    if isinstance(alloc["size"], str) and alloc["size"].startswith("0x")
+                    else int(alloc["size"])
+                )
                 if "init_dword" in alloc:
                     alloc["init_dword"] = _convert_json_arg(alloc["init_dword"])
 

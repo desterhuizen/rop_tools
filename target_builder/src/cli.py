@@ -244,6 +244,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Add a data staging command that stores data on the heap "
         "(for egghunter practice)",
     )
+    mit.add_argument(
+        "--verification",
+        type=int,
+        default=0,
+        metavar="N",
+        help="Add N verification checks that must be reversed before "
+        "reaching the vulnerable code path (0-10, default: 0). "
+        "Checks are tiered: 1-3 basic, 4-6 intermediate, 7+ advanced.",
+    )
 
     # Randomization
     rand = parser.add_argument_group("Randomization")
@@ -271,7 +280,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Comma-separated protections to force OFF during --random. "
-            "Valid: dep, aslr, canary, safeseh, fmtstr-leak"
+            "Valid: dep, aslr, canary, safeseh, fmtstr-leak, "
+            "verification"
         ),
     )
 
@@ -484,6 +494,11 @@ def _args_to_config(args: argparse.Namespace) -> ServerConfig:
     if base_address is None:
         base_address = 0x00400000 if args.rop_dll else 0x11110000
 
+    # Verification seed — generate one if verification is enabled
+    verification_seed = None
+    if args.verification > 0:
+        verification_seed = random.randint(0, 2**31)
+
     config = ServerConfig(
         vuln_type=VulnType(args.vuln),
         port=args.port,
@@ -507,6 +522,8 @@ def _args_to_config(args: argparse.Namespace) -> ServerConfig:
         safe_seh=args.safeSEH,
         fmtstr_leak=args.fmtstr_leak,
         data_staging=args.data_staging,
+        verification_level=args.verification,
+        verification_seed=verification_seed,
         decoy_count=args.decoy_commands,
         difficulty=(Difficulty(args.difficulty) if args.difficulty else None),
         output_file=args.output,
@@ -553,6 +570,7 @@ _PROTECTION_FLAG_MAP = {
     "safeseh": "safeSEH",
     "fmtstr-leak": "fmtstr_leak",
     "data-staging": "data_staging",
+    "verification": "verification",
 }
 
 
@@ -747,6 +765,20 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
             elif difficulty == Difficulty.MEDIUM:
                 data_staging = rng.random() > 0.7
 
+    # Verification checks
+    if "verification" in excluded:
+        verification_level = 0
+    elif args.verification > 0:
+        verification_level = args.verification
+    elif difficulty:
+        preset = DIFFICULTY_PRESETS[difficulty]
+        lo, hi = preset["verification_range"]
+        verification_level = rng.randint(lo, hi)
+    else:
+        verification_level = rng.choice([0, 0, 0, 2, 4, 6])
+
+    verification_seed = rng.randint(0, 2**31) if verification_level > 0 else None
+
     # DEP feasibility: if DEP ended up on, enforce solvability
     if dep:
         # Egghunter can't work with DEP — re-roll if randomly selected
@@ -911,6 +943,8 @@ def _randomize_config(args: argparse.Namespace) -> ServerConfig:  # noqa: C901
         leak_func_name=leak_func_name,
         data_staging=data_staging,
         data_staging_cmd=data_staging_cmd,
+        verification_level=verification_level,
+        verification_seed=verification_seed,
         decoy_count=decoy_count,
         decoy_types=decoy_types,
         decoy_names=decoy_names,
@@ -1084,6 +1118,13 @@ def _collect_mitigations(config: ServerConfig) -> List[str]:
         mitigations.append("FmtStr Leak")
     if config.data_staging:
         mitigations.append(f"Data Staging ({config.data_staging_cmd})")
+    if config.verification_level > 0:
+        tier = "basic"
+        if config.verification_level > 6:
+            tier = "basic+intermediate+advanced"
+        elif config.verification_level > 3:
+            tier = "basic+intermediate"
+        mitigations.append(f"Verification ({config.verification_level} checks, {tier})")
     return mitigations
 
 

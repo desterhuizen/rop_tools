@@ -202,6 +202,7 @@ DIFFICULTY_PRESETS = {
         "pre_padding_range": (0, 0),
         "landing_pad_range": (0, 0),  # 0 = unlimited
         "padding_styles": [PaddingStyle.NONE],
+        "verification_range": (0, 0),
     },
     Difficulty.MEDIUM: {
         "buffer_size_range": (256, 512),
@@ -216,6 +217,7 @@ DIFFICULTY_PRESETS = {
             PaddingStyle.ARRAY,
             PaddingStyle.MIXED,
         ],
+        "verification_range": (0, 3),
     },
     Difficulty.HARD: {
         "buffer_size_range": (64, 128),
@@ -236,6 +238,7 @@ DIFFICULTY_PRESETS = {
             PaddingStyle.STRUCT,
             PaddingStyle.MULTI,
         ],
+        "verification_range": (3, 7),
     },
 }
 
@@ -486,6 +489,10 @@ class ServerConfig:
     decoy_types: List[DecoyType] = field(default_factory=list)
     decoy_names: List[str] = field(default_factory=list)
 
+    # Verification checks (reverse engineering gate before vuln code)
+    verification_level: int = 0
+    verification_seed: Optional[int] = None
+
     # Randomization
     random: bool = False
     random_seed: Optional[int] = None
@@ -622,6 +629,10 @@ class ServerConfig:
             raise ValueError("--pre-padding must be non-negative")
         if self.stack_layout.landing_pad_size < 0:
             raise ValueError("--landing-pad must be non-negative")
+
+        # Verification level
+        if self.verification_level < 0 or self.verification_level > 10:
+            raise ValueError("--verification must be between 0 and 10")
 
         # Port range
         if not (1 <= self.port <= 65535):

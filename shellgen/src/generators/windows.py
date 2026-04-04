@@ -1167,8 +1167,7 @@ resolve_symbols_kernel32:
 
             if offset == 0:
                 lines.append(
-                    f"    mov {reg}, {sp}"
-                    f"          ; {reg} -> buffer ({size} bytes)"
+                    f"    mov {reg}, {sp}" f"          ; {reg} -> buffer ({size} bytes)"
                 )
             else:
                 lines.append(
@@ -1204,12 +1203,9 @@ resolve_symbols_kernel32:
     def _dword_has_bad_chars(self, value):
         """Check if a dword value contains any bad characters."""
         value = value & 0xFFFFFFFF
-        for i in range(4):
-            if ((value >> (i * 8)) & 0xFF) in self.bad_chars:
-                return True
-        return False
+        return any((value >> (i * 8)) & 0xFF in self.bad_chars for i in range(4))
 
-    def generate(self, config):
+    def generate(self, config):  # noqa: C901
         """
         Generate complete Windows shellgen from a config dict.
 

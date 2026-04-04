@@ -322,8 +322,9 @@ else:
     )
 
 
-def format_output(asm_code, output_format, arch="x86", platform="windows",
-                   bad_chars=None):
+def format_output(
+    asm_code, output_format, arch="x86", platform="windows", bad_chars=None
+):
     """
     Format the shellgen in the requested output format.
 

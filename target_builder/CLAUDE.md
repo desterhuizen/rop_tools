@@ -15,7 +15,7 @@ IMPORTANT NOTES on the TOOL:
 
 - **Language:** Python 3.8+ (generates C++ source code)
 - **Dependencies:** `rich` (terminal formatting via `lib/color_printer`)
-- **Testing:** `unittest` (stdlib) — 284 tests across 7 test files
+- **Testing:** `unittest` (stdlib) — 329 tests across 8 test files
 - **Linting:** flake8, black, isort, mypy (config in root `.flake8` / `pyproject.toml`)
 
 ### Running the Tool
@@ -83,6 +83,7 @@ src/
     ├── stack_padding.py   # Stack layout variation (padding vars + landing pad)
     ├── data_staging.py    # Persistent heap buffer for egghunter data staging
     ├── decoys.py          # Safe-looking commands (strncpy, bounded memcpy, etc.)
+    ├── verification.py    # Tiered input verification checks (reverse engineering gate)
     └── rop_dll.py         # DLL or embedded __asm gadget blocks
 ```
 
@@ -255,6 +256,46 @@ Each decoy gets a randomizable command name that sounds plausible (e.g. `PROCESS
 
 ---
 
+## Verification Checks (`--verification N`)
+
+Optional input verification gate that requires the attacker to reverse-engineer
+the binary before reaching the vulnerable code path. A C++ `verify_input()`
+function checks N conditions on the input data; if any check fails, the server
+responds "Access denied" and never calls the vulnerable function.
+
+### Tiered Check Types (12 total)
+
+| Tier | Checks | Types |
+|------|--------|-------|
+| **1 — Basic** (checks 1-3) | Simple byte tests | magic byte, forbidden byte, byte equality, parity |
+| **2 — Intermediate** (checks 4-6) | Bit/arithmetic tests | bitmask, range, modulo, nibble swap |
+| **3 — Advanced** (checks 7+) | Multi-byte / string tests | XOR gate, sum gate, prefix token, checksum |
+
+### How It Works
+- `verify_input(char* data, int data_len)` generated before the vuln function
+- Dispatcher wraps `vuln_function()` call: `if (verify_input(...)) { vuln_function(...); }`
+- Checks use byte offsets in the first 32 bytes of input data
+- Seeded RNG makes each binary's checks unique but deterministic
+
+### Exploit Interaction
+- Verification bytes sit at the **start** of the input, before the overflow payload
+- `strcpy` copies the entire input (header + overflow) into the buffer
+- EIP offset from the start of the payload is **unchanged** — the header occupies
+  the first N bytes inside the buffer, padding extends from there
+- Exploit skeleton auto-generates `verify_header` bytearray with correct solution
+
+### Config / Dataclass
+- `ServerConfig.verification_level: int` (0-10, default 0)
+- `ServerConfig.verification_seed: Optional[int]` (RNG seed for check generation)
+- Template: `templates/verification.py`
+
+### Randomization
+- `--exclude-protection verification` forces OFF
+- Difficulty presets: easy=0, medium=0-3, hard=3-7
+- Without difficulty: weighted random (often 0, up to 6)
+
+---
+
 ## ROP Companion DLL
 
 ### DEP Bypass API in DLL IAT
@@ -319,6 +360,8 @@ is included — propagated automatically from `ServerConfig.dep_api` by the CLI.
   picked from `LEAK_FUNC_POOL` (12 names); attacker must find it in disassembly
 - **Data staging** — heap staging command; hard=50%, medium=30%. Command name
   picked from `DATA_STAGING_CMD_POOL` (10 names)
+- **Verification checks** — number of checks and check types per tier;
+  easy=0, medium=0-3, hard=3-7. Seed determines specific checks.
 
 ### Constrained Randomization
 Any explicit CLI argument is respected as an override during `--random`:
@@ -328,7 +371,8 @@ Any explicit CLI argument is respected as an override during `--random`:
 - `--bad-char-action drop,replace` → action picked from {drop, replace}
 - `--padding-style mixed,struct` → style picked from {mixed, struct}
 - `--dep-api virtualalloc` → DEP API pinned
-- `--exclude-protection dep,aslr,canary,safeseh,fmtstr-leak` → force OFF
+- `--verification N` → verification level pinned
+- `--exclude-protection dep,aslr,canary,safeseh,fmtstr-leak,verification` → force OFF
 
 Validation: comma-lists checked against enums, vuln list filtered by arch
 compat (error if empty after filtering), `--exclude-protection X` + `--X`
@@ -350,6 +394,7 @@ contradictions detected, comma-lists rejected without `--random`.
 - `test_renderer.py` — template assembly, correct includes, well-formed C++
 - `test_templates.py` — each vuln/protocol template produces valid C++ fragments
 - `test_exploit_skeleton.py` — Python script generation per protocol/level
+- `test_verification.py` — verification template, config, renderer, exploit, CLI
 
 ### Integration Tests
 - `test_integration.py` — full CLI invocations, output file generation
@@ -379,6 +424,24 @@ contradictions detected, comma-lists rejected without `--random`.
 ---
 
 ## Changelog
+
+### April 4, 2026 — Verification checks
+- **feat: `--verification N`** — Optional input verification gate that requires the
+  attacker to reverse-engineer the binary before reaching the vulnerable code path.
+  A C++ `verify_input()` function checks N conditions on the input data; if any check
+  fails, the server sends "Access denied" and skips the vulnerable function.
+  - **12 check types in 3 difficulty tiers:**
+    - Tier 1 (Basic, checks 1-3): magic byte, forbidden byte, byte equality, parity
+    - Tier 2 (Intermediate, checks 4-6): bitmask, range, modulo, nibble swap
+    - Tier 3 (Advanced, checks 7+): XOR gate, sum gate, prefix token, checksum
+  - Seeded RNG makes each binary's checks unique but deterministic
+  - Exploit skeleton auto-generates `verify_header` bytearray with correct solution
+  - EIP offset unchanged — verification bytes land at the start of the buffer
+  - `--exclude-protection verification` supported
+  - Difficulty presets: easy=0, medium=0-3, hard=3-7
+  - New template: `templates/verification.py`
+  - New config fields: `ServerConfig.verification_level`, `ServerConfig.verification_seed`
+  - 329 tests (was 284) — 41 new tests in `test_verification.py`
 
 ### March 29, 2026 — ROP DLL DEP API fix
 - **fix: ROP DLL missing DEP bypass API** — The companion DLL only contained

@@ -18,12 +18,13 @@ from target_builder.src.templates import base, buffer_overflow
 from target_builder.src.templates import data_staging as data_staging_templates
 from target_builder.src.templates import decoys as decoy_templates
 from target_builder.src.templates import egghunter, format_string, rop_dll, seh_overflow
+from target_builder.src.templates import verification as verification_templates
 from target_builder.src.templates.protocols import http as http_proto
 from target_builder.src.templates.protocols import rpc as rpc_proto
 from target_builder.src.templates.protocols import tcp as tcp_proto
 
 
-def render(config: ServerConfig) -> str:
+def render(config: ServerConfig) -> str:  # noqa: C901
     """Render a complete C++ server source from configuration.
 
     Args:
@@ -95,6 +96,15 @@ def render(config: ServerConfig) -> str:
         sections.append(decoy_templates.generate_decoy_functions(config, decoy_specs))
         sections.append("")
 
+    # 7c. Verification function
+    if config.verification_level > 0 and config.verification_seed is not None:
+        verify_code, _ = verification_templates.generate_verification_function(
+            config.verification_level, config.verification_seed
+        )
+        if verify_code:
+            sections.append(verify_code)
+            sections.append("")
+
     # 7b. Format string macros (needed by fmtstr vuln and fmtstr-leak)
     if config.vuln_type == VulnType.FMTSTR or config.fmtstr_leak:
         sections.append(_fmtstr_macros())
@@ -111,6 +121,7 @@ def render(config: ServerConfig) -> str:
 
     # Build dispatcher components
     vuln_call = _get_vuln_handler_call(config)
+    vuln_call = _wrap_with_verification(config, vuln_call)
     safe_calls = proto_module.generate_safe_commands(config)
     info_leak = proto_module.generate_info_leak(config)
     fmtstr_leak = proto_module.generate_fmtstr_leak(config)
@@ -157,6 +168,9 @@ def _generate_forward_declarations(config: ServerConfig) -> str:
 
     if config.data_staging:
         decls.append("void handle_data_staging(char* data, int data_len);")
+
+    if config.verification_level > 0:
+        decls.append("int verify_input(char* data, int data_len);")
 
     if config.bad_chars:
         decls.append("int filter_bad_chars(char* buf, int len);")
@@ -235,6 +249,34 @@ def _get_vuln_handler_call(config: ServerConfig) -> str:
     elif config.vuln_type == VulnType.FMTSTR:
         return format_string.generate_vuln_handler_call(config)
     raise ValueError(f"Unknown vuln type: {config.vuln_type}")
+
+
+def _wrap_with_verification(config: ServerConfig, vuln_call: str) -> str:
+    """Wrap the vuln handler call with a verify_input() gate.
+
+    When verification is enabled, the dispatcher checks verify_input()
+    before calling the vulnerable function.  On failure, sends a
+    denial message and skips the vuln path.
+    """
+    if config.verification_level <= 0:
+        return vuln_call
+
+    # Determine the data/len expressions based on protocol
+    if config.protocol == Protocol.HTTP:
+        data_expr, len_expr = "req->body", "req->body_len"
+    elif config.protocol == Protocol.RPC:
+        data_expr, len_expr = "payload", "payload_len"
+    else:
+        data_expr, len_expr = "data", "data_len"
+
+    return (
+        f"if (verify_input({data_expr}, {len_expr})) {{\n"
+        f"    {vuln_call}\n"
+        f"}} else {{\n"
+        f'    const char* deny_msg = "Access denied.\\n";\n'
+        f"    send(client, deny_msg, (int)strlen(deny_msg), 0);\n"
+        f"}}"
+    )
 
 
 def _resolve_decoy_specs(

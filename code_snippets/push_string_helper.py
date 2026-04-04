@@ -53,15 +53,17 @@ def _encode_dword(target):
             if offset > 0x00FFFFFF:
                 break
             clean = (target + offset) & 0xFFFFFFFF
-            if (not _contains_bad_chars(struct.pack("<I", clean))
-                    and not _contains_bad_chars(struct.pack("<I", offset))):
+            if not _contains_bad_chars(
+                struct.pack("<I", clean)
+            ) and not _contains_bad_chars(struct.pack("<I", offset)):
                 return ("SUB", clean, offset)
 
     # Strategy 2: addition (val1 + val2 = target)
     for val1 in range(0x01010101, 0x7F7F7F7F, 0x01010101):
         val2 = (target - val1) & 0xFFFFFFFF
-        if (not _contains_bad_chars(struct.pack("<I", val1))
-                and not _contains_bad_chars(struct.pack("<I", val2))):
+        if not _contains_bad_chars(struct.pack("<I", val1)) and not _contains_bad_chars(
+            struct.pack("<I", val2)
+        ):
             return ("ADD", val1, val2)
 
     raise ValueError(f"Cannot encode 0x{target:08x} avoiding bad chars")
@@ -97,10 +99,10 @@ def push_string(s, reg="eax", ptr_reg="ecx", sp_reg="esp"):
 
     dwords = []
     for i in range(0, len(s_bytes), 4):
-        dwords.append(struct.unpack("<I", s_bytes[i:i + 4])[0])
+        dwords.append(struct.unpack("<I", s_bytes[i : i + 4])[0])
 
     lines = []
-    lines.append(f"    ; Push string: \"{s}\"                        ;")
+    lines.append(f'    ; Push string: "{s}"                        ;')
 
     # Push dwords in reverse order (stack grows down)
     for dword in reversed(dwords):
@@ -131,18 +133,21 @@ def push_string(s, reg="eax", ptr_reg="ecx", sp_reg="esp"):
 
 # ── Demo / self-test ────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    print("=== push_string demo (x86, BAD_CHARS = {%s}) ===" %
-          ", ".join(f"0x{b:02x}" for b in sorted(BAD_CHARS)))
+    print(
+        "=== push_string demo (x86, BAD_CHARS = {%s}) ==="
+        % ", ".join(f"0x{b:02x}" for b in sorted(BAD_CHARS))
+    )
     print()
 
     test_string = "C:\\temp\\met.exe"
     asm = push_string(test_string)
-    print(f"String: \"{test_string}\"")
+    print(f'String: "{test_string}"')
     print(f"Assembly output:\n{asm}")
     print()
 
     # Verify no bad chars in any immediate values
     import re
+
     for match in re.finditer(r"0x([0-9a-f]{8})", asm):
         val = int(match.group(0), 16)
         val_bytes = struct.pack("<I", val)

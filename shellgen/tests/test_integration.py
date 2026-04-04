@@ -377,9 +377,7 @@ class TestStackAllocJsonLoading(unittest.TestCase):
                 {"name": "ebx", "size": 4, "init_dword": 260},
             ],
         }
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(config, f)
             f.flush()
 
@@ -401,9 +399,7 @@ class TestStackAllocJsonLoading(unittest.TestCase):
             ],
             "stack_alloc": [{"name": "edi", "size": "0x104"}],
         }
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(config, f)
             f.flush()
 

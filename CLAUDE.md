@@ -91,6 +91,7 @@ rop_tools/
 │   │       ├── buffer_overflow.py, seh_overflow.py, egghunter.py, format_string.py
 │   │       ├── data_staging.py  # Persistent heap buffer for egghunter staging
 │   │       ├── decoys.py       # Non-exploitable decoy commands
+│   │       ├── verification.py # Tiered input verification checks (reverse engineering gate)
 │   │       └── rop_dll.py      # Companion DLL with ROP gadgets
 │   └── tests/                  # Target builder tests (114 tests)
 │
@@ -346,6 +347,16 @@ pip install -r requirements-lint.txt
 ---
 
 ## Changelog (Project-Wide)
+
+### April 4, 2026 — Target builder verification checks
+- **target_builder**: New `--verification N` flag — optional input verification gate
+  that generates a C++ `verify_input()` function with N randomized checks. 12 check
+  types in 3 difficulty tiers (basic: magic byte, forbidden byte, byte equality,
+  parity; intermediate: bitmask, range, modulo, nibble swap; advanced: XOR gate,
+  sum gate, prefix token, checksum). Seeded RNG for deterministic per-binary checks.
+  Exploit skeleton auto-generates `verify_header` bytearray. EIP offset unchanged.
+  `--exclude-protection verification` supported. Difficulty presets: easy=0,
+  medium=0-3, hard=3-7. 329 target_builder tests (was 284).
 
 ### April 1, 2026 — Shellgen stack_alloc + pyasm push_string helper
 - **shellgen**: New `stack_alloc` JSON field for pre-allocating stack buffers in custom
