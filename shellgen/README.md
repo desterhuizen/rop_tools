@@ -98,46 +98,6 @@ pip install -r requirements.txt
 cd shellgen && ./shellgen_cli.py --list-payloads
 ```
 
-#### Arch Linux
-
-```bash
-# Install system dependencies
-sudo pacman -S python python-pip cmake base-devel
-
-# Navigate to the repo root
-cd /path/to/rop_tools
-
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies from consolidated requirements.txt
-pip install -r requirements.txt
-
-# Verify installation
-cd shellgen && ./shellgen_cli.py --list-payloads
-```
-
-#### Alpine Linux
-
-```bash
-# Install system dependencies
-apk add --no-cache python3 py3-pip cmake make gcc g++ musl-dev
-
-# Navigate to the repo root
-cd /path/to/rop_tools
-
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies from consolidated requirements.txt
-pip install -r requirements.txt
-
-# Verify installation
-cd shellgen && ./shellgen_cli.py --list-payloads
-```
-
 ### Using the Virtual Environment
 
 Every time you want to use the shellcode generator, activate the virtual environment first:
@@ -482,12 +442,13 @@ For advanced use cases, you can create custom payloads by defining API calls in 
 - `calls` - Array of API call objects (required)
   - `api` - Windows API function name (e.g., "CreateFileA", "WriteFile")
   - `dll` - DLL containing the function (e.g., "kernel32.dll", "user32.dll")
-  - `args` - Array of arguments to pass to the function
-    - Integers (e.g., `1`, `2`)
-    - Hex strings (e.g., `"0x40000000"`) — converted to integers automatically
-    - `null` or `0` for NULL pointers
-    - Strings (e.g., `"C:\\test.txt"`, `"Hello World!"`)
-    - Register references (e.g., `"REG:eax"`, `"REG:esp"`)
+  - `args` - Array of arguments to pass to the function. Supported types:
+    - **Integers** (e.g., `1`, `2`, `0x40000000`) — pushed with bad-char encoding
+    - **Hex strings** (e.g., `"0x40000000"`) — converted to integers automatically, then pushed with bad-char encoding
+    - **`null` or `0`** — NULL pointers, pushed via `xor reg, reg` to avoid NULL bytes
+    - **Strings** (e.g., `"C:\\test.txt"`, `"Hello World!"`) — pushed onto the stack, pointer passed as argument
+    - **`"REG:reg"`** — register references (e.g., `"REG:eax"`, `"REG:esp"`) — pushes the register value directly
+    - **`"MEM:ref"`** — memory references (e.g., `"MEM:[ebp-4]"`, `"MEM:[esp+0x10]"`) — pushes from the specified memory location. Any bracket expression is emitted as `push [ref]`
   - `save_result` - Register to save the return value (EAX) into after the call (optional).
     Emits `mov <reg>, eax` after the API call. Use this to preserve return values across
     multiple calls. The saved register can then be referenced in later calls via `"REG:<reg>"`.
@@ -630,6 +591,16 @@ Use `"REG:register_name"` in `args` to reference register values. Use `"save_res
 - `"REG:esp"` - Stack pointer (useful for passing pointer to DWORD output parameter)
 
 **x64 registers:** `"REG:rax"`, `"REG:rcx"`, `"REG:rdx"`, `"REG:r8"` through `"REG:r15"`, etc.
+
+**Memory references with `"MEM:"`:**
+
+Use `"MEM:[expression]"` to push a value from a memory location. The bracket expression is emitted directly as `push [expression]` in the generated assembly.
+
+- `"MEM:[ebp-4]"` — push DWORD from `[ebp-4]`
+- `"MEM:[esp+0x10]"` — push DWORD from `[esp+0x10]`
+- `"MEM:[edi]"` — push DWORD pointed to by `edi`
+
+This is useful for passing pointers or values stored at known stack/memory offsets, such as data from `stack_alloc` buffers or local variables.
 
 **`save_result` field:**
 
@@ -953,6 +924,7 @@ The `hash_generator.py` tool generates ROR13 hashes for Windows API functions. T
 ./hash_generator.py LoadLibraryA GetProcAddress CreateProcessA
 
 # Generates hashes for all specified functions
+
 ```
 
 ### Read from File
