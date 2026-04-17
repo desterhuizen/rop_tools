@@ -348,6 +348,18 @@ pip install -r requirements-lint.txt
 
 ## Changelog (Project-Wide)
 
+### April 17, 2026 — License change: MIT → AGPL-3.0-or-later
+- Relicensed the repository from MIT to **GNU Affero General Public License
+  v3.0 or later** to match the companion `dread` project. `LICENSE` now
+  carries the full AGPLv3 text.
+- Added `NOTICE` with an acceptable-use / no-malicious-use statement adapted
+  for offensive-security tooling (mirrors `dread/NOTICE`). The NOTICE is a
+  non-binding operator disclaimer — AGPLv3 remains the sole legal license.
+- Added `[project]` metadata table to `pyproject.toml` with `license` and
+  AGPLv3 classifier.
+- Updated README's License section to describe the AGPL obligations and
+  acceptable-use scope.
+
 ### April 4, 2026 — Target builder verification checks
 - **target_builder**: New `--verification N` flag — optional input verification gate
   that generates a C++ `verify_input()` function with N randomized checks. 12 check

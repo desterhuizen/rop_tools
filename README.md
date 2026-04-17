@@ -424,7 +424,32 @@ isort lib/ rop/ shellgen/ code_snippets/
 
 ## 📜 License
 
-This toolkit is provided for educational and authorized security testing purposes only.
+The ROP Tools Suite is licensed under the **GNU Affero General Public
+License v3.0 or later (AGPL-3.0-or-later)**. See [`LICENSE`](LICENSE)
+for the full text.
+
+Because the suite is AGPL, anyone who runs a modified version as a
+network-accessible service must make the corresponding source code of
+that modified version available to the users of that service.
+
+### Acceptable use — no malicious use
+
+The ROP Tools Suite is offensive-security tooling intended solely for
+**authorized** penetration testing, CTFs, training labs, security
+research, and education on systems you own or have explicit written
+permission to test. See [`NOTICE`](NOTICE) for the full acceptable-use
+statement.
+
+**You must not** use these tools — or any output they produce
+(shellcode, exploit skeletons, vulnerable server binaries) — to
+access, disrupt, or compromise any system, network, account, or data
+without the prior, explicit, written authorization of its lawful
+owner, or to violate any applicable law. Binaries produced by
+`target_builder` are intentionally vulnerable and must only run on
+isolated lab networks. Unauthorized computer access is a criminal
+offense in most jurisdictions. By using the suite you represent that
+your activity is authorized and lawful; the authors accept no
+liability for misuse.
 
 ---
 

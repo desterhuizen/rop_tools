@@ -1,0 +1,59 @@
+ROP Tools Suite — Shellcode, ROP, and target-builder tooling for
+offensive-security research
+Copyright (C) 2026 Dawid Esterhuizen and contributors
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU Affero General Public License, version 3, as
+published by the Free Software Foundation. See the LICENSE file for the
+full license text.
+
+
+ACCEPTABLE USE — NO MALICIOUS USE
+=================================
+
+The ROP Tools Suite is offensive-security tooling intended solely for:
+
+  * Authorized penetration testing and red-team engagements performed
+    under a written scope of work with the system owner's explicit
+    consent.
+  * Capture-the-flag (CTF) competitions and training labs on
+    infrastructure the operator owns or is authorized to test.
+  * Security research, exploit development, and defensive hardening on
+    systems the operator owns or has been granted permission to assess.
+  * Educational use in controlled environments (e.g. the included
+    target_builder generates intentionally vulnerable servers for
+    training on isolated lab networks).
+
+You MUST NOT use the ROP Tools Suite, any derivative work, or any
+output produced by it (including generated shellcode, exploit
+skeletons, or vulnerable server binaries) to:
+
+  * Access, probe, disrupt, degrade, or compromise any computer system,
+    network, account, or data without the prior, explicit, written
+    authorization of the lawful owner.
+  * Develop, deploy, or distribute malware, ransomware, spyware, or
+    surveillance tooling targeting parties who have not consented to
+    such activity.
+  * Harass, surveil, dox, extort, defraud, or cause harm to any person
+    or organization.
+  * Violate any applicable law, regulation, export control, or contract
+    in the jurisdiction in which you operate or the jurisdiction of the
+    target system.
+
+Binaries produced by `target_builder` are intentionally vulnerable by
+design. Do NOT deploy them on any network reachable by untrusted
+parties. They are meant to run on isolated lab machines for exploit
+development practice only.
+
+By using the ROP Tools Suite you represent and warrant that your
+activity is authorized and lawful. The authors and contributors accept
+no liability for misuse. Unauthorized computer access is a criminal
+offense in most jurisdictions (e.g. the U.S. Computer Fraud and Abuse
+Act, the U.K. Computer Misuse Act, and equivalent statutes worldwide)
+— if you are unsure whether your intended use is authorized, do not
+run this software.
+
+This acceptable-use statement is a non-binding operator disclaimer. It
+does not add restrictions to the AGPLv3 license granted in LICENSE, nor
+does it limit the rights granted to you under that license. The AGPLv3
+remains the sole legal license governing this software.

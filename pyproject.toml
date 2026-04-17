@@ -1,6 +1,16 @@
 # ROP Tools Suite - Project Configuration
 # This file configures black, isort, and other Python tools
 
+[project]
+name = "rop-tools"
+version = "0.1.0"
+description = "Multi-tool pentest suite: shellcode generator, ROP analysis, vulnerable target builder"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+]
+
 [tool.black]
 line-length = 88
 target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
